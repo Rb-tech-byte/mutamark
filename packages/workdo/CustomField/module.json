@@ -1,0 +1,12 @@
+{
+    "name": "CustomField",
+    "alias": "Custom Field",
+    "description": "",
+    "keywords": [],
+    "priority": 500,
+    "version":3.2,
+    "providers": [
+        "Modules\\CustomField\\Providers\\CustomFieldServiceProvider"
+    ],
+    "files": []
+}

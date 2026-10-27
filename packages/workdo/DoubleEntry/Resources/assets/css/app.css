@@ -1,0 +1,97 @@
+.custom-action-btn{
+    display: inline;
+}
+
+.account-inner p{
+    max-width: 25%;
+    width: 100%;
+}
+
+.account-title h6{
+    max-width: 25%;
+    width: 100%;
+}
+
+.list_colume_notifi {
+    position: relative;
+    display: block;
+    padding: 16.66667px 25px;
+    color: #212529;
+    /* background-color: #ffffff; */
+    border: 1px solid #f1f1f1;
+}
+@media (max-width: 420px) {
+    .action-btn-col{
+        flex: 0 0 100%;
+        text-align: left;
+        justify-content: left;
+        display: flex;
+        margin-top: 10px;
+    }
+}
+
+.account-arrow{
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex: 0 0 25%;
+
+}
+.account-arrow p{
+    flex: 0 0 25%;
+}
+.account-arrow .account-icon{
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    margin-left: -20px;
+    font-size: 12px;
+}
+body.theme-1 .account-arrow .account-icon{
+    background-color: #0CAF60;
+}
+body.theme-2 .account-arrow .account-icon{
+    background-color: #584ED2;
+}
+body.theme-3 .account-arrow .account-icon{
+    background-color: #6FD943;
+}
+body.theme-4 .account-arrow .account-icon{
+    background-color: #145388;
+}
+body.theme-5 .account-arrow .account-icon{
+    background-color: #B9406B;
+}
+body.theme-6 .account-arrow .account-icon{
+    background-color: #008ECC;
+}
+body.theme-7 .account-arrow .account-icon{
+    background-color: #922C88;
+}
+body.theme-8 .account-arrow .account-icon{
+    background-color: #C0A145;
+}
+body.theme-9 .account-arrow .account-icon{
+    background-color: #48494B;
+}
+body.theme-10 .account-arrow .account-icon{
+    background-color: #0C7785;
+}
+
+.account-arrow .account-icon i{
+    transition: .5s all ease-in-out;
+}
+.collapse-view .account-arrow i{
+    transform: rotate(180deg);
+}
+
+.subAccount {
+    font-weight: 600;
+}
+
+
+

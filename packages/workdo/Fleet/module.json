@@ -1,0 +1,13 @@
+{
+    "name": "Fleet",
+    "alias": "Fleet",
+    "description": "",
+    "priority": 120,
+    "version": 4.0,
+    "monthly_price": 0,
+    "yearly_price": 0,
+    "child_module": [
+        "VehicleBookingManagement"
+    ],
+    "package_name": "fleet"
+}

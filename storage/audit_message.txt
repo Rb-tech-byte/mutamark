@@ -1,0 +1,52 @@
+Based on the Software Requirements Specification (SRS) and Implementation Blueprint from **WOLINET TECHNOLOGY & COOPERATION LTD** for **Mutamark Enterprises**, here is the comprehensive audit, gap analysis, and step-by-step roadmap to transform the current codebase into the complete **Mutamark ERP**.
+
+---
+
+## 1. Executive Gap Analysis: Current Codebase vs. Mutamark SRS
+
+| Requirement Domain (SRS) | Mutamark Specification | Current Codebase Status | Actions Needed to Comply |
+| :--- | :--- | :--- | :--- |
+| **System Branding & Identity** | Mutamark Enterprises / Wolinet Technology Ltd | Partially "Mutamark ERP", but legacy "WorkDo Dash" strings/templates exist | Purge remaining WorkDo references; enforce Mutamark corporate identity across all pages, PDFs, and email templates. |
+| **Tanzanian Localization** | TZS default currency, TRA / e-TIMS e-invoicing architecture, Lipa Namba | USD/standard default, basic tax percentages | Set base currency to **TZS**; implement Tanzanian VAT (18%), withholding tax rules, and e-TIMS payload/QR readiness. |
+| **Document Numbering Scheme (App. A)** | `INV-2026-00001`, `PO-2026-00001`, `GRN-2026-00001`, `QT-2026-00001`, etc. | Uses generic `#INV00001` or standard counter | Upgrade document prefix generators in [app/Helpers/Helper.php](file:///c:/wamp64/www/mutadash/app/Helpers/Helper.php) and individual module models to follow `PREFIX-YYYY-#####`. |
+| **Paperless Office & Digital Signatures (Mod. 23 & 25)** | Cryptographic signing, digital approval block, public QR verification portal | Simple signature canvas in proposals | Build public QR verification route (`/verify-document/{code}`), verification badge, and embed verification QR on all PDF templates. |
+| **3-Way Matching & Procurement (Mod. 8)** | `Requisition → RFQ → PO → GRN → Invoice → 3-Way Match` | PO and Bill exist, but GRN and 3-way matching logic are disconnected | Build/integrate GRN (Goods Received Note) and enforce 3-Way Matching verification before bill payment authorization. |
+| **Quote-to-Cash Workflow 
+<truncated 4615 bytes>
+ showing:
+     * Document Number & Type
+     * Issuer: Mutamark Enterprises
+     * Date of Issue & Approval Timestamp
+     * Signatory Name & Designation
+     * Verification Status: **AUTHENTIC & VALIDATED BY WOLINET ERP ENGINE**
+3. **Embed Dynamic QR on Document PDFs**:
+   * Update PDF print templates for Invoices, Quotations, POs, and Receipts to print the QR code pointing directly to `https://[domain]/verify/{code}` at the bottom right.
+
+### Step 4: Tanzanian Statutory Payroll (Module 17)
+* In `packages/workdo/Hrm`, configure Tanzanian statutory deductions:
+  * **NSSF**: 10% Employee deduction, 10% Employer contribution.
+  * **PAYE**: Current Tanzanian TRA progressive income tax brackets.
+  * **NHIF**: Tanzanian statutory health insurance tiers.
+  * **WCF**: 0.5% Workers Compensation Fund (employer liability).
+  * Auto-generate statutory payroll remittance schedules for TRA, NSSF, and WCF exports.
+
+### Step 5: Core Financial Controls (Appendix B)
+* **Invoice Immutability**:
+  * Add policy check: If invoice status is `sent` or `paid`, disallow `update()` or `delete()`. Require issuing a **Credit Note** (`CN-2026-XXXXX`) instead.
+* **Accounting Immutability**:
+  * In `packages/workdo/DoubleEntry`, prevent deleting posted journal entries. Enforce creating a **Reversal Journal Voucher** (`JV-2026-XXXXX`).
+* **Stock Protection**:
+  * Prevent sales/transfers if quantity exceeds warehouse stock balance unless `allow_negative_stock` is explicitly toggled by admin.
+
+---
+
+## 4. Suggested Execution Plan
+
+We can begin upgrading the codebase immediately in focused milestones:
+
+1. **Phase 1 (Immediate)**: Document numbering scheme update (Appendix A) + Mutamark company branding & TZS currency default.
+2. **Phase 2**: Digital Signature engine + Public Document Verification QR portal (`/verify/{code}`).
+3. **Phase 3**: GRN & 3-Way Matching procurement workflow in Inventory/Account.
+4. **Phase 4**: Tanzanian Payroll statutory deductions (PAYE, NSSF, WCF) and PDF template polish.
+
+Which phase would you like to start with first?

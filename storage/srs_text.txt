@@ -1,0 +1,1106 @@
+--- PAGE 1 ---
+CO N F I D E N T I A L D O C U M E N T • CO M M E R C I A L & T E C H N I C A L P R O P O S A L
+MUTAMARK ENTERPRISES
+MUTAMARK ENTERPRISES
+Software Requirements Specification & Implementation Blueprint
+Mutamark ERP — Integrated Enterprise Resource Planning & Paperless Operating System
+1.0 (Master Proposal)
+August 2026
+WOLINET TECHNOLOGY & COOPERATION
+LTD
+Mutamark Enterprises
+info@wolinet.com | +255 747 003 357
+Approved Blueprint & Commercial Proposal
+DOCUMENT VERSION
+DATE
+PREPARED BY
+PREPARED FOR
+CONTACT & SUPPORT
+DOCUMENT STATUS
+Prepared, owned, and architected by WOLINET TECHNOLOGY & COOPERATION LTD for Mutamark Enterprises.
+Contains complete functional requirements, technical specifications, structured 3-week accelerated delivery timeline (21 days), and
+commercial pricing.
+
+--- PAGE 2 ---
+Table of Contents
+1
+Introduction
+2
+Overall Description
+3
+System Features
+3.1
+System Administration
+3.2
+Company & Branch Management
+3.3
+User, Role & Permission Management
+3.4
+CRM & Customer Management
+3.5
+Supplier & Vendor Management
+3.6
+Product & Service Catalog
+3.7
+Inventory & Warehouse Management
+3.8
+Procurement Management
+3.9
+Sales Management
+3.10
+Point of Sale (POS)
+3.11
+Accounting & Finance
+3.12
+Tax Management
+3.13
+Expense & Income Management
+3.14
+Cash & Bank Management
+3.15
+Human Resource Management
+3.16
+Attendance & Leave Management
+3.17
+Payroll Management
+3.18
+Project Management
+3.19
+Task Management
+3.20
+Fixed Asset Management
+3.21
+Warranty & Servicing
+3.22
+Document Management System
+3.23
+Digital Signature & Verification
+3.24
+Approval Workflow Engine
+3.25
+Paperless Office & Template Engine
+3.26
+Notification & Communication Engine
+3.27
+Customer Self-Service Portal
+3.28
+Supplier Self-Service Portal
+3.29
+Barcode, QR & Serial Management
+3.30
+Reporting & Business Intelligence
+3.31
+Management Dashboard
+3.32
+API & External Integration
+3.33
+Payment Integration
+3.34
+Backup & Disaster Recovery
+3.35
+Audit Trail & Compliance
+4
+External Interface Requirements
+5
+Non-Functional Requirements
+6
+Data Requirements
+7
+Development Roadmap & Three-Week Delivery
+Timeline (21 Days)
+8
+Commercial Investment, Pricing & Payment
+Schedule
+9
+Acceptance Criteria
+10
+Appendices
+11
+Recommended Next Steps & Commercial Sign-Off
+
+--- PAGE 3 ---
+1
+Introduction
+1.1 Purpose
+This Software Requirements Specification (SRS) defines the complete functional, technical, operational, and security
+requirements for the Mutamark ERP System. The system shall serve as the centralized digital operating platform for
+Mutamark Enterprises, integrating sales, procurement, inventory, accounting, human resources, projects, assets,
+document management, digital signatures, and business intelligence into a single unified environment.
+“Enter information once, use it throughout the business.”
+1.2 Document Conventions
+TERM
+DEFINITION
+Shall
+Mandatory requirement
+Should
+Recommended requirement
+May
+Optional requirement
+TBD
+To be determined during design phase
+1.3 Intended Audience
+This document is intended for system architects, database designers, software developers, quality assurance engineers,
+project managers, and Mutamark Enterprises stakeholders.
+1.4 Project Scope
+The Mutamark ERP shall replace fragmented business processes with integrated, paperless, audit-ready workflows. The
+system shall support multi-branch operations, role-based access, digital approvals, automated accounting entries, and
+real-time management dashboards.
+1.5 References
+Mutamark Enterprises Business Requirements (Source Document)
+Applicable Tanzanian tax and e-invoicing regulations
+IEEE Std 830-1998 — Recommended Practice for Software Requirements Specifications
+2
+Overall Description
+2.1 Product Perspective
+The ERP shall be a web-based, responsive application accessible via desktop, tablet, and mobile devices. It shall operate
+as a cloud-ready system with Progressive Web App (PWA) capabilities and offline synchronization for critical POS and
+
+--- PAGE 4 ---
+inventory operations.
+2.2 Product Functions — Summary
+The system shall provide the following functional domains:
+1. System Administration & Security
+2. Multi-Company & Branch Management
+3. User, Role & Permission Management
+4. CRM & Customer Management
+5. Supplier & Vendor Management
+6. Product & Service Catalog
+7. Inventory & Warehouse Management
+8. Procurement Management (Procure-to-Pay)
+9. Sales Management (Quote-to-Cash)
+10. Point of Sale (POS)
+11. Accounting & Financial Management
+12. Tax Management
+13. Expense & Income Management
+14. Cash & Bank Management
+15. Human Resource Management
+16. Attendance & Leave Management
+17. Payroll Management
+18. Project Management
+19. Task Management
+20. Fixed Asset Management
+21. Warranty & Servicing
+22. Document Management System (DMS)
+23. Digital Signature & Verification
+24. Approval Workflow Engine
+25. Paperless Office & Template Engine
+26. Notification & Communication Engine
+27. Customer Self-Service Portal
+28. Supplier Self-Service Portal
+29. Barcode, QR & Serial Management
+30. Reporting & Business Intelligence
+31. Management Dashboard
+32. API & External Integration
+33. Payment Integration
+
+--- PAGE 5 ---
+34. Backup & Disaster Recovery
+35. Audit Trail & Compliance
+2.3 User Classes and Characteristics
+USER CLASS
+DESCRIPTION
+PRIVILEGE LEVEL
+Super Administrator
+Full system control
+Highest
+Managing Director
+Strategic oversight, all approvals
+High
+General Manager
+Operational oversight
+High
+Finance Manager
+Financial control and approvals
+High
+Accountant
+Accounting entries and reconciliation
+Medium-High
+Procurement Manager
+Procurement oversight and approvals
+Medium-High
+Procurement Officer
+Purchase requisitions and orders
+Medium
+Sales Manager
+Sales oversight and approvals
+Medium-High
+Sales Officer
+Quotations and sales orders
+Medium
+Warehouse Manager
+Inventory control and transfers
+Medium
+Storekeeper
+Stock receipt and issue
+Medium
+Cashier
+POS operations and cash handling
+Low-Medium
+HR Manager
+Employee and payroll management
+Medium-High
+Project Manager
+Project execution and costing
+Medium
+Auditor
+Read-only access to all transactions
+Medium
+Customer
+Self-service portal access
+Low
+Supplier
+Self-service portal access
+Low
+2.4 Operating Environment
+COMPONENT
+SPECIFICATION
+Server
+Cloud or on-premise Linux/Windows server
+Database
+Relational database with ACID compliance
+Client
+Modern web browsers (Chrome, Firefox, Safari, Edge)
+Mobile
+iOS Safari, Android Chrome via PWA
+Network
+Internet connectivity with offline sync for POS
+2.5 Design and Implementation Constraints
+The system shall support English as the primary interface language and shall be architected for future Kiswahili
+localization.
+Tax configuration shall be adaptable to Tanzanian tax requirements, including future e-invoicing (e-TIMS)
+integration.
+The system shall use double-entry accounting principles for all financial transactions.
+Document numbering shall be configurable by branch and financial year.
+
+--- PAGE 6 ---
+2.6 Assumptions and Dependencies
+Users shall have access to internet-connected devices.
+Barcode scanners, receipt printers, and cash drawers shall support standard connectivity protocols.
+Email, SMS, and WhatsApp gateway services shall be available for communication modules.
+3
+System Features
+3.1 MODULE 1 — SYSTEM ADMINISTRATION
+3.1.1 The system shall allow authorized administrators to configure: Company profile, branding, and letterhead; Financial years and
+periods; Base currency and additional foreign currencies with exchange rates; Tax rates, tax groups, and tax-inclusive/exclusive pricing
+rules; Payment methods and terms; Document numbering sequences and formats; Branches, warehouses, and departments; Units of
+measure and product categories; System preferences and localization settings; Backup schedules and retention policies.
+3.1.2 The system shall maintain an immutable audit log of all administrative configuration changes.
+3.2 MODULE 2 — COMPANY & BRANCH MANAGEMENT
+3.2.1 The system shall support: Management of one or more legal business entities; Multiple branches, stores, and warehouses per
+business entity; Separate stock balances, sales, and purchase tracking by location; Branch-specific user assignments and permissions;
+Branch-specific financial reporting; Consolidated group-level financial and operational reporting.
+3.3 MODULE 3 — USER, ROLE & PERMISSION MANAGEMENT
+3.3.1 The system shall implement Role-Based Access Control (RBAC) with configurable permissions for: View, Create, Edit, Delete,
+Approve, Reject, Print, Export, Download, Send, Sign, Pay, Cancel, Reverse, Import.
+3.3.2 Permissions shall be granularly configurable by: Module, branch, warehouse, department, transaction type, and transaction
+amount threshold.
+3.3.3 The system shall support: Unlimited user accounts; Custom role creation; Two-factor authentication (2FA); Strong password
+enforcement; Session timeout and concurrent session management; Login history and failed-login protection.
+3.4 MODULE 4 — CRM & CUSTOMER MANAGEMENT
+3.4.1 The system shall maintain a Customer Master with: Customer ID, name, company name, contact person; Phone, email, physical
+address, tax identification; Customer category, type (individual/company), assigned salesperson; Credit limit, payment terms, default
+discount, opening balance; Attached documents and notes.
+3.4.2 The system shall provide: Customer registration and history tracking; Customer grouping and categorization; Credit limit
+enforcement with override controls; Customer statement generation (transactional and outstanding balance); Customer
+communication history logging; Customer enquiry and follow-up tracking; Complaint and support ticket management.
+3.5 MODULE 5 — SUPPLIER & VENDOR MANAGEMENT
+3.5.1 The system shall maintain a Supplier Master with: Supplier ID, name, contact person, phone, email, address; Tax/VAT
+information, bank details, payment terms; Supplier category, opening balance, performance rating; Attached documents and
+qualification records.
+
+--- PAGE 7 ---
+3.5.2 The system shall provide: Supplier ledger with full transaction history; Purchase order, GRN, and invoice linkage; Supplier
+payment tracking and advance management; Supplier aging and outstanding balance reports; Supplier performance evaluation and
+rating.
+3.6 MODULE 6 — PRODUCT & SERVICE CATALOG
+3.6.1 The system shall support the following product types: General products; Variable products (with attributes); Services; Serial-
+number products; IMEI-tracked products; Batch/lot-tracked products; Expiry-date products; Installment products; Combo/kit products.
+3.6.2 The Product Master shall contain: Product ID, SKU (auto-generated), barcode, product name, alternative name; Description,
+brand, category, sub-category, unit of measure; Purchase price, selling price, wholesale price, minimum price; Configurable profit
+margin with automatic selling-price calculation; Tax assignment, reorder level, maximum stock, preferred supplier; Default warehouse,
+product image; Serial number, batch number, and expiry date tracking where applicable; Warranty period.
+3.7 MODULE 7 — INVENTORY & WAREHOUSE MANAGEMENT
+3.7.1 The system shall maintain real-time stock balances across all warehouses with full traceability.
+3.7.2 The system shall support the following stock transaction types: Opening stock; Purchase receipt; Sales issue; Sales return;
+Purchase return; Warehouse-to-warehouse transfer; Stock adjustment (positive/negative); Stock count/physical verification; Damaged
+stock write-off; Expired stock write-off; Stock issue for projects; Stock receipt from returns.
+3.7.3 The system shall provide: Live stock status and valuation (FIFO, Average Cost, or Standard Cost); Low-stock and reorder-level
+alerts; Stock movement history and ledger; Damaged, expired, and lost stock tracking; Barcode scanning for stock operations; Negative
+stock prevention (configurable by product/warehouse).
+3.8 MODULE 8 — PROCUREMENT MANAGEMENT (PROCURE-TO-PAY)
+3.8.1 The system shall enforce the following workflow:
+Purchase Requisition → Approval → RFQ → Supplier Quotations
+→ Comparative Evaluation → Purchase Order → GRN
+→ Supplier Invoice → Three-Way Matching → Payment → Supplier Statement
+3.8.2 Purchase Requisition: Requisition number, department, requester, date, required date; Items, quantities, estimated prices,
+purpose, budget reference; Attachment support and multi-level approval routing.
+3.8.3 Request for Quotation (RFQ): Supplier selection, RFQ issuance, quotation receipt; Price, delivery period, and payment term
+recording; Automatic comparative statement generation.
+3.8.4 Purchase Order (PO): PO number, supplier, items, quantities, prices, discounts, taxes; Delivery terms, payment terms, delivery
+location; Authorized signature placeholders; Automatic inventory commitment upon approval.
+3.8.5 Goods Received Note (GRN): GRN creation against PO with quantity variance tracking; Automatic inventory update upon GRN
+posting; Quality inspection status and rejection handling.
+3.8.6 Three-Way Matching: The system shall enforce matching of PO, GRN, and Supplier Invoice before payment authorization, with
+configurable tolerance for quantity and price variances.
+
+--- PAGE 8 ---
+3.8.7 Supplier Invoice & Payment: Supplier invoice recording and linkage to PO/GRN; Payment voucher generation, advance
+payment tracking; Supplier payment scheduling and due-date alerts.
+3.8.8 The system shall provide a procurement dashboard with pending requisitions, open POs, overdue deliveries, and purchase
+budget utilization.
+3.9 MODULE 9 — SALES MANAGEMENT (QUOTE-TO-CASH)
+3.9.1 The system shall enforce the following workflow:
+Customer Enquiry → Quotation → Customer Approval → Sales Order
+→ Stock Allocation → Delivery Note → Invoice → Receipt/Payment
+→ Customer Statement
+3.9.2 Quotation: Creation, editing, approval, rejection, expiry date management; Email, PDF download, print, and WhatsApp sharing;
+Digital signature application; Conversion to Sales Order or Invoice.
+3.9.3 Proforma Invoice: Proforma generation, sharing, and conversion to formal invoice.
+3.9.4 Sales Order: Customer confirmation tracking, stock reservation; Partial and full fulfillment management.
+3.9.5 Delivery Note: Delivery creation from sales order or invoice; Partial delivery support, delivery confirmation; Serial/batch number
+capture at point of delivery.
+3.9.6 Invoice: Automatic invoice generation from delivery or sales order; Tax calculation, discount application, credit limit validation;
+Automatic accounting entry generation (Dr. AR, Cr. Revenue, Cr. Tax); PDF generation with QR code for verification; Email, SMS,
+WhatsApp distribution.
+3.9.7 Receipt & Payment: Payment allocation to specific invoices; Advance receipt handling, overpayment management; Automatic
+accounting entry (Dr. Bank/Cash, Cr. AR).
+3.9.8 Credit & Debit Notes: Credit note issuance for returns or adjustments; Debit note issuance for additional charges.
+3.9.9 The system shall provide sales return processing with automatic inventory and accounting reversal.
+3.10 MODULE 10 — POINT OF SALE (POS)
+3.10.1 The POS module shall support: Cash sales, credit sales, and multiple payment methods per transaction; Barcode scanning,
+product search, and quick product selection; Customer selection, discount application, and tax calculation; Held/parked sales and
+retrieval; Sales returns and refund processing; Thermal receipt printing, customer-facing display; Cash drawer management and POS
+register balancing; Daily closing and Z-report generation; Cash reconciliation and variance reporting.
+3.11 MODULE 11 — ACCOUNTING & FINANCE
+3.11.1 The system shall implement double-entry accounting integrated with all commercial transactions.
+3.11.2 Chart of Accounts: Hierarchical chart with categories: Assets, Liabilities, Equity, Revenue, Cost of Sales, Expenses; Account
+codes, names, types, and parent-child relationships; Opening balance entry and financial year closing.
+
+--- PAGE 9 ---
+3.11.3 Core Accounting Functions: General Ledger with full transaction drill-down; Journal entries with approval workflow; Cash
+book and bank account management; Accounts Receivable and Accounts Payable sub-ledgers; Trial Balance, Profit & Loss Statement,
+Balance Sheet, Cash Flow Statement; Bank reconciliation with statement import; Opening and closing balance management.
+3.11.4 Automated Accounting Entries: The system shall automatically generate accounting entries for: Sales invoices (Dr. AR, Cr.
+Revenue, Cr. Tax Payable); Customer payments (Dr. Bank/Cash, Cr. AR); Purchase receipts (Dr. Inventory, Cr. AP); Supplier payments (Dr.
+AP, Cr. Bank/Cash); Stock adjustments (Dr./Cr. Inventory, Cr./Dr. Adjustment Account); Expense payments (Dr. Expense, Cr. Bank/Cash);
+Payroll posting (Dr. Salary Expense, Cr. Bank/Cash, Cr. Deductions Payable).
+3.12 MODULE 12 — TAX MANAGEMENT
+3.12.1 The system shall support: Configurable tax rates and tax groups; Tax-inclusive and tax-exclusive pricing models; Product-
+specific and transaction-specific tax assignment; Sales tax, purchase tax, withholding tax tracking; Tax liability reports and tax return
+support; Future-ready architecture for Tanzanian e-invoicing (e-TIMS) integration.
+3.13 MODULE 13 — EXPENSE & INCOME MANAGEMENT
+3.13.1 The system shall support configurable expense categories including: Rent, utilities, transport, communication, salaries, office
+expenses, repairs, marketing, bank charges, taxes, and other expenses.
+3.13.2 Each expense shall require: Expense request, approval workflow, payment voucher, and accounting entry.
+3.13.3 The system shall track non-sales income sources with categorization and reporting.
+3.14 MODULE 14 — CASH & BANK MANAGEMENT
+3.14.1 The system shall manage: Multiple cash accounts and bank accounts; Deposits, withdrawals, and inter-account transfers; Bank
+reconciliation with unreconciled transaction tracking; Cash reconciliation and float management; Payment vouchers and receipt
+vouchers; Bank statement import (CSV, Excel, MT940 where applicable).
+3.15 MODULE 15 — HUMAN RESOURCE MANAGEMENT
+3.15.1 The system shall maintain an Employee Master with: Employee ID, personal details, employment details; Department, position,
+employment status, contract details; Salary structure, allowances, deductions; Attached documents (contracts, certificates, IDs).
+3.15.2 The system shall provide: Employee directory and organizational chart; Contract management and renewal alerts; Employee
+performance tracking; Commission and incentive calculation; Employee exit/termination management.
+3.16 MODULE 16 — ATTENDANCE & LEAVE MANAGEMENT
+3.16.1 The system shall support: Daily check-in/check-out with timestamp; Attendance correction requests and approval; Late arrival,
+early departure, and absence flagging; Leave type configuration (annual, sick, maternity, etc.); Leave application, approval workflow,
+and balance tracking; Holiday calendar management; Attendance reports and payroll integration.
+3.17 MODULE 17 — PAYROLL MANAGEMENT
+3.17.1 The system shall calculate: Basic salary, allowances, deductions, overtime; Commissions, loans, and salary advances; Statutory
+deductions (PAYE, NSSF, NHIF, WCF as applicable); Net salary.
+3.17.2 The system shall generate: Payroll register and summary; Individual payslips (printable and downloadable); Salary history and
+variance reports; Automatic accounting posting for payroll.
+
+--- PAGE 10 ---
+3.18 MODULE 18 — PROJECT MANAGEMENT
+3.18.1 The system shall support: Project registration with unique project number; Customer assignment, project manager assignment;
+Start date, end date, budget allocation; Actual expenditure tracking (materials, labor, expenses); Revenue recognition and profitability
+calculation; Milestone definition and tracking; Project document repository; Customer portal viewing and comment functionality.
+3.19 MODULE 19 — TASK MANAGEMENT
+3.19.1 The system shall provide: Task creation, assignment, and deadline setting; Priority levels and status tracking: Draft → Assigned
+→ In Progress → Review → Completed → Closed; Comment threads and file attachments; Calendar view and milestone linkage;
+Completion percentage and time logging.
+3.20 MODULE 20 — FIXED ASSET MANAGEMENT
+3.20.1 The system shall manage: Asset registration with unique asset code; Asset category, purchase cost, purchase date, location;
+Responsible employee/custodian, supplier, warranty details; Depreciation calculation (straight-line, reducing balance, or custom
+methods); Asset transfer between locations or employees; Asset disposal and write-off; Physical verification tracking and asset history
+log.
+3.21 MODULE 21 — WARRANTY & SERVICING
+3.21.1 The system shall support: Warranty registration linked to product serial numbers and invoices; Warranty period tracking and
+expiry alerts; Customer warranty lookup by invoice, customer name, or phone number; Service request intake and repair ticket
+management; Vendor repair workflow (send to vendor, track status, receive back); Paid servicing billing and customer notification;
+Complete service history per product/serial number.
+3.22 MODULE 22 — DOCUMENT MANAGEMENT SYSTEM (DMS)
+3.22.1 The system shall provide a central electronic document repository attaching files to: Customers, suppliers, employees,
+products; Purchases, sales, projects, assets, payments, contracts.
+3.22.2 Supported formats shall include PDF, Word, Excel, images, and scanned documents.
+3.22.3 The system shall maintain document version history with upload timestamp and user attribution.
+3.23 MODULE 23 — DIGITAL SIGNATURE & VERIFICATION
+3.23.1 The system shall integrate digital signatures into document workflows.
+3.23.2 Each digital signature shall record: Signatory name and position; Date and timestamp; Document ID and version; Signature
+status and verification identifier; IP address and device information where appropriate.
+3.23.3 Signed documents shall display: Digital approval block with signatory details; Verification ID and QR code for third-party
+verification.
+3.23.4 The system shall provide a public verification page where any party can verify document authenticity using the document
+number and verification code.
+3.24 MODULE 24 — APPROVAL WORKFLOW ENGINE
+3.24.1 The system shall provide a configurable workflow engine with statuses: Draft → Submitted → Under Review → Returned →
+Approved → Rejected → Signed → Issued → Closed.
+
+--- PAGE 11 ---
+3.24.2 Approval rules shall support: User-based, role-based, and department-based routing; Amount-based escalation (e.g., ≤500,000
+Procurement; 500,001–5,000,000 Manager; >5,000,000 Director); Sequential and parallel approval paths; Delegated approval during
+absence; Segregation of duties (a user shall not approve their own transactions where prohibited).
+3.24.3 All approval actions shall be recorded in the audit trail with before/after values.
+3.25 MODULE 25 — PAPERLESS OFFICE & TEMPLATE ENGINE
+3.25.1 The system shall minimize physical document dependency through digital workflow: Prepare → Review → Approve → Digitally
+Sign → Generate PDF → Send → Archive.
+3.25.2 The template engine shall support dynamic field substitution for: Company details, customer/supplier details, document
+numbers, dates; Line items, subtotals, taxes, grand totals, amounts in words; Prepared by, approved by, signature blocks.
+3.25.3 Templates shall be available for: Quotation, Proforma Invoice, Sales Order, Delivery Note, Invoice, Receipt; Purchase
+Requisition, RFQ, Comparative Statement, Purchase Order, GRN; Credit Note, Debit Note, Payment Voucher, Receipt Voucher, Journal
+Voucher; Customer Statement, Supplier Statement, Payslip, Contracts.
+3.26 MODULE 26 — NOTIFICATION & COMMUNICATION ENGINE
+3.26.1 The system shall generate automatic alerts for: Low stock, reorder levels, stock expiry; Overdue customer invoices and supplier
+payments; Quotation expiry, contract expiry, warranty expiry; Pending approvals, pending deliveries, pending purchase orders;
+Employee leave requests, payroll processing reminders; Task and project deadline reminders.
+3.26.2 Notification channels shall include: In-system notification center; Email, SMS, WhatsApp messaging; Mobile push notifications
+(via PWA).
+3.27 MODULE 27 — CUSTOMER SELF-SERVICE PORTAL
+3.27.1 Customers shall be able to: Securely log in with username/password or token-based access; View quotations, approve
+quotations, and request revisions; View sales orders, delivery notes, and invoices; Download documents and view account statements;
+Make online payments and track payment history; Submit support tickets and track order status.
+3.28 MODULE 28 — SUPPLIER SELF-SERVICE PORTAL
+3.28.1 Suppliers shall be able to: Receive RFQs and submit quotations; Receive purchase orders and confirm acceptance; Upload
+invoices and delivery notes; View payment status and purchase history; Update company information and contact details.
+3.29 MODULE 29 — BARCODE, QR & SERIAL MANAGEMENT
+3.29.1 The system shall support: Barcode generation and label printing (standard formats: Code 128, EAN, UPC); QR code generation
+for document verification and product tracking; Barcode scanning for stock receipt, stock issue, and POS operations; Serial number
+and IMEI scanning and validation; Stock-taking via barcode scanner.
+3.30 MODULE 30 — REPORTING & BUSINESS INTELLIGENCE
+3.30.1 Sales Reports: Daily, monthly, and period sales reports; Sales by customer, product, branch, salesperson; Sales return analysis
+and salesperson performance.
+3.30.2 Purchase Reports: Purchase summary, supplier purchase history; Product purchase analysis, purchase returns; Supplier
+performance and price variance.
+3.30.3 Inventory Reports: Stock balance, stock movement, stock valuation; Low stock, damaged stock, expired stock; Warehouse-
+wise stock and transfer reports.
+
+--- PAGE 12 ---
+3.30.4 Financial Reports: Trial Balance, General Ledger, Profit & Loss, Balance Sheet, Cash Flow; Accounts Receivable aging, Accounts
+Payable aging; Expense analysis and budget vs. actual.
+3.30.5 HR Reports: Employee directory, attendance summary, leave balance; Payroll register, salary history, commission reports.
+3.30.6 All reports shall support PDF export, Excel/CSV download, and date range filtering.
+3.31 MODULE 31 — MANAGEMENT DASHBOARD
+3.31.1 The dashboard shall display real-time KPIs including:
+CATEGORY
+KPIS
+Financial
+Revenue, Gross Profit, Net Profit, Expenses, Cash/Bank Balance, Receivables, Payables
+Operational
+Sales count, Purchase value, Stock value, Low-stock items, Pending orders/approvals/deliveries
+HR
+Employee count, attendance status, pending leave, monthly payroll
+Project
+Active projects, budget utilization, actual cost, profitability
+3.31.2 The dashboard shall be role-aware, displaying only relevant metrics based on user permissions.
+3.32 MODULE 32 — API & EXTERNAL INTEGRATION
+3.32.1 The system shall provide a secure REST API with: OAuth 2.0 or API key authentication; Endpoints for customers, suppliers,
+products, inventory, sales, purchases, invoices, payments, accounting, employees; Webhook support for event-driven integrations; Rate
+limiting and request logging.
+3.32.2 The system shall support data import/export via Excel and CSV templates.
+3.33 MODULE 33 — PAYMENT INTEGRATION
+3.33.1 The system shall support configurable payment methods: Cash, Bank transfer, Card, Mobile money (M-Pesa, Tigo Pesa, Airtel
+Money); Online payment gateways; Payment links for customer portal invoices.
+3.33.2 Each payment shall be automatically linked to the originating invoice, customer/supplier account, and cash/bank ledger.
+3.34 MODULE 34 — BACKUP & DISASTER RECOVERY
+3.34.1 The system shall provide: Automated daily incremental backups and periodic full backups; Manual backup initiation; Backup
+encryption and off-site storage; Point-in-time restore capability; Backup history and integrity verification; Documented disaster
+recovery procedures.
+3.35 MODULE 35 — AUDIT TRAIL & COMPLIANCE
+3.35.1 The system shall record every sensitive transaction with: User identity, action type, date/time, IP address; Document number,
+previous value, new value; Approval status change.
+3.35.2 Audit records shall be immutable and non-deletable through standard application functions.
+3.35.3 The system shall provide audit trail filtering and export for compliance and forensic review.
+
+--- PAGE 13 ---
+4
+External Interface Requirements
+4.1 User Interfaces
+Responsive web interface optimized for 1920×1080, 1366×768, and mobile viewports
+Consistent navigation, form validation, and error messaging
+Accessibility compliance (WCAG 2.1 Level AA where practicable)
+4.2 Hardware Interfaces
+DEVICE
+INTERFACE
+Barcode scanner
+USB HID and serial
+Thermal receipt printer
+ESC/POS protocol
+Cash drawer
+Printer-driven or USB
+Customer pole display
+Serial/USB
+Weighing scale
+RS232/USB where applicable
+4.3 Software Interfaces
+Email server (SMTP)
+SMS gateway (REST API)
+WhatsApp Business API
+Payment gateway APIs
+Future e-TIMS tax integration API
+4.4 Communication Interfaces
+HTTPS/TLS 1.3 for all data transmission
+REST API over JSON
+WebSocket for real-time notifications where applicable
+5
+Non-Functional Requirements
+5.1 Performance Requirements
+Page load time shall not exceed 3 seconds under normal network conditions
+The system shall support a minimum of 50 concurrent users per branch
+Database queries shall be optimized with appropriate indexing
+Result sets shall implement server-side pagination
+
+--- PAGE 14 ---
+5.2 Security Requirements
+Passwords shall be hashed using bcrypt or equivalent
+All sensitive data shall be encrypted at rest and in transit
+API endpoints shall require authenticated access tokens
+File uploads shall be scanned and restricted to permitted MIME types
+SQL injection, XSS, and CSRF protection shall be implemented
+5.3 Availability and Reliability
+Target uptime of 99.5% during business hours
+Automated failover for critical database operations
+Graceful degradation of non-critical services
+5.4 Scalability
+The architecture shall support horizontal scaling for additional branches, warehouses, and users without
+fundamental redesign
+Database partitioning strategy shall accommodate 10+ years of transaction history
+5.5 Usability
+Interface shall be intuitive for non-technical users
+Contextual help and field-level tooltips
+Consistent color coding for status (Draft, Approved, Rejected, Paid, etc.)
+5.6 Maintainability
+Modular codebase enabling independent module updates
+Comprehensive API documentation and code commenting
+Environment-specific configuration management
+5.7 Portability
+Browser-based access eliminating client installation
+PWA enabling mobile home-screen installation
+Database abstraction layer supporting multiple RDBMS engines
+6
+Data Requirements
+6.1 Data Model Overview
+The database shall be normalized to 3NF for master data with appropriate denormalization for reporting tables. All
+financial transactions shall maintain referential integrity.
+
+--- PAGE 15 ---
+6.2 Major Entity Groups
+DOMAIN
+KEY ENTITIES
+Organization
+Company, Branch, Department, Warehouse, Financial Year
+Security
+User, Role, Permission, UserRole, AuditLog, Session
+CRM
+Customer, CustomerContact, CustomerGroup, CustomerTransaction
+Procurement
+PurchaseRequisition, RFQ, SupplierQuotation, PurchaseOrder, GRN, SupplierInvoice, SupplierPayment
+Sales
+Enquiry, Quotation, SalesOrder, DeliveryNote, Invoice, Receipt, CreditNote, SalesReturn
+Inventory
+Product, Category, Brand, Unit, Warehouse, Stock, StockMovement, StockTransfer, SerialNumber, Batch
+Accounting
+Account, Journal, JournalEntry, Payment, Receipt, BankAccount, Tax
+HR
+Employee, Department, Position, Attendance, Leave, Payroll, Payslip
+Assets
+Asset, AssetCategory, Depreciation, AssetTransfer, AssetDisposal
+Documents
+Document, DocumentTemplate, DocumentVersion, DigitalSignature, Approval, Attachment
+Projects
+Project, Task, Milestone, ProjectCost
+6.3 Data Retention
+DATA TYPE
+RETENTION PERIOD
+Active transaction data
+Indefinite
+Audit logs
+Minimum 7 years
+Deleted records
+Soft delete with 90-day grace period, then archive
+6.4 Backup and Recovery
+See Module 34.
+7
+Development Roadmap & Three-Week Delivery Timeline (21 Days)
+To ensure structured implementation, immediate operational value, and zero business downtime, the entire
+implementation of the Mutamark ERP System is engineered into a Structured 3-Week Sprint Execution Model (21
+Calendar Days Total) divided into three sequential weekly project tracks (Week 1, Week 2 & Week 3). Each 1-week
+track delivers an autonomous, fully functional milestone synchronized with the 3-term payment schedule (200,000 TZS
+per term).
+
+--- PAGE 16 ---
+Executive Project Timeline & 21-Day Delivery Gantt Chart
+⚡ Structured 3-Week Turnkey Delivery (21 Days)
+WEEK 1 • TRACK 1 (CORE ARCHITECTURE & SUPPLY)
+WEEK 2 • TRACK 2 (COMMERCIAL SALES, POS & DMS)
+WEEK 3 • TRACK 3 (DIGITAL SIGNS, HR & GO-LIVE)
+D1
+D2
+D3
+D4
+D5
+D6
+D7
+D8
+D9
+D10
+D11
+D12
+D13
+D14
+D15
+D16
+D17
+D18
+D19
+D20
+D21
+Phase 1: DB Schema & RBAC
+Days 1–3: Setup
+Phase 2: Master Catalogs & CRM
+Days 3–5: Catalogs
+Phase 3: Inventory & PO/GRN
+Days 5–7: Stock & PO
+Phase 4: Sales & Invoicing
+Days 8–10: Sales
+Phase 5: POS & Accounting
+Days 10–12: POS/GL
+Phase 6: Paperless & DMS
+Days 12–14: DMS
+✔ DAY 14: TERM 2 (200k Tsh)
+Phase 7: Digital Signs & QR
+Days 15–17: Signs
+Phase 8: HR, Portals & PWA
+Days 17–19: HR/PWA
+Phase 9: Server Deploy & Launch
+Days 19–21: Deploy
+★ DAY 21: GO-LIVE (200k)
+PROJECT TRACK 1 •
+WEEK 1
+Core Architecture
+& Supply Chain
+Days 1 – 7
+(Week 1)
+Days 1–2 (Architecture &
+Schema): Multi-entity database
+tables, RBAC, branch &
+warehouse structures.
+Days 2–4 (Master Data & CRM):
+Product catalogs, variants, units,
+customer/supplier ledgers &
+opening balances.
+Days 4–7 (Supply Chain &
+Stock): Real-time inventory
+tracking, multi-warehouse
+transfers, PO, GRN & three-way
+match.
+🚀 Term 1 Deliverable: Project
+Kickoff & Core Supply Chain
+Staging Demo (Term 1 Deposit:
+200,000 TZS)
+PROJECT TRACK 2 •
+WEEK 2
+Sales, POS &
+Paperless DMS
+Days 8 – 14
+(Week 2)
+Days 8–10 (Sales & Financials):
+Quotations, proforma invoices,
+sales orders, delivery notes,
+invoices & receipts.
+Days 10–12 (POS Counter &
+Accounting): Rapid POS counter,
+receipt printing, double-entry
+auto-journal posting & GL.
+Days 12–14 (Paperless Office
+DMS): Dynamic document
+template builder, PDF generator
+engine & multi-tier approvals.
+⚡ Term 2 Deliverable: Mid-
+Term Commercial Operations &
+DMS Demo (Triggers Term 2:
+200,000 TZS)
+PROJECT TRACK 3 •
+WEEK 3
+Digital Trust,
+HR & Go-Live
+Days 15 – 21
+(Week 3)
+Days 15–17 (Digital Signatures
+& QR): Cryptographic signing,
+tamper-evident seals & public QR
+verification portal.
+Days 17–19 (HR, Payroll &
+Portals): Employee directory,
+attendance, payroll posting,
+assets, customer/supplier portals
+& PWA.
+Days 19–21 (Production Deploy
+& Launch): VPS server
+provisioning, SSL certificate,
+automated daily DB backups &
+Go-Live.
+✨ Term 3 Deliverable: Full
+Production Handover + 1-Yr Free
+Support (Triggers Final Term 3:
+200,000 TZS)
+
+--- PAGE 17 ---
+8
+Commercial Investment, Pricing & Payment Schedule
+Wolinet Technology & Cooperation Ltd is pleased to submit this competitive commercial investment proposal for
+the turnkey implementation, deployment, and ongoing maintenance of the Mutamark ERP System. Our pricing
+structure provides maximum return on investment for Mutamark Enterprises with transparent pricing, guaranteed
+delivery, and generous partnership discounts.
+8.1 Detailed Scope of Investment
+#
+MODULE SCOPE & DELIVERABLES
+STANDARD VALUATION
+DISCOUNTED PRICE
+1
+Core ERP Engine & 35 Operational Modules
+Inventory, Procurement, Sales, POS, Accounting, Multi-
+Branch, HR, Assets, CRM, Reporting
+1,000,000 TZS
+350,000 TZS
+2
+Paperless Office DMS, Dynamic Template Builder &
+Digital Signatures
+Cryptographic digital signature verification, multi-level
+approval workflows, QR code verification
+300,000 TZS
+250,000 TZS
+3
+Production System Server Deployment & Environment
+Configuration
+Linux/Windows server setup, Nginx/Apache configuration,
+SSL certificate, automated daily database backup
+100% FREE
+★ SPECIAL STRATEGIC PARTNERSHIP • 60% DISCOUNT APPLIED
+Complete Mutamark ERP System Package
+✔ Zero Recurring License Fees
+✔ 100% Full System Ownership
+✔ Free Server Deployment
+Comprehensive enterprise software package covering all 35
+integrated modules, cryptographic digital signatures,
+paperless office engine, production server deployment, and
+1 full year of 24/7 technical support.
+Standard System
+Valuation
+Strategic Partner
+Discount
+-60%
+DISCOUNT
+Discount Amount Saved
+-900,000 TZS
+600,000 TZS
+600,000 TZS
+1,500,000
+TZS
+TOTAL NET PAYABLE
+Six Hundred Thousand Tanzanian Shillings
+Only (TSH 600,000/=)
+200,000 TZS
+
+--- PAGE 18 ---
+#
+MODULE SCOPE & DELIVERABLES
+STANDARD VALUATION
+DISCOUNTED PRICE
+4
+1 Year Full Technical Support, Maintenance & Health
+Monitoring
+24/7 SLA incident resolution, software updates, security
+patches, database index maintenance
+100% FREE
+Total Gross Valuation:
+1,500,000 TZS
+—
+Special Strategic Discount (60% OFF):
+-900,000 TZS
+Net Payable Investment:
+TSH 600,000/= (600k Tsh)
+8.2 Milestone Payment Schedule (3 Terms • 3-Week Delivery Plan)
+Payments are structured into three equal installments (terms) of 200,000 TZS each (Total TSH 600,000/=) strictly
+aligned with the 3-week delivery milestones:
+8.3 Official Payment & Banking Details (Lipa Namba & Scan to Pay)
+Clients and stakeholders can disburse project milestone payments securely via our unified merchant payment channel
+supporting all Tanzanian Mobile Money operators and Commercial Banks:
+350,000 TZS
+INITIAL DEPOSIT / TERM 1
+(33.3%)
+200,000 TZS
+Payable upon Project Kickoff (Day 1 /
+Term 1)
+Triggers immediate architectural
+provisioning, database schema setup,
+multi-branch setup, and execution of
+Week 1 Track.
+TERM 1 • DAY 1
+KICKOFF
+MID-PROJECT SIGN-OFF / TERM
+2 (33.3%)
+200,000 TZS
+Payable upon Week 2 Demo (Day 14
+/ Term 2)
+Due upon successful demonstration of
+Commercial Operations (Sales,
+Invoicing, Receipts, POS counter,
+Accounting integration & Paperless
+DMS workflows).
+TERM 2 • DAY
+14 MILESTONE
+FINAL GO-LIVE & HANDOVER /
+TERM 3 (33.3%)
+200,000 TZS
+Payable upon Full Go-Live (Day 21 /
+Term 3)
+Due upon production server
+deployment, SSL activation, digital
+signatures & QR verification sign-off,
+and final handover.
+TERM 3 • DAY
+21 GO-LIVE
+
+--- PAGE 19 ---
+8.4 Special Value-Added Inclusions (100% Free of Charge)
+💳 VERIFIED COMMERCIAL PAYMENT CHANNEL
+Wolinet Technology & Cooperation Ltd
+16381432
+16381432
+WOLINET
+📱 Mobile Money (Mitandao Yote): M-Pesa, Tigo Pesa, Airtel
+Money, Halopesa
+🏦 Benki Zote (All Banks): CRDB SimBanking, NMB Mkononi,
+Stanbic, KCB, NBC, DTB, Standard Chartered, etc.
+📝 Reference / Kumbukumbu: Mutamark ERP — Term Deposit
+LIPA KWA KUSCAN
+Instant QR Code Payment
+Lipa Namba: 16381432
+Lipa kutoka mitandao yote na Benki
+Use the official merchant Lipa Namba / Account Number below
+for all installment deposits (Term 1, Term 2 & Term 3):
+LIPA NAMBA / ACCOUNT NO.
+ACCOUNT / MERCHANT NAME
+→ Piga menu ya Lipa kwa Simu → Chagua Lipa kwa Namba → Weka
+16381432 → Thibitisha Jina WOLINET
+→ Fungua App ya Benki → Chagua Pay Merchant / Lipa Namba → Weka
+16381432 → Thibitisha WOLINET
+★
+1 Year Free Technical
+Support & SLA
+100%
+FREE
+Mutamark 
+Enterprises 
+receives 
+a 
+full 
+12-month
+complimentary technical maintenance package backed
+by dedicated engineers:
+24/7 SLA emergency assistance and rapid bug
+remediation
+Routine database maintenance, health checks &
+query optimization
+Security patches, framework updates &
+performance tuning
+Dedicated remote helpdesk support for
+administrators
+🚀
+Free Production Server
+Deployment
+100%
+FREE
+Zero server setup fees — Wolinet completely handles end-
+to-end 
+production 
+deployment 
+& 
+infrastructure
+hardening:
+Full cloud VPS / dedicated server environment
+provisioning
+Nginx / Apache web server & application runtime
+configuration
+Automated daily database backup scripts & disaster
+recovery
+Free SSL/TLS security encryption certificate &
+custom domain binding
+
+--- PAGE 20 ---
+9
+Acceptance Criteria
+The ERP shall be considered ready for production when the following criteria are satisfied across all three project
+tracks:
+1. Authorized users can securely authenticate and access permitted functions.
+2. Role-based permissions correctly restrict access by module, branch, and transaction amount.
+3. Products, customers, and suppliers can be fully managed with complete history.
+4. Purchase transactions update inventory and accounts payable automatically.
+5. Sales transactions update inventory, accounts receivable, and revenue automatically.
+6. Customer and supplier payments correctly update balances and bank/cash ledgers.
+7. Financial reports reconcile to the transaction level with zero unexplained variances.
+8. Approval workflows route correctly through configured hierarchies.
+9. Digital signatures can be applied, displayed, and independently verified.
+10. Documents can be generated as PDF, distributed electronically, and archived.
+11. Audit logs capture all sensitive actions with before/after values.
+12. Reports can be generated, filtered, and exported in PDF and Excel formats.
+13. Data can be backed up, verified, and restored within documented RTO/RPO.
+14. Unauthorized access attempts are prevented and logged.
+15. Multiple branches operate independently while consolidated reporting reflects group position.
+16. System performance remains acceptable under expected concurrent user load.
+17. Critical workflows have been executed, server deployed, and signed off by Mutamark management.
+10
+Appendices
+Appendix A — Master Document Numbering Scheme
+DOCUMENT TYPE
+FORMAT EXAMPLE
+Quotation
+QT-2026-00001
+Proforma Invoice
+PI-2026-00001
+Sales Order
+SO-2026-00001
+Delivery Note
+DN-2026-00001
+Invoice
+INV-2026-00001
+Credit Note
+CN-2026-00001
+Purchase Requisition
+PR-2026-00001
+
+--- PAGE 21 ---
+DOCUMENT TYPE
+FORMAT EXAMPLE
+Request for Quotation
+RFQ-2026-00001
+Purchase Order
+PO-2026-00001
+Goods Received Note
+GRN-2026-00001
+Payment Voucher
+PV-2026-00001
+Receipt Voucher
+RV-2026-00001
+Journal Voucher
+JV-2026-00001
+Appendix B — Core Business Controls
+CONTROL AREA
+RULE
+Invoice Integrity
+Finalized invoices shall not be editable; corrections require credit notes.
+Payment Control
+Payments shall not exceed outstanding balance without authorized override.
+Stock Control
+Negative stock shall be prohibited unless explicitly authorized per product.
+Procurement Control
+Supplier payments shall require verified PO, GRN, and Invoice (three-way match).
+Accounting Control
+Posted journal entries shall not be deleted; corrections require reversal entries.
+Segregation of Duties
+Users shall not approve their own transactions where separation is required.
+Appendix C — Glossary
+TERM
+DEFINITION
+ERP
+Enterprise Resource Planning
+GRN
+Goods Received Note
+PO
+Purchase Order
+RFQ
+Request for Quotation
+PWA
+Progressive Web App
+RBAC
+Role-Based Access Control
+SRS
+Software Requirements Specification
+TZS
+Tanzanian Shilling
+2FA
+Two-Factor Authentication
+DMS
+Document Management System
+AR
+Accounts Receivable
+AP
+Accounts Payable
+P&L
+Profit and Loss Statement
+KPI
+Key Performance Indicator
+BI
+Business Intelligence
+API
+Application Programming Interface
+RTO
+Recovery Time Objective
+
+--- PAGE 22 ---
+TERM
+DEFINITION
+RPO
+Recovery Point Objective
+11
+Recommended Next Steps & Commercial Sign-Off
+Upon formal acceptance of this Software Requirements Specification and Commercial Proposal, the project will
+immediately commence with the following 3-week execution milestones:
+1. Day 1: Execution of Contract & Term 1 Upfront Deposit (200,000 TZS) — Formal project authorization, multi-
+branch setup, and immediate database schema provisioning.
+2. Week 1 (Days 1–7): Core Architecture, Master Data & Supply Chain Foundation — Table design, RBAC
+permissions, branch structure, master catalogs, real-time inventory, and procurement workflows.
+3. Week 2 (Days 8–14): Commercial Sales, Point of Sale (POS), Accounting & Paperless DMS — Sales cycle,
+thermal POS counter, double-entry auto-journal links, document templates, and DMS.
+4. Day 14: Mid-Term Demonstration & Term 2 Milestone Payment (200,000 TZS) — Live demonstration and
+formal sign-off of commercial operations and paperless workflows.
+5. Week 3 (Days 15–21): Digital Trust, HR Automation, Server Deployment & Go-Live — Cryptographic digital
+signatures, QR verification, HR, payroll, customer portal, production VPS deployment, SSL security, and staff
+training.
+6. Day 21: Full Production Handover, Term 3 Final Payment (200,000 TZS) & 1-Year Free Support Kickoff —
+Production launch, final handover, and 12-month complimentary technical support activation.
+💳
+Payment Deposit Account / Lipa Namba:
+Lipa Namba: 16381432 | Merchant: WOLINET (Mitandao yote & Benki zote)
+📷 Scan QR Code in Section 8.3
+⚡ Immediate 3-Week Turnkey Delivery Guarantee
+The development team at WOLINET TECHNOLOGY & COOPERATION LTD is prepared to commence
+immediately upon receipt of the initial Term 1 deposit (200,000 TZS), delivering the comprehensive
+commercial demo within 2 weeks (Day 14) and full production go-live, server deployment & staff handover
+within 3 weeks (Day 21).
+
+--- PAGE 23 ---
+11.1 Document & Commercial Approval Authorization
+Authorized on behalf of Mutamark Enterprises:
+Authorized Signatory: ___________________________
+Designation / Title: ___________________________
+Signature: _________________
+Date: _____ / _____ / 2026
+Prepared & Submitted by Wolinet:
+Entity: WOLINET TECHNOLOGY & COOPERATION
+LTD
+Contact: info@wolinet.com | +255 747 003 357
+Authorized Signatory: Wolinet Ltd
+Date: August 2026
+WOLINET TECHNOLOGY • ENTERPRISE SOLUTIONS
+WOLINET TECHNOLOGY & COOPERATION LTD
+info@wolinet.com
++255 747 003 357
+Prepared, Engineered & Owned by Wolinet Technology & Cooperation Ltd for Mutamark Enterprises
+© 2026 WOLINET TECHNOLOGY & COOPERATION LTD. All rights reserved.
+This document is confidential and proprietary. Prepared exclusively for the development and deployment of Mutamark ERP
+System.
+Document Version 1.0 (Master Commercial & Technical Blueprint) | August 2026
+

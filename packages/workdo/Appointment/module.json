@@ -1,0 +1,12 @@
+{
+    "name": "Appointment",
+    "alias": "Appointment",
+    "description": "",
+    "keywords": [],
+    "priority": 530,
+    "version":3.2,
+    "providers": [
+        "Modules\\Appointment\\Providers\\AppointmentServiceProvider"
+    ],
+    "files": []
+}

@@ -1,0 +1,13 @@
+{
+    "name": "MailBox",
+    "alias": "EMail Box",
+    "description": "",
+    "keywords": [],
+    "priority": 411,
+    "version":3.1,
+    "providers": [
+        "Modules\\MailBox\\Providers\\MailBoxServiceProvider",
+        "Modules\\MailBox\\Providers\\EventServiceProvider"
+    ],
+    "files": []
+}

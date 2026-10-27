@@ -1,0 +1,26 @@
+{
+    "name": "workdo/mailbox",
+    "description": "",
+    "authors": [
+        {
+            "name": "WorkDo",
+            "email": "support@workdo.io"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\MailBox\\": ""
+        }
+    },
+    "require": {
+        "webklex/laravel-imap": "^5.3"
+    }
+}

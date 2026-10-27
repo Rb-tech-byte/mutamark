@@ -1,0 +1,99 @@
+/* .VendorDetails {
+    padding: 70px 0;
+} */
+.VendorDetails .service-details {
+    border: 1px solid #ced4da;
+}
+.VendorDetails .single {
+    background-color: #f2f2f2;
+    padding: 12px;
+    border-radius: 5px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    -ms-border-radius: 5px;
+    -o-border-radius: 5px;
+    text-align: center;
+    text-transform: uppercase;
+    margin-bottom: 15px;
+}
+.VendorDetails .single p {
+    margin: 0;
+}
+.VendorDetails .single.selected {
+    color: #ffffff;
+}
+.VendorDetails .TimeSlot {
+    max-width: 665px;
+    width: 100%;
+}
+body.theme-1 .single.selected {
+    background: #0CAF60;
+}
+body.theme-2 .single.selected {
+    background: #75C251;
+}
+body.theme-3 .single.selected {
+    background: #584ED2;
+}
+body.theme-4 .single.selected {
+    background: #145388;
+}
+body.theme-5 .single.selected {
+    background: #B9406B;
+}
+body.theme-6 .single.selected {
+    background: #008ECC;
+}
+body.theme-7 .single.selected {
+    background: #922C88;
+}
+body.theme-8 .single.selected {
+    background: #C0A145;
+}
+body.theme-9 .single.selected {
+    background: #48494B;
+}
+body.theme-10 .single.selected {
+    background: #0C7785;
+}
+@media screen and (max-width:991px) {
+    .main-banner-sec .section-title h2 {
+        font-size: 50px;
+    }
+    .select-box .select-box-inner {
+        padding: 15px;
+    }
+    .VendorDetails {
+        padding: 40px 0;
+    }
+    .VendorDetails .vendor-shedule {
+        margin-bottom: 20px;
+    }
+    .VendorDetails .TimeSlot {
+        max-width: 100%;
+    }
+}
+@media screen and (max-width:767px) {
+    .main-banner-sec .section-title h2 {
+        font-size: 40px;
+    }
+    .main-banner-sec {
+        padding: 90px 0;
+    }
+    .select-box .select-box-inner {
+        margin-top: 20px;
+    }
+    .VendorDetails .single {
+        padding: 10px 13px;
+    }
+}
+@media screen and (max-width:575px) {
+    .main-banner-sec {
+        padding: 70px 0;
+    }
+    .main-banner-sec .section-title h2 {
+        font-size: 30px;
+    }
+}

@@ -1,0 +1,33 @@
+name: Mutamark ERP Production CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to CyberPanel Production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Validate PHP & Composer Files
+        run: |
+          php -r "json_decode(file_get_contents('composer.json')) ?: exit(1);"
+          echo "Composer configuration is valid."
+
+      - name: Deploy to CyberPanel Server via SSH
+        if: env.SSH_HOST != ''
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          SSH_HOST: ${{ secrets.CYBERPANEL_HOST }}
+        with:
+          host: ${{ secrets.CYBERPANEL_HOST }}
+          username: ${{ secrets.CYBERPANEL_USER || 'mutam9314' }}
+          key: ${{ secrets.CYBERPANEL_SSH_KEY }}
+          port: ${{ secrets.CYBERPANEL_PORT || 22 }}
+          script: |
+            bash /home/mutamark.wolinet.com/public_html/deploy/deploy.sh

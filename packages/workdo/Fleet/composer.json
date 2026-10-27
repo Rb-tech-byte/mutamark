@@ -1,0 +1,26 @@
+{
+    "name": "workdo/fleet",
+    "description": "Description for fleet package",
+    "type": "library",
+    "license": "MIT",
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Workdo\\Fleet\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "WorkDo",
+            "email": "support@workdo.io"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Workdo\\Fleet\\Providers\\FleetServiceProvider",
+                "Workdo\\Fleet\\Providers\\ViewComposer"
+            ]
+        }
+    }
+}

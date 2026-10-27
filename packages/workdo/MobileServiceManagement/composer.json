@@ -1,0 +1,25 @@
+{
+    "name": "workdo/mobile-service-management",
+    "description": "Description for mobile-service-management package",
+    "type": "library",
+    "license": "MIT",
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Workdo\\MobileServiceManagement\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "WorkDo",
+            "email": "support@workdo.io"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Workdo\\MobileServiceManagement\\Providers\\MobileServiceManagementServiceProvider"
+            ]
+        }
+    }
+}

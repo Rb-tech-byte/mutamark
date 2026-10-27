@@ -1,0 +1,25 @@
+{
+    "name": "workdo/bookings",
+    "description": "Description for bookings package",
+    "type": "library",
+    "license": "MIT",
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Workdo\\Bookings\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "WorkDo",
+            "email": "support@workdo.io"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Workdo\\Bookings\\Providers\\BookingsServiceProvider"
+            ]
+        }
+    }
+}

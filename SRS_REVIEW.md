@@ -1,0 +1,104 @@
+# SRS traceability and implementation review
+
+**Current rescan:** See [SRS_CURRENT_GAP_REVIEW.md](C:/wamp64/www/mutadash/SRS_CURRENT_GAP_REVIEW.md) for the latest 35-module frontend/backend/API/database comparison, confirmed open defects and expanded live-data checks. The matrix below remains the historical baseline.
+
+Source: MUTAMARK_ERP_SRS_WOLINET.pdf, 23 pages, version 1.0, August 2026. Reviewed 14 October 2026. Functional requirements are on pages 6-12; interfaces/NFRs on 13-15; acceptance criteria on 20; controls/numbering on 20-21. Commercial payment instructions on pages 18-19 are project contract details, not ERP merchant defaults.
+
+## Implementation constraints
+
+Reuse the existing AuthenticatedLayout, BrandProvider/useBrand, shared UI controls, CSS variables, Tailwind configuration, i18next, Inertia router/useForm, flash hooks, pagination and package menu loader. Keep the existing color theme, responsive behavior and RTL support. Extend existing Account, ProductService, Hrm, Taskly, Pos, Lead, FileSharing, SMS, WhatsAppAPI and payment packages instead of rebuilding their features. Use existing tables/models/services before adding schema. There is no Git baseline; preserve pre-edit copies in scratch/srs-baseline.
+
+Status describes evidence before this implementation pass, not acceptance certification. 'Partial' means source exists but one or more mandatory requirements are absent, disconnected, unsafe or unverified. 'Not found' means no implementation was found in first-party source, not a statement about external infrastructure.
+
+## All 35 modules: frontend, backend/API and database coverage
+
+| SRS | Existing implementation to reuse | Missing/incomplete frontend and workflow | Backend/API/database gap |
+|---|---|---|---|
+| 3.1 Administration | SettingController; settings UI; currencies; warehouses | Financial year/period and numbering administration; backup policy UI | No shared locked numbering service; configuration changes not consistently audited; no daily backup schedule in application schedule |
+| 3.2 Company/branch | company users; Hrm Branch; warehouses | Commercial branch assignment and consolidated reports need wiring | HR branches are not a consistent commercial scope; invoice/payment/stock tables lack unified branch policy |
+| 3.3 RBAC/security | Spatie roles; users; LoginRequest; login history | 2FA enrollment/challenge and session management not found in core UI | API login bypasses disable flag; no complete branch/warehouse/amount authorization; isolated module references to legacy 2fa middleware do not establish working 2FA |
+| 3.4 CRM/customers | Lead; Account Customer; helpdesk | Credit-limit/override UX, customer category and full communication timeline incomplete | Customer master has no credit_limit field although Vendor does; credit enforcement not found in invoice path |
+| 3.5 Suppliers | Account Vendor, payments/reports; RFQ | Qualification documents, performance evaluation and supplier confirmation incomplete | Supplier ownership and bid identity not enforced in portal; separate PO/GRN/invoice linkage needs correction |
+| 3.6 Catalog | ProductService items/categories/units; serial register | Variants, kits, installments, brand/subcategory, profit-margin and expiry/batch UX incomplete | Base product table/model only covers basic products/services; no complete batch/expiry/valuation model found |
+| 3.7 Inventory | WarehouseStock; transfers; stock adjustments; serials | Stocktake schema exists without operational screen; movement/valuation integration incomplete | Transfer state bug creates stock; insufficient stock silently clamped; no verified FIFO/standard-cost engine; stocktake tables disconnected |
+| 3.8 Procurement | PR/RFQ services, GRN, matching; purchase invoice | Distinct PO lifecycle, commitments, partial GRN and supplier-invoice linkage incomplete | PR/RFQ conversion currently produces PurchaseInvoice as PO; payment endpoint must enforce matching, not only display audit |
+| 3.9 Sales | proposals, orders, delivery notes, invoices, returns; Account credit/debit notes | Proforma model/tables exist without routes/screens; full partial-fulfillment and reservation UX incomplete | Stock reservation must constrain actual issues; automatic receipt posting bypassed in unified payment model; reusable domain posting services needed |
+| 3.10 POS | Pos package, counters, split payments, barcode, receipts/returns | Park/retrieve, register opening/closing, cash variance and customer display not found | Hardware ESC/POS/cash-drawer integration and offline mutation synchronization not established |
+| 3.11 Accounting | Account journals/COA/reports; DoubleEntry | Year-close/period-lock, reconciliation statement import UI incomplete | Approval directly sets invoice posted without event/listener effects; stock and payroll journals need reconciliation tests; duplicate Account/DoubleEntry overlap must be resolved by reuse |
+| 3.12 Tax | ProductService taxes; Tanzania payroll; fiscal screens | WHT table exists without recording/remittance UI | No WHT domain integration; TraFiscalService uses placeholder TIN/VRN and locally generated verification, not a confirmed external fiscal submission |
+| 3.13 Expense/income | Account Expense, Revenue and categories | Expense approval-to-payment workflow incompletely connected | Approval engine covers expense but does not enforce full status/actor controls |
+| 3.14 Cash/bank | Account BankAccount/BankTransaction/BankTransfer | Statement import/auto matching and float/reconciliation workflows incomplete | Unified settlement hardcodes bank_account_id=1; bypasses allocation and journal/bank services |
+| 3.15 HR | Hrm employee, branches, departments, contracts and related pages | Org chart, contract alerts and incentives need acceptance checks | Reuse Hrm; validate company scoping and attachments rather than creating another employee module |
+| 3.16 Attendance/leave | Hrm attendance/leave/holiday screens and APIs | Correction approvals, balances and payroll impact require acceptance tests | APIs exist; authorization and cross-employee access need focused verification |
+| 3.17 Payroll | Hrm payroll; TanzaniaStatutoryPayrollService; statutory report | Statutory outputs exist; payroll/commission/history reconciliation incomplete | JournalService contains payroll functions; must verify their call sites and balanced gross/deductions posting, not assume absent |
+| 3.18 Projects | Taskly; Projects/Timesheets; Timesheet packages | Material consumption, project cost/revenue/profitability and portal comments incomplete | Three overlapping timesheet paths require choosing existing source of truth; project materials lack verified stock linkage |
+| 3.19 Tasks | Taskly tasks/milestones/comments/calendar | Required Review/Closed status lifecycle needs mapping | Reuse Taskly; preserve attachment/time logging instead of a new task system |
+| 3.20 Assets | FixedAssetController; assets/depreciation/transfers/disposals | Physical verification/history and role controls incomplete | Direct findOrFail lacks company scope in mutations; depreciation posting and disposal accounting require tests |
+| 3.21 Warranty/service | WarrantyServicingController; MobileServiceManagement | Expiry automation and paid-service invoice linkage incomplete | warranty_expiry_alerts schema disconnected; duplicated service paths should be integrated |
+| 3.22 DMS | Media library; FileSharing; Document/DocumentVersion tables/models | No central document/version/upload/download screen or routes | Need private downloads, entity ownership, version attribution, retention and MIME validation; reuse media for public/general assets |
+| 3.23 Signatures | ApprovalRequest signature; DocumentVerification; public verify pages | Version-bound signing, revocation and document-number/code lookup incomplete | Existing hash verification does not independently recompute all signed content/version; hardcoded signatory labels; signer/device attribution incomplete |
+| 3.24 Approvals | ApprovalWorkflowController; policies/actions; Approvals page | Delegation table disconnected; no parallel paths/department routing UI | Assigned approver and legal transitions not enforced; issuance bypasses segregation; tiers not consistently company/amount scoped |
+| 3.25 Templates | DocumentTemplateService and builder; existing print pages | Not all required document types wired to print/PDF/send/archive | Default template seeding covers subset; no unified generation/archive pipeline; preserve current print layouts |
+| 3.26 Notifications | messenger, email templates, SMS/WhatsApp listeners | Notification center and automated expiry/reminder jobs incomplete | Notification model is configuration, not proof of recipient/read delivery inbox; PWA push subscription/delivery not found |
+| 3.27 Customer portal | Portal/CustomerPortal; existing client user | Broken invoice eager load; documents/orders/history incomplete | Trusts arbitrary customer_id; wrong customer vs client type; payment insert omits required gateway; token table unused |
+| 3.28 Supplier portal | Portal/SupplierPortal; Vendor/RFQ | PO acceptance, invoice/delivery upload and company profile editing incomplete | Arbitrary vendor_id and first-vendor fallback expose other suppliers; token table unused |
+| 3.29 Barcode/serial | Pos barcode; InventorySerialNumber; transfer bins | Scanner-driven stocktake and serial/batch capture on delivery incomplete | Serial ledger not consistently linked to transactional movements; validate identity/availability before issue |
+| 3.30 Reporting | Account/Pos/Hrm/Lead/Taskly reports | Missing branch, expiry, price variance and universal PDF/Excel/date filter parity | Financial reconciliation to postings not demonstrated; several new dashboards load all records |
+| 3.31 Dashboard | HomeController, dashboard, package KPI pages | Role-aware consolidated operating/financial/project KPIs incomplete | Unscoped aggregates and unbounded get() need review; real-time correctness needs reconciliation/load tests |
+| 3.32 REST/integration | Sanctum; core auth API; Lead/Taskly/Hrm APIs | Integration/API documentation and token management incomplete | Missing core customer/vendor/product/inventory/invoice/payment/accounting REST coverage; API rate limit/request audit incomplete; do not confuse web JSON routes with external REST |
+| 3.33 Payments | Stripe/Paypal packages; unified payment UI; settings | Checkout claims success for unverified payment | Unsigned webhook, no idempotency, no outstanding-balance guard, raw secrets, hardcoded bank; configure actual merchant accounts, not proposal deposit account |
+| 3.34 Backups | BackupController/Backup page; local SQL snapshots | Schedule, retention, integrity/restore-test UI missing | No encryption/offsite/incremental/PITR proof; all verified users can restore full DB; RTO/RPO/runbook absent |
+| 3.35 Audit | FinancialAuditLog; audit filters/export | Administrative and denied-action coverage incomplete | Hash excludes before/after payload; no model-level update/delete guard; seven-year retention/archive controls not found |
+
+## Cross-cutting requirements
+
+- SRS 2.1/5.7: PWA manifest and service worker already exist. They cache an authenticated dashboard and have no transactional outbox/conflict resolution. Extend them safely; do not install another PWA framework. Cached authenticated pages must not leak across logout/user changes.
+- SRS 4.1/5.5: retain current theme and shared controls. Audit mobile tables, accessible labels, focus/keyboard interactions, loading/errors and untranslated strings. Build success is not browser accessibility validation.
+- SRS 5.1: preserve server-side pagination; cap client-controlled per_page, validate sort columns; load testing for 50 users per branch and <3-second responses is outstanding.
+- SRS 5.2: private file storage, upload MIME restriction, malware scan integration, secret encryption and CSRF coverage required. TLS/failover/encryption-at-rest cannot be certified from application source alone.
+- SRS 5.4/6.1/6.3: migration-only tables do not constitute delivered functionality. Add FKs/indexes/uniqueness with legacy-data preflight; use decimal quantities/money and transactional locking. Soft-delete/archive policy and seven-year audit retention need implementation and operational verification.
+- SRS 5.6/5.7: migration SQL includes MySQL-only MODIFY and DESCRIBE; either support declared drivers through Schema or declare/test the chosen engine. Current feature tests fail in SQLite before exercising business flows.
+
+## Priority and acceptance plan
+
+1. Security and financial safety: permission/company scopes, disable-aware API auth, trusted payment confirmation, idempotent posting, inventory conservation, approval actor/state controls.
+2. Finish disconnected existing foundations: DMS/versioning, proforma conversion, stocktake/reconciliation, WHT/remittance, delegation and portal ownership.
+3. End-to-end integration: distinct PO/GRN/invoice lifecycle, reservation/partial delivery, document generation/archive and payment allocations through existing Account services.
+4. Remaining SRS capability: branch/amount authorization, product variants/batches/valuation, POS register/offline/hardware, notification jobs, full REST write contracts/documentation and reporting parity.
+5. Operations and sign-off: encrypted offsite backups/PITR, tested restore/RTO/RPO, vulnerability/performance/accessibility checks, production credentials/hardware and management UAT.
+
+Acceptance evidence must include: unauthorized and cross-company access rejected; retrying a payment produces one receipt/journal/allocation; stock totals conserved and shortages rejected; PO/GRN/invoice mismatch blocks payment; signatures bind an immutable document version; proforma converts exactly once; prior document versions remain downloadable only by authorized users; statement/report totals reconcile; backups restore in an isolated environment. No requirement is complete solely because a page or table exists.
+
+## Implementation log
+
+The comparison above is the baseline, not a claim that all gaps have been closed. The following changes have now been implemented in the local application while reusing the existing modules, layout, controls, CSS variables and theme:
+
+| Area | Delivered in this pass | Remaining acceptance limits |
+|---|---|---|
+| DMS | Private document repository, attributed version history, authenticated downloads, permission/company/owner checks, restricted uploads, archive action and frontend | Malware scanning, retention cleanup/restoration, complete entity-linking UI and version-bound signatures |
+| Sales | Proforma creation with server totals, existing quotation print layout, locked cancellation and exactly-once conversion to an existing draft sales invoice | Fractional/FX conversion is rejected; reservation, partial delivery and delivery/invoice stock reconciliation remain open |
+| Inventory | Existing stock-adjustment screen extended with scanner lookup; transactional counts with stale-snapshot rejection; transfer dispatch/receipt shortage and replay controls; draft-only locked deletion | Count journals, serial scan deduplication, valuation/batches, delivery-note stock handling and authorized transfer reversal |
+| Approvals | Assigned actor/delegate checks, legal states, segregation, company/amount-tier policies, atomic submission/action audit, locked numbering, delegation UI; purchase issuance invokes existing posting event | Parallel/department paths, immutable version-bound signatures and full downstream posting integration tests |
+| API | Disable-aware authentication, profile ownership checks, throttling, metadata logging, explicit scoped core read resources and document/proforma/count/approval write routes | Full master-data write/import/export contracts and broader module authorization tests |
+| Payments | Signed generic callback contract, company/amount/currency validation, locked settlement and customer claims, pending verification, existing receipt/allocation/journal/bank services, secret masking and restricted public props | Native provider adapters/credentials, full successful-settlement reconciliation test, FX, advances and fee posting; callback alone is not certification of provider integration |
+| Portals | Customer/vendor identity and company checks, invoice relationship correction, supplier bid privacy, owned payment claims and ticket linkage | Supplier PO confirmation, uploads/profile editing, token portals and complete portal acceptance tests |
+| Operations | Authenticated encrypted streaming backups, administrator-only recovery, daily application schedule, isolated restore rehearsal; service worker limited to public static assets | Actual OS scheduler, offsite configuration, incremental/PITR, retention, infrastructure failover and offline POS synchronization |
+
+### Approved local database maintenance
+
+On 14 October 2026, the user explicitly approved the maintenance plan. The ERP entered maintenance, created/authenticated an encrypted snapshot under a global database read lock, converted **292 MyISAM tables to InnoDB**, checked exact before/after row counts for every converted table, applied migrations `060000` and `061000`, and reopened successfully. These add document sequences, document soft deletion and unique product/warehouse stock keys. New tables also default to InnoDB in Laravel configuration. Conversion cannot reconstruct foreign keys previously omitted by MyISAM; relational constraint reconstruction remains a separate schema review.
+
+Evidence: `scratch/srs-storage-upgrade-history.json` and `scratch/srs-db-audit-after.json`. The post-maintenance audit reports no missing required tables/columns, pending migrations, nontransactional tables, duplicate stock keys, negative stock rows or orphan payment-to-invoice links. These are specific checks, not an exhaustive integrity certification.
+
+An additional online encrypted snapshot was created after maintenance. `srs:rehearse-backup` restored it into a randomly named isolated database, successfully read all **293 restored tables**, and removed that temporary database. All 293 restored row counts subsequently matched the current source database. `scratch/srs-restore-rehearsal.json` records authentication, counts/comparison and a 19.351-second local restore. This timing is not a production RTO guarantee. Recovery requires the original APP_KEY; preserve it securely and separately from backup files. SQL exports cover base tables; routines, triggers and views need separate handling if introduced.
+
+### Validation and release state
+
+- Focused isolated SQLite regressions: **18 tests, 109 assertions passed**, covering document access/version preservation/upload rejection, disabled accounts/profile ownership, proforma totals/conversion/cancellation, legacy sequence seeding, transfer conservation/shortage rollback, approval authorization/delegation/submission tiers and duplicate prevention, secret serialization, payment replay/claim/callback rejection and backup authentication/tampering. Public payment tests bypass only Inertia presentation sharing because unrelated package configuration is absent from the test schema.
+- PHP syntax baseline: **3,964 files, zero errors**; subsequent edited PHP files were rechecked. TypeScript check and Vite production build passed. Verified build output was copied to local `public/build`; existing hashed assets were retained.
+- The original core tests initially had 13 failures out of 25 tests. After correcting a password-reset null-admin error, the latest run has **10 failures out of 25 tests (41 assertions)**, including permission/configuration fixture assumptions, the example home-page expectation and a missing profile destruction method. See `scratch/core-tests.log`. Do not describe the entire test suite as passing.
+- Authenticated browser workflows, accessibility, concurrent MySQL settlement/stock posting, provider callbacks, financial statement reconciliation, performance and management UAT remain outstanding. Browser access reached the login page only.
+
+### Work still required for full SRS completion
+
+The matrix and priority plan remain the implementation backlog. Material open requirements include distinct PO/GRN/invoice matching enforced at payment, delivery/invoice and GRN/invoice stock reconciliation, credit/branch/amount controls and 2FA, WHT recording/remittance, complete product variants/batches/valuation, POS shifts/offline/hardware, notification automation, report/export parity, immutable audit retention and complete signatures. Existing payroll/project/asset/accounting functionality also requires workflow-level verification. Prior `CODEBASE_REVIEW.md` remains the historical baseline; findings are only closed where this implementation log provides corresponding evidence.

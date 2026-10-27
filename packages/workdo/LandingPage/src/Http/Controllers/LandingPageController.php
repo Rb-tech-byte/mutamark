@@ -1,0 +1,146 @@
+<?php
+
+namespace Workdo\LandingPage\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use Inertia\Inertia;
+use App\Models\AddOn;
+use App\Models\Plan;
+use App\Models\User;
+use Workdo\LandingPage\Models\LandingPageSetting;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Route;
+use Workdo\LandingPage\Models\CustomPage;
+use Illuminate\Support\Facades\Auth;
+use Workdo\LandingPage\Http\Requests\StoreLandingPageRequest;
+
+class LandingPageController extends Controller
+{
+    public function index(Request $request)
+    {
+        $settings = Cache::remember('landing_page_settings', 3600, function () {
+            return LandingPageSetting::first();
+        });
+
+        if (!isLandingPageEnabled()) {
+            $enableRegistration = admin_setting('enableRegistration');
+
+            return Inertia::render('auth/login', [
+                'canResetPassword' => Route::has('password.request'),
+                'status' => session('status'),
+                'enableRegistration' => $enableRegistration === 'on',
+            ]);
+        }
+
+        $enableRegistration = admin_setting('enableRegistration');
+
+        $settingsData = $settings ? $settings->toArray() : [];
+        $settingsData['enable_registration'] = $enableRegistration === 'on';
+        $settingsData['is_authenticated'] = $request->user() !== null;
+
+        $customPages = CustomPage::where('is_active', true)->select('id', 'title', 'slug')->get();
+
+        return Inertia::render('LandingPage/Landing', [
+            'auth' => [
+                'user' => $request->user(),
+                'lang' => app()->getLocale()
+            ],
+            'settings' => $settingsData,
+            'customPages' => $customPages
+        ]);
+    }
+
+    public function addons(Request $request)
+    {
+        return redirect()->route('landing.page');
+    }
+
+    public function pricing(Request $request)
+    {
+        return redirect()->route('landing.page');
+    }
+
+    public function settings()
+    {
+        $user = Auth::user();
+        if($user && ($user->type === 'superadmin' || $user->type === 'super admin' || $user->can('manage-landing-page'))){
+            $settings = LandingPageSetting::first();
+            $customPages = CustomPage::where('is_active', true)->select('id', 'title', 'slug')->get();
+            return Inertia::render('LandingPage/Settings', [
+                'settings' => $settings ?: [
+                    'company_name' => '',
+                    'contact_email' => '',
+                    'contact_phone' => '',
+                    'contact_address' => '',
+                    'config_sections' => [
+                        'sections' => [],
+                        'section_visibility' => [
+                            'header' => true,
+                            'hero' => true,
+                            'stats' => true,
+                            'features' => true,
+                            'modules' => true,
+                            'benefits' => true,
+                            'gallery' => true,
+                            'apps' => true,
+                            'cta' => true,
+                            'footer' => true
+                        ],
+                        'section_order' => ['header', 'hero', 'stats', 'features', 'modules', 'benefits', 'gallery', 'apps', 'cta', 'footer']
+                    ]
+                ],
+                'customPages' => $customPages
+            ]);
+        }
+        else{
+            return back()->with('error', __('Permission denied'));
+        }
+    }
+
+    public function store(StoreLandingPageRequest $request)
+    {
+        $user = Auth::user();
+        if($user && ($user->type === 'superadmin' || $user->type === 'super admin' || $user->can('edit-landing-page'))){
+            $validated = $request->validated();
+
+            // Handle image paths - store only filename
+            if (isset($validated['config_sections']['sections'])) {
+                $this->processImagePaths($validated['config_sections']['sections']);
+            }
+
+            LandingPageSetting::updateOrCreate(['id' => 1], $validated);
+            Cache::forget('landing_page_settings');
+
+            return back()->with('success', __('Settings saved successfully'));
+        }
+        else{
+            return back()->with('error', __('Permission denied'));
+        }
+    }
+
+    private function processImagePaths(&$sections)
+    {
+        foreach ($sections as $sectionKey => &$sectionData) {
+            if (is_array($sectionData)) {
+                // Handle single images (hero, cta)
+                if (isset($sectionData['image'])) {
+                    $sectionData['image'] = $this->processImagePath($sectionData['image']);
+                }
+                
+                // Handle gallery images array
+                if (isset($sectionData['images']) && is_array($sectionData['images'])) {
+                    $sectionData['images'] = array_map([$this, 'processImagePath'], $sectionData['images']);
+                }
+            }
+        }
+    }
+
+    private function processImagePath($imagePath)
+    {
+        if (strpos($imagePath, 'packages/workdo') !== false) {
+            return $imagePath;
+        }
+        return basename($imagePath);
+    }
+}

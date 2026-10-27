@@ -1,0 +1,13 @@
+{
+    "name": "MobileServiceManagement",
+    "alias": "Mobile Service Management",
+    "description": "Depending on Product Service",
+    "priority": 1178,
+    "version": 5.0,
+    "monthly_price": 0,
+    "yearly_price": 0,
+    "package_name": "mobile-service-management",
+    "parent_module": [
+        "ProductService"
+    ]
+}

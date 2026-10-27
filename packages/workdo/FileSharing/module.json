@@ -1,0 +1,12 @@
+{
+    "name": "FileSharing",
+    "alias": "File Sharing",
+    "description": "",
+    "keywords": [],
+    "priority": 560,
+    "version":3.1,
+    "providers": [
+        "Modules\\FileSharing\\Providers\\FileSharingServiceProvider"
+    ],
+    "files": []
+}

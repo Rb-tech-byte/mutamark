@@ -1,0 +1,16 @@
+{
+    "name": "DoubleEntry",
+    "alias": "Double Entry",
+    "version": "3.4",
+    "description": "",
+    "keywords": [],
+    "priority": 25,
+    "providers": [
+        "Modules\\DoubleEntry\\Providers\\DoubleEntryServiceProvider",
+        "Modules\\DoubleEntry\\Providers\\EventServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": [],
+    "parent_module": ["Account"]
+}
