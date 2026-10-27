@@ -23,6 +23,37 @@ class DatabaseSeeder extends Seeder
         $userId = User::where('email', 'company@example.com')->first()->id;
         User::CompanySetting($userId);
 
+        // Core Mutamark Enterprise Module Seeders
+        $mutamarkSeeders = [
+            MutamarkAccountingSeeder::class,
+            MutamarkInventorySeeder::class,
+            MutamarkProcurementSeeder::class,
+            MutamarkProcureToPaySeeder::class,
+            MutamarkPosSeeder::class,
+            MutamarkPayrollSeeder::class,
+            MutamarkFixedAssetSeeder::class,
+            MutamarkFleetSeeder::class,
+            MutamarkProjectSeeder::class,
+            MutamarkApprovalSeeder::class,
+            MutamarkDeliveryNotesSeeder::class,
+            MutamarkWmsSeeder::class,
+            MutamarkStatutoryDeclarationsSeeder::class,
+            MutamarkTraFiscalSeeder::class,
+            MutamarkPaymentGatewaySeeder::class,
+            MutamarkMultiCurrencyForexSeeder::class,
+            MutamarkSampleDataSeeder::class,
+        ];
+
+        foreach ($mutamarkSeeders as $seeder) {
+            try {
+                if (class_exists($seeder)) {
+                    $this->call($seeder);
+                }
+            } catch (\Throwable $e) {
+                // Continue if optional package seeder encounters missing tables
+            }
+        }
+
         if(config('app.run_demo_seeder'))
         {
             // // Pass $userId to your custom seeder

@@ -9,9 +9,9 @@ set -e
 APP_DIR="${1:-/home/mutamark.wolinet.com/public_html}"
 cd "$APP_DIR"
 
-echo "🚀 Starting Initial Production Setup for Mutamark ERP at $APP_DIR..."
+echo "🚀 Starting Production Setup for Mutamark ERP at $APP_DIR..."
 
-# 1. Ensure .env exists
+# 1. Ensure .env exists and has production credentials
 if [ ! -f "$APP_DIR/.env" ]; then
     if [ -f "$APP_DIR/deploy/.env.production.example" ]; then
         echo "📝 Creating initial .env from template..."
@@ -22,10 +22,19 @@ if [ ! -f "$APP_DIR/.env" ]; then
     fi
 fi
 
-# 2. Set secure permissions
-echo "🔒 Setting permissions..."
+# 2. Update Database credentials in .env
+echo "🔧 Configuring production database credentials in .env..."
+sed -i 's/^DB_DATABASE=.*/DB_DATABASE=muta_muta/' "$APP_DIR/.env"
+sed -i 's/^DB_USERNAME=.*/DB_USERNAME=muta_muta/' "$APP_DIR/.env"
+sed -i 's|^DB_PASSWORD=.*|DB_PASSWORD="++hL2ti@mDb7%6nx"|' "$APP_DIR/.env"
+sed -i 's|^APP_URL=.*|APP_URL=https://mutamark.wolinet.com|' "$APP_DIR/.env"
+sed -i 's/^APP_ENV=.*/APP_ENV=production/' "$APP_DIR/.env"
+sed -i 's/^APP_DEBUG=.*/APP_DEBUG=false/' "$APP_DIR/.env"
+
+# 3. Set secure permissions early
+echo "🔒 Setting directory permissions..."
 chmod 644 "$APP_DIR/.env"
-chmod -R 775 "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" "$APP_DIR/public"
+chmod -R 775 "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" "$APP_DIR/public" 2>/dev/null || true
 
 # Detect CyberPanel site owner
 SITE_USER=$(stat -c '%U' "$APP_DIR" 2>/dev/null || echo "mutam9314")
@@ -33,38 +42,41 @@ if [ "$SITE_USER" != "root" ] && [ -n "$SITE_USER" ]; then
     chown -R "$SITE_USER:$SITE_USER" "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" 2>/dev/null || true
 fi
 
-# 3. Mark as installed so CheckInstallation middleware allows login
+# 4. Mark as installed so CheckInstallation middleware allows access
 mkdir -p "$APP_DIR/storage"
 if [ ! -f "$APP_DIR/storage/installed" ]; then
     echo "install $(date '+%Y-%m-%d %H:%M:%S')" > "$APP_DIR/storage/installed"
 fi
 
-# 4. Generate App Key if missing
+# 5. Install composer packages FIRST (required before artisan can run)
+echo "📦 Installing production composer packages..."
+composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+
+# 6. Generate App Key if missing
 if ! grep -q "APP_KEY=base64:" "$APP_DIR/.env"; then
     echo "🔑 Generating application key..."
     php artisan key:generate --force
 fi
 
-# 5. Install composer dependencies (optimized for production)
-echo "📦 Installing production composer packages..."
-composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
-
-# 6. Create storage symlink
+# 7. Create storage symlink
 echo "🔗 Linking public storage..."
 php artisan storage:link --force || true
 
-# 7. Run database migrations
-echo "🗄️ Running migrations..."
+# 8. Run database migrations & seed all modules and initial data
+echo "🗄️ Running migrations (creating all tables)..."
 php artisan migrate --force
 
-# 8. Optimize & build production caches
+echo "🌱 Seeding default roles, enterprise modules & sample data..."
+php artisan db:seed --force
+
+# 9. Optimize & build production caches
 echo "⚡ Optimizing configuration, routes & views..."
 php artisan optimize:clear
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-# 9. Restart OpenLiteSpeed / PHP process on CyberPanel
+# 10. Restart OpenLiteSpeed / PHP process on CyberPanel
 echo "🔄 Reloading LiteSpeed web server process..."
 mkdir -p "$APP_DIR/tmp"
 touch "$APP_DIR/tmp/restart.txt" 2>/dev/null || true
@@ -72,4 +84,4 @@ if command -v systemctl &> /dev/null; then
     systemctl restart lsws 2>/dev/null || true
 fi
 
-echo "✅ Production Setup Complete for https://mutamark.wolinet.com/!"
+echo "✅ Production Setup & Database Seeding Complete for https://mutamark.wolinet.com/!"
