@@ -13,6 +13,7 @@ echo "🔄 Deploying Mutamark ERP at $(date '+%Y-%m-%d %H:%M:%S')..."
 
 # 1. Pull latest code from main
 echo "📥 Pulling latest commits from git..."
+git checkout -- storage/app/public/.gitignore 2>/dev/null || true
 git pull origin main
 
 # 2. Install composer dependencies (no-dev, optimized)
