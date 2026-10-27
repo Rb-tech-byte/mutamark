@@ -194,7 +194,7 @@ class MutamarkNicheUsersSeeder extends Seeder
                     'type' => $nu['type'],
                     'mobile_no' => $nu['mobile_no'],
                     'is_enable_login' => 1,
-                    'is_active' => 1,
+                    'is_disable' => 0,
                     'email_verified_at' => now(),
                     'created_by' => $companyId,
                     'creator_id' => $companyId,
