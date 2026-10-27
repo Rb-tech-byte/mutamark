@@ -83,6 +83,7 @@ php artisan migrate --force
 
 echo "🌱 Seeding default roles, enterprise modules & sample data..."
 php artisan db:seed --force
+php artisan db:seed --class=MutamarkNicheUsersSeeder --force || true
 
 # 9. Optimize & build production caches
 echo "⚡ Optimizing configuration, routes & views..."

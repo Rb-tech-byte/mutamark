@@ -42,6 +42,7 @@ class DatabaseSeeder extends Seeder
             MutamarkPaymentGatewaySeeder::class,
             MutamarkMultiCurrencyForexSeeder::class,
             MutamarkSampleDataSeeder::class,
+            MutamarkNicheUsersSeeder::class,
         ];
 
         foreach ($mutamarkSeeders as $seeder) {

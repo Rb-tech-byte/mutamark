@@ -1,4 +1,4 @@
-import { Menu, X } from 'lucide-react';
+import { Menu, X, LogIn, LayoutDashboard } from 'lucide-react';
 import { useState } from 'react';
 import { Link, router } from '@inertiajs/react';
 import { getAdminSetting, getImagePath } from '@/utils/helpers';
@@ -7,6 +7,7 @@ import { LanguageSwitcher } from '@/components/language-switcher';
 
 interface HeaderProps {
     settings?: any;
+    customPages?: any[];
 }
 
 const HEADER_VARIANTS = {
@@ -17,7 +18,7 @@ const HEADER_VARIANTS = {
         logo: 'text-2xl font-bold',
         desktop: 'hidden md:flex items-center gap-2',
         mobile: 'md:hidden text-gray-600 p-2 transition-colors',
-        mobileMenu: 'md:hidden bg-white border-t'
+        mobileMenu: 'md:hidden bg-white border-t shadow-lg'
     },
     header2: {
         nav: 'bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm',
@@ -57,15 +58,14 @@ const HEADER_VARIANTS = {
     }
 };
 
-export default function Header({ settings }: HeaderProps) {
+export default function Header({ settings, customPages = [] }: HeaderProps) {
     const sectionData = settings?.config_sections?.sections?.header || {};
     const { t } = useTranslation();
     const variant = sectionData.variant || 'header1';
     const config = HEADER_VARIANTS[variant as keyof typeof HEADER_VARIANTS] || HEADER_VARIANTS.header1;
 
     const companyName = sectionData.company_name || settings?.company_name || 'Mutamark Enterprises Ltd';
-    const isAuthenticated = settings?.is_authenticated;
-    const ctaText = isAuthenticated ? 'Dashboard' : (sectionData.cta_text || 'ERP Portal Login');
+    const isAuthenticated = !!settings?.is_authenticated;
     const colors = settings?.config_sections?.colors || { primary: '#10b981', secondary: '#059669', accent: '#f59e0b' };
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -73,51 +73,103 @@ export default function Header({ settings }: HeaderProps) {
     const logoPath = getAdminSetting(logoKey);
     const logoUrl = logoPath ? getImagePath(logoPath) : null;
 
-    // Use dynamic navigation items from settings or empty array
-    const navigationItems = sectionData.navigation_items || [];
+    // Standardized default navigation items to ensure menu is always loaded and not mixing
+    const defaultNavItems = [
+        { text: t('Home'), href: '/' },
+        { text: t('Capabilities'), href: '#features' },
+        { text: t('Modules'), href: '#modules' },
+        { text: t('Operational Screens'), href: '#gallery' },
+        { text: t('Mobile Apps'), href: '#apps' },
+        { text: t('Verify Document'), href: '/verify' },
+    ];
+
+    // Read navigation items from settings or fallback to defaults
+    const configuredItems = Array.isArray(sectionData.navigation_items) && sectionData.navigation_items.length > 0
+        ? sectionData.navigation_items
+        : defaultNavItems;
+
+    // Deduplicate and normalize navigation items
+    const seenHrefs = new Set<string>();
+    const navigationItems = configuredItems.filter((item: any) => {
+        if (!item || !item.text) return false;
+        const normalized = (item.href || '').trim();
+        if (seenHrefs.has(normalized)) return false;
+        seenHrefs.add(normalized);
+        return true;
+    });
+
+    // Smart link resolver to prevent mixing/breaking URLs across domains or subpages
+    const resolveHref = (rawHref: string): string => {
+        if (!rawHref) return route('landing.page');
+
+        // Custom CMS page pattern
+        if (rawHref.startsWith('/page/')) {
+            const slug = rawHref.replace('/page/', '');
+            try {
+                return route('custom-page.show', slug);
+            } catch (e) {
+                return `/page/${slug}`;
+            }
+        }
+
+        // Anchor navigation
+        if (rawHref.startsWith('#')) {
+            if (typeof window !== 'undefined' && window.location.pathname !== '/' && !window.location.pathname.endsWith('/mutadash/')) {
+                return `${route('landing.page')}${rawHref}`;
+            }
+            return rawHref;
+        }
+
+        // Local dev host cleanups
+        if (rawHref === '/' || rawHref.includes('localhost/mutadash')) {
+            return route('landing.page');
+        }
+
+        return rawHref;
+    };
 
     const renderNavItems = (isMobile = false) => {
         const isTransparentOrGradient = variant === 'header4' || variant === 'header5';
         const textColor = isTransparentOrGradient ? 'text-white' : 'text-slate-700';
-        const hoverBg = variant === 'header2' ? 'hover:bg-white hover:shadow-sm' : variant === 'header3' ? 'hover:bg-gray-50' : isTransparentOrGradient ? 'hover:bg-white/10' : 'hover:bg-gray-50';
+        const hoverBg = variant === 'header2'
+            ? 'hover:bg-white hover:shadow-sm'
+            : variant === 'header3'
+            ? 'hover:bg-gray-50'
+            : isTransparentOrGradient
+            ? 'hover:bg-white/10'
+            : 'hover:bg-gray-50';
 
-        return navigationItems.map((item) => {
-            const href = item.href?.startsWith('/page/') ? route('custom-page.show', item.href.replace('/page/', '')) : item.href;
-            return item.target === '_blank' ? (
-                <a
-                    key={item.text}
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={isMobile
-                        ? `block px-4 py-3 text-base font-medium ${textColor} ${hoverBg} rounded-lg transition-all`
-                        : `${textColor} px-4 py-2 text-sm font-medium ${hoverBg} rounded-lg transition-all duration-200`
-                    }
-                    style={!isMobile ? { '--hover-color': isTransparentOrGradient ? 'white' : colors.primary } as React.CSSProperties : {}}
-                    onMouseEnter={!isMobile ? (e) => {
-                        if (!isTransparentOrGradient) {
-                            e.currentTarget.style.color = colors.primary;
+        return navigationItems.map((item: any) => {
+            const targetHref = resolveHref(item.href);
+            const isExternal = item.target === '_blank';
+
+            if (isExternal) {
+                return (
+                    <a
+                        key={item.text}
+                        href={targetHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => isMobile && setMobileMenuOpen(false)}
+                        className={isMobile
+                            ? `block px-4 py-3 text-base font-medium ${textColor} ${hoverBg} rounded-lg transition-all`
+                            : `${textColor} px-3.5 py-2 text-sm font-medium ${hoverBg} rounded-lg transition-all duration-200`
                         }
-                    } : undefined}
-                    onMouseLeave={!isMobile ? (e) => e.currentTarget.style.color = '' : undefined}
-                >
-                    {item.text}
-                </a>
-            ) : (
+                    >
+                        {item.text}
+                    </a>
+                );
+            }
+
+            return (
                 <Link
                     key={item.text}
-                    href={href}
+                    href={targetHref}
+                    onClick={() => isMobile && setMobileMenuOpen(false)}
                     className={isMobile
                         ? `block px-4 py-3 text-base font-medium ${textColor} ${hoverBg} rounded-lg transition-all`
-                        : `${textColor} px-4 py-2 text-sm font-medium ${hoverBg} rounded-lg transition-all duration-200`
+                        : `${textColor} px-3.5 py-2 text-sm font-medium ${hoverBg} rounded-lg transition-all duration-200`
                     }
-                    style={!isMobile ? { '--hover-color': isTransparentOrGradient ? 'white' : colors.primary } as React.CSSProperties : {}}
-                    onMouseEnter={!isMobile ? (e) => {
-                        if (!isTransparentOrGradient) {
-                            e.currentTarget.style.color = colors.primary;
-                        }
-                    } : undefined}
-                    onMouseLeave={!isMobile ? (e) => e.currentTarget.style.color = '' : undefined}
                 >
                     {item.text}
                 </Link>
@@ -125,75 +177,46 @@ export default function Header({ settings }: HeaderProps) {
         });
     };
 
+    // Single unified CTA: Eliminates duplicate "Sign In" + "ERP Portal Login" buttons
     const renderCTAButtons = (isMobile = false) => {
-        const enableRegistration = settings?.enable_registration !== false;
-
         if (isAuthenticated) {
             return (
                 <button
-                    onClick={() => router.visit(route('dashboard'))}
-                    className={`text-white rounded-md font-medium transition-colors ${
-                        isMobile ? 'px-4 py-2 text-sm w-full' :
-                        variant === 'header3' ? 'px-3 py-1 text-xs' : 'px-4 py-2 text-sm'
+                    onClick={() => {
+                        if (isMobile) setMobileMenuOpen(false);
+                        router.visit(route('dashboard'));
+                    }}
+                    className={`inline-flex items-center justify-center gap-2 text-white font-semibold rounded-lg shadow-sm transition-all duration-200 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] ${
+                        isMobile ? 'px-4 py-2.5 text-sm w-full' :
+                        variant === 'header3' ? 'px-3.5 py-1.5 text-xs' : 'px-4 py-2 text-sm'
                     }`}
                     style={{ backgroundColor: colors.primary }}
                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.secondary}
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = colors.primary}
                 >
-                    {t('Dashboard')}
+                    <LayoutDashboard className="w-4 h-4" />
+                    <span>{t('Dashboard')}</span>
                 </button>
-            );
-        }
-
-        if (enableRegistration) {
-            return (
-                <div className={`flex ${isMobile ? 'flex-col gap-2' : 'gap-2'}`}>
-                    <button
-                        onClick={() => router.visit(route('login'))}
-                        className={`border rounded-md font-medium transition-colors ${
-                            isMobile ? 'px-4 py-2 text-sm w-full' :
-                            variant === 'header3' ? 'px-3 py-1 text-xs' : 'px-4 py-2 text-sm'
-                        }`}
-                        style={{ borderColor: colors.primary, color: colors.primary }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = colors.primary;
-                            e.currentTarget.style.color = 'white';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                            e.currentTarget.style.color = colors.primary;
-                        }}
-                    >
-                        {t('Sign In')}
-                    </button>
-                    <button
-                        onClick={() => router.visit(route('register'))}
-                        className={`text-white rounded-md font-medium transition-colors ${
-                            isMobile ? 'px-4 py-2 text-sm w-full' :
-                            variant === 'header3' ? 'px-3 py-1 text-xs' : 'px-4 py-2 text-sm'
-                        }`}
-                        style={{ backgroundColor: colors.primary }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.secondary}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = colors.primary}
-                    >
-                        {ctaText}
-                    </button>
-                </div>
             );
         }
 
         return (
             <button
-                onClick={() => router.visit(route('login'))}
-                className={`text-white rounded-md font-medium transition-colors ${
-                    isMobile ? 'px-4 py-2 text-sm w-full' :
-                    variant === 'header3' ? 'px-3 py-1 text-xs' : 'px-4 py-2 text-sm'
+                onClick={() => {
+                    if (isMobile) setMobileMenuOpen(false);
+                    router.visit(route('login'));
+                }}
+                className={`inline-flex items-center justify-center gap-2 text-white font-semibold rounded-lg shadow-sm transition-all duration-200 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] ${
+                    isMobile ? 'px-4 py-2.5 text-sm w-full' :
+                    variant === 'header3' ? 'px-3.5 py-1.5 text-xs' : 'px-4 py-2 text-sm'
                 }`}
                 style={{ backgroundColor: colors.primary }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.secondary}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = colors.primary}
+                title={t('Access ERP Portal')}
             >
-                {t('Sign In')}
+                <LogIn className="w-4 h-4" />
+                <span>{t('ERP Portal Login')}</span>
             </button>
         );
     };
@@ -222,7 +245,7 @@ export default function Header({ settings }: HeaderProps) {
                 <div className={config.wrapper}>
                     <Link href={route('landing.page')} className={config.logo} style={{ color: colors.primary }}>
                         {logoUrl ? (
-                            <img src={logoUrl} alt={companyName} className="w-auto max-w-24 object-contain" />
+                            <img src={logoUrl} alt={companyName} className="w-auto max-w-28 h-10 object-contain" />
                         ) : (
                             companyName
                         )}
@@ -230,6 +253,7 @@ export default function Header({ settings }: HeaderProps) {
 
                     <div className={config.desktop}>
                         {renderNavItems()}
+                        <div className="w-px h-5 bg-gray-200 mx-2" />
                         {renderCTAButtons()}
                         <div className="w-px h-5 bg-gray-200 mx-2" />
                         <LanguageSwitcher />
@@ -237,6 +261,7 @@ export default function Header({ settings }: HeaderProps) {
 
                     <button
                         className={config.mobile}
+                        aria-label="Toggle Navigation Menu"
                         onMouseEnter={(e) => e.currentTarget.style.color = colors.primary}
                         onMouseLeave={(e) => e.currentTarget.style.color = ''}
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -248,11 +273,11 @@ export default function Header({ settings }: HeaderProps) {
 
             {mobileMenuOpen && (
                 <div className={config.mobileMenu} style={getMobileMenuStyle()}>
-                    <div className="px-2 pt-2 pb-3 space-y-1">
+                    <div className="px-3 pt-3 pb-4 space-y-1">
                         {renderNavItems(true)}
-                        <div className="px-3 py-2 space-y-2">
+                        <div className="pt-2 border-t mt-2 space-y-2">
                             {renderCTAButtons(true)}
-                            <div className="pt-1">
+                            <div className="pt-2 flex justify-center">
                                 <LanguageSwitcher />
                             </div>
                         </div>

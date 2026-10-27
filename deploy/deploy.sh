@@ -20,9 +20,11 @@ git pull origin main
 echo "📦 Updating composer packages..."
 composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
 
-# 3. Run database migrations
+# 3. Run database migrations and sync niche demo users
 echo "🗄️ Running migrations..."
 php artisan migrate --force
+echo "👥 Syncing Mutamark enterprise niche users & roles..."
+php artisan db:seed --class=MutamarkNicheUsersSeeder --force || true
 
 # 4. Clear and rebuild production caches
 echo "⚡ Rebuilding production caches..."

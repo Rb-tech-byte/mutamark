@@ -48,23 +48,30 @@ class LandingPageSettingSeeder extends Seeder
         return [
             'hero' => [
                 'variant' => 'hero1',
-                'title' => 'Transform Your Business with Mutamark ERP',
-                'subtitle' => 'The complete all-in-one business management solution that combines Project Management, Accounting, HRM, CRM, POS, and Product Management into a single powerful platform. Streamline operations, boost productivity, and grow your business with our integrated suite of tools.',
-                'primary_button_text' => 'Start Free Trial',
-                'primary_button_link' => route('register'),
-                'secondary_button_text' => 'Login',
-                'secondary_button_link' => route('login'),
-                'highlight_text' => 'Mutamark ERP',
+                'title' => 'Mutamark Integrated Enterprise Resource Planning',
+                'subtitle' => 'Custom-engineered enterprise suite for Mutamark Enterprises Ltd by Wolinet Technology Ltd. Centralizing Multi-Warehouse WMS, 3-Way Match Procurement, TRA EFD/VFD Real-Time Fiscalization, Tanzanian Statutory Payroll, and Multi-Channel Payment Reconciliation.',
+                'primary_button_text' => 'Access ERP Portal',
+                'primary_button_link' => route('login'),
+                'secondary_button_text' => 'Download Mobile Scanner',
+                'secondary_button_link' => '#apps',
+                'highlight_text' => 'Enterprise Resource Planning',
                 'image' => '/packages/workdo/LandingPage/src/marketplace/hero.png'
             ],
             'header' => [
                 'variant' => 'header1',
-                'company_name' => 'Mutamark ERP',
-                'cta_text' => 'Get Started',
-                'enable_addon_link' => true,
-                'enable_pricing_link' => true,
+                'company_name' => 'Mutamark Enterprises Ltd',
+                'cta_text' => 'ERP Portal Login',
+                'enable_addon_link' => false,
+                'enable_pricing_link' => false,
                 'navigation_items' => [
-                    ['text' => 'Home', 'href' => route('landing.page')]
+                    ['text' => 'Home', 'href' => '/', 'type' => 'link', 'target' => '_self'],
+                    ['text' => 'Capabilities', 'href' => '#features', 'type' => 'link', 'target' => '_self'],
+                    ['text' => 'Modules', 'href' => '#modules', 'type' => 'link', 'target' => '_self'],
+                    ['text' => 'Operational Screens', 'href' => '#gallery', 'type' => 'link', 'target' => '_self'],
+                    ['text' => 'Mobile Apps', 'href' => '#apps', 'type' => 'link', 'target' => '_self'],
+                    ['text' => 'Verify Document', 'href' => '/verify', 'type' => 'link', 'target' => '_self'],
+                    ['text' => 'About Us', 'href' => '/page/about-us', 'type' => 'page', 'target' => '_self'],
+                    ['text' => 'FAQ', 'href' => '/page/faq', 'type' => 'page', 'target' => '_self'],
                 ]
             ],
             'stats' => [

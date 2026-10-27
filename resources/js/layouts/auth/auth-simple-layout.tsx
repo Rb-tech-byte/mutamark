@@ -11,12 +11,14 @@ interface AuthLayoutProps {
     name?: string;
     title?: string;
     description?: string;
+    maxWidth?: string;
 }
 
 export default function AuthSimpleLayout({
     children,
     title,
     description,
+    maxWidth = 'max-w-md',
 }: PropsWithChildren<AuthLayoutProps>) {
     const { settings, getPrimaryColor, getLogoSrc } = useBrand();
     const { adminAllSetting } = usePage().props as any;
@@ -58,7 +60,7 @@ export default function AuthSimpleLayout({
                 <LanguageSwitcher />
             </div>
 
-            <div className="w-full max-w-md relative z-10 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-2xl shadow-2xl border border-white/30 dark:border-slate-700/50 p-8">
+            <div className={`w-full ${maxWidth} relative z-10 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-2xl shadow-2xl border border-white/30 dark:border-slate-700/50 p-6 sm:p-8 transition-all duration-300`}>
                 <div className="flex flex-col gap-8">
                     <div className="flex flex-col items-center gap-4">
                         <Link
