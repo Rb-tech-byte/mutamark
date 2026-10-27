@@ -39,7 +39,7 @@ Route::middleware(['web', 'auth'])->prefix('newsletter-subscribers')->name('news
 
 // Public landing page
 Route::middleware(['web'])->group(function () {
-    Route::get('/', fn () => redirect()->route(auth()->check() ? 'dashboard' : 'login'))->name('landing.page');
+    Route::get('/', [LandingPageController::class, 'index'])->name('landing.page');
     Route::get('/addons', [LandingPageController::class, 'addons'])->name('addons.page');
     Route::get('/marketplace/{slug?}', [MarketplaceController::class, 'index'])->name('marketplace');
     Route::get('/page/{slug}', [CustomPageController::class, 'show'])->name('custom-page.show');

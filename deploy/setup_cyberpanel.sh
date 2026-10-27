@@ -63,6 +63,20 @@ fi
 echo "🔗 Linking public storage..."
 php artisan storage:link --force || true
 
+# 7b. Synchronize media assets and create direct root symlinks
+echo "🖼️ Synchronizing media assets & static symlinks..."
+mkdir -p "$APP_DIR/storage/app/public/media"
+mkdir -p "$APP_DIR/public/storage/media"
+cp -n "$APP_DIR/public/"*.png "$APP_DIR/storage/app/public/media/" 2>/dev/null || true
+cp -n "$APP_DIR/public/"*.ico "$APP_DIR/storage/app/public/media/" 2>/dev/null || true
+cp -n "$APP_DIR/public/"*.png "$APP_DIR/public/storage/media/" 2>/dev/null || true
+cp -n "$APP_DIR/public/"*.ico "$APP_DIR/public/storage/media/" 2>/dev/null || true
+
+ln -sfn public/build "$APP_DIR/build" 2>/dev/null || true
+ln -sfn public/images "$APP_DIR/images" 2>/dev/null || true
+ln -sfn public/assets "$APP_DIR/assets" 2>/dev/null || true
+ln -sfn public/js "$APP_DIR/js" 2>/dev/null || true
+
 # 8. Run database migrations & seed all modules and initial data
 echo "🗄️ Running migrations (creating all tables)..."
 php artisan migrate --force

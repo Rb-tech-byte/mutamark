@@ -27,7 +27,7 @@
 
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
-        Options -MultiViews -Indexes
+        Options -MultiViews -Indexes +FollowSymLinks
     </IfModule>
 
     <FilesMatch "(^\.env|composer\.(json|lock)|package(-lock)?\.json|phpunit(\.srs)?\.xml|artisan|\.(sql|log|bak|yml|yaml))$">
@@ -46,19 +46,22 @@
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-    # Redirect Trailing Slashes If Not A Folder...
+    # 1. Forward all static asset requests directly to public/
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(build|images|packages|assets|css|js|storage|media|installer)/(.*)$ public/$1/$2 [L,QSA,NC]
+
+    # 2. Forward root-level static files (icons, manifest, worker, logos) to public/
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^([a-zA-Z0-9_\-\.]+\.(ico|png|jpg|jpeg|gif|webp|svg|css|js|json|txt|woff|woff2|ttf|eot))$ public/$1 [L,NC]
+
+    # 3. Redirect Trailing Slashes If Not A Folder...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
 
-    # Handle Front Controller...
+    # 4. Handle Front Controller...
     RewriteCond %{REQUEST_URI} !(\.css|\.js|\.png|\.webp|\.jpg|\.jpeg|\.gif|robots\.txt|\.ico|\.woff|\.woff2|.ttf|\.svg|\.pdf|\.doc|\.docx|\.xls|\.xlsx|\.xlsm|\.xlsb|\.xltx|\.xltm|\.xla|\.xlam|\.csv|\.zip|\.mp4|\.mp3)$ [NC]
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
-
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_URI} !^/public/
-    RewriteRule ^(css|assets|storage|installer|js|vendor|build|packages)/(.*)$ public/$1/$2 [L,NC]
 </IfModule>
