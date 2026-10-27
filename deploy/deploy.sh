@@ -11,14 +11,17 @@ cd "$APP_DIR"
 
 echo "🔄 Deploying Mutamark ERP at $(date '+%Y-%m-%d %H:%M:%S')..."
 
-# 1. Pull latest code from main
-echo "📥 Pulling latest commits from git..."
+# 1. Pull latest code from main (discard any server build drift)
+echo "📥 Fetching and syncing latest commits from origin/main..."
 git checkout -- storage/app/public/.gitignore 2>/dev/null || true
-git pull origin main
+git fetch origin main
+git checkout -f main
+git reset --hard origin/main
 
 # 2. Install composer dependencies (no-dev, optimized)
 echo "📦 Updating composer packages..."
 composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+composer dump-autoload -o
 
 # 3. Run database migrations and sync niche demo users
 echo "🗄️ Running migrations..."
