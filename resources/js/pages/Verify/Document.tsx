@@ -14,13 +14,18 @@ import {
     User, 
     FileText, 
     ExternalLink,
-    Lock
+    Lock,
+    Search,
+    QrCode,
+    FileSearch,
+    Sparkles
 } from 'lucide-react';
 import { BrandProvider } from '@/contexts/brand-context';
 import ApplicationLogo from '@/components/application-logo';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatCurrency, formatDate } from '@/utils/helpers';
 import { DocumentVerificationData } from '@/components/DocumentVerificationBadge';
@@ -29,13 +34,24 @@ interface Props {
     verification: DocumentVerificationData | null;
     hash: string;
     isVerified: boolean;
+    hasSearched?: boolean;
+    searchQuery?: string;
     appName?: string;
     companyName?: string;
 }
 
-function VerificationContent({ verification, hash, isVerified, appName = 'Mutamark ERP', companyName = 'Mutamark Enterprises' }: Props) {
+function VerificationContent({ 
+    verification, 
+    hash, 
+    isVerified, 
+    hasSearched = false, 
+    searchQuery = '', 
+    appName = 'Mutamark ERP', 
+    companyName = 'Mutamark Enterprises Ltd' 
+}: Props) {
     const { t } = useTranslation();
     const [copied, setCopied] = useState(false);
+    const [searchTerm, setSearchTerm] = useState(searchQuery || hash || '');
 
     const copyHash = () => {
         navigator.clipboard.writeText(hash);
@@ -45,6 +61,13 @@ function VerificationContent({ verification, hash, isVerified, appName = 'Mutama
 
     const handlePrint = () => {
         window.print();
+    };
+
+    const handleSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const trimmed = searchTerm.trim();
+        if (!trimmed) return;
+        window.location.href = `/verify?hash=${encodeURIComponent(trimmed)}`;
     };
 
     const lipaNamba = verification?.lipa_namba || '';
@@ -65,10 +88,12 @@ function VerificationContent({ verification, hash, isVerified, appName = 'Mutama
                     </Link>
 
                     <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2">
-                            <Printer className="w-4 h-4" />
-                            <span className="hidden sm:inline">{t('Print Certificate')}</span>
-                        </Button>
+                        {isVerified && (
+                            <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2">
+                                <Printer className="w-4 h-4" />
+                                <span className="hidden sm:inline">{t('Print Certificate')}</span>
+                            </Button>
+                        )}
                         <Button size="sm" asChild>
                             <Link href="/login">
                                 <span>{t('ERP Portal')}</span>
@@ -80,6 +105,38 @@ function VerificationContent({ verification, hash, isVerified, appName = 'Mutama
 
             {/* Main Container */}
             <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 flex-1 w-full space-y-6">
+                {/* Search Bar Container */}
+                <div className="bg-white dark:bg-card p-5 sm:p-6 rounded-2xl border shadow-sm">
+                    <form onSubmit={handleSearchSubmit} className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <label htmlFor="verify-input" className="text-sm font-semibold flex items-center gap-2">
+                                <FileSearch className="w-4 h-4 text-primary" />
+                                {t('Document Verification Search')}
+                            </label>
+                            <span className="text-xs text-muted-foreground">
+                                {t('Invoice, Proforma, Quotation or Delivery Note')}
+                            </span>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                            <div className="relative flex-1">
+                                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    id="verify-input"
+                                    type="text"
+                                    placeholder={t('Enter Document Number (e.g. INV-2026-0001) or SHA-256 Hash...')}
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="pl-9 h-11 text-sm font-mono"
+                                />
+                            </div>
+                            <Button type="submit" className="h-11 px-6 font-semibold shadow-sm gap-2 shrink-0">
+                                <ShieldCheck className="w-4 h-4" />
+                                {t('Verify Authenticity')}
+                            </Button>
+                        </div>
+                    </form>
+                </div>
+
                 {/* Status Hero */}
                 {isVerified && verification ? (
                     <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-50/30 dark:from-emerald-950/20 dark:via-background dark:to-emerald-950/10 p-6 sm:p-8 shadow-sm">
@@ -106,7 +163,7 @@ function VerificationContent({ verification, hash, isVerified, appName = 'Mutama
                             </div>
                         </div>
                     </div>
-                ) : (
+                ) : hasSearched ? (
                     <div className="rounded-2xl border border-rose-200 bg-gradient-to-br from-rose-50 via-white to-rose-50/30 dark:from-rose-950/20 dark:via-background dark:to-rose-950/10 p-6 sm:p-8 shadow-sm">
                         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
                             <div className="w-16 h-16 rounded-2xl bg-rose-600 text-white flex items-center justify-center shadow-lg shadow-rose-600/20 shrink-0">
@@ -120,7 +177,62 @@ function VerificationContent({ verification, hash, isVerified, appName = 'Mutama
                                     Invalid or Unrecognized Document Hash
                                 </h1>
                                 <p className="text-sm text-muted-foreground max-w-2xl">
-                                    No document record matches the hash provided. Please verify the QR code or hash parameter to ensure you are scanning an authentic document issued by Mutamark Enterprises.
+                                    No document record matches the query <code className="font-mono bg-rose-100/80 dark:bg-rose-950 px-1.5 py-0.5 rounded text-xs text-rose-900 dark:text-rose-200">{searchTerm || hash}</code>. Please double-check the document number or scan the QR code printed at the footer of your official Mutamark document.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    /* Initial Landing / Verification Portal Intro */
+                    <div className="rounded-2xl border bg-gradient-to-br from-slate-100 via-white to-slate-50 dark:from-slate-900 dark:via-card dark:to-slate-900/50 p-6 sm:p-8 shadow-sm">
+                        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
+                            <div className="w-16 h-16 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/25 shrink-0">
+                                <ShieldCheck className="w-9 h-9" />
+                            </div>
+                            <div className="space-y-2 flex-1">
+                                <div className="flex items-center justify-center sm:justify-start gap-2">
+                                    <Badge className="bg-primary text-white text-xs font-semibold px-2.5 py-0.5">
+                                        Public Ledger Engine
+                                    </Badge>
+                                    <span className="text-xs text-muted-foreground">Tanzania EFDMS & TRA Fiscal Audit</span>
+                                </div>
+                                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
+                                    Official Document Verification Portal
+                                </h1>
+                                <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
+                                    Verify the authenticity, tamper-resistance, and fiscal integrity of any commercial invoice, proforma, quotation, delivery note, or payment receipt issued by Mutamark Enterprises Ltd.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
+                            <div className="p-4 rounded-xl border bg-card/60 space-y-1.5">
+                                <div className="flex items-center gap-2 text-primary font-semibold text-sm">
+                                    <Lock className="w-4 h-4" />
+                                    <span>SHA-256 Audit Trail</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    Every issued record contains a unique cryptographic hash registered into Mutamark's permanent fiscal audit ledger.
+                                </p>
+                            </div>
+
+                            <div className="p-4 rounded-xl border bg-card/60 space-y-1.5">
+                                <div className="flex items-center gap-2 text-primary font-semibold text-sm">
+                                    <Landmark className="w-4 h-4" />
+                                    <span>TRA EFDMS Compliant</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    Direct cross-verification with official Tanzania Revenue Authority fiscal signatures and registered TIN/VRN entities.
+                                </p>
+                            </div>
+
+                            <div className="p-4 rounded-xl border bg-card/60 space-y-1.5">
+                                <div className="flex items-center gap-2 text-primary font-semibold text-sm">
+                                    <QrCode className="w-4 h-4" />
+                                    <span>Instant QR Validation</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    Scan the QR code printed at the footer of your invoice or delivery note using any smartphone to instantly open its ledger certificate.
                                 </p>
                             </div>
                         </div>
@@ -347,9 +459,13 @@ function VerificationContent({ verification, hash, isVerified, appName = 'Mutama
 }
 
 export default function Document(props: Props) {
+    const pageTitle = props.verification?.document_number
+        ? `Verify Document - ${props.verification.document_number}`
+        : (props.hash ? `Verify Document - ${props.hash}` : 'Official Document Verification Portal');
+
     return (
         <BrandProvider>
-            <Head title={`Verify Document - ${props.verification?.document_number || props.hash}`} />
+            <Head title={pageTitle} />
             <VerificationContent {...props} />
         </BrandProvider>
     );

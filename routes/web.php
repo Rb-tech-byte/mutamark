@@ -427,7 +427,8 @@ Route::post('/cookie-consent-log', [SettingController::class, 'logCookieConsent'
 Route::any('/meta/callback', [MetaController::class, 'handleWebhook'])->name('meta.callback');
 
 // Document Verification Routes (Public Engine)
-Route::get('/verify/document/{hash}', [DocumentVerificationController::class, 'verify'])->name('document.verify');
+Route::get('/verify', [DocumentVerificationController::class, 'publicVerifyPortal'])->name('document.verify.portal');
+Route::get('/verify/document/{hash?}', [DocumentVerificationController::class, 'verify'])->name('document.verify');
 Route::get('/api/v1/verify/{hash}', [DocumentVerificationController::class, 'apiVerify'])->name('api.document.verify');
 
 // Public Customer Invoice Checkout & Payment Portal (SRS Module 33)

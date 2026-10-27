@@ -158,23 +158,51 @@ const filterByActiveModule = (items: NavItem[], activeModuleSet: Set<string>): N
 };
 
 // Filter menu items based on permissions with O(1) Set lookup
-const filterByPermission = (items: NavItem[], permissionSet: Set<string>): NavItem[] => {
+// Completely hides unauthorized items and empty parent containers to avoid user confusion
+const filterByPermission = (items: NavItem[], permissionSet: Set<string>, userRoles: string[] = []): NavItem[] => {
     if (!Array.isArray(items)) return [];
+    const isSuperAdmin = Array.isArray(userRoles) && userRoles.includes('superadmin');
+
     return items.filter(item => {
         if (!item) return false;
 
-        // If item has children, recursively filter them
-        if (Array.isArray(item.children)) {
-            item.children = filterByPermission(item.children, permissionSet);
-        }
-
-        // If no permission specified, item is visible
-        if (!item.permission) {
+        // Superadmin on superadmin menu retains master visibility
+        if (isSuperAdmin) {
             return true;
         }
 
-        // Check permission
-        if (!permissionSet.has(item.permission)) {
+        const hadOriginalChildren = Array.isArray(item.children) && item.children.length > 0;
+
+        // If item has children, recursively filter them
+        if (Array.isArray(item.children) && item.children.length > 0) {
+            item.children = filterByPermission(item.children, permissionSet, userRoles);
+        }
+
+        // 1. If item originally had sub-items, but all of them were restricted/filtered out:
+        if (hadOriginalChildren && (!item.children || item.children.length === 0)) {
+            // Check if this parent has its own direct standalone link (not just a toggle or #)
+            const hasDirectStandaloneLink = item.href && item.href !== '#' && item.href !== '';
+            if (!hasDirectStandaloneLink) {
+                // If it has no standalone destination and no accessible children, DO NOT APPEAR ON SIDEBAR!
+                return false;
+            }
+        }
+
+        // 2. If item has an explicit permission requirement:
+        if (item.permission) {
+            const hasPermission = permissionSet.has(item.permission);
+            if (!hasPermission) {
+                // If it still has accessible children remaining, keep the parent so user can reach allowed children
+                if (Array.isArray(item.children) && item.children.length > 0) {
+                    return true;
+                }
+                // Otherwise user lacks the permission: DO NOT APPEAR ON SIDEBAR!
+                return false;
+            }
+        }
+
+        // 3. If an item has neither children nor permission, but has an empty href:
+        if (!hadOriginalChildren && (!item.href || item.href === '#' || item.href === '')) {
             return false;
         }
 
@@ -219,7 +247,7 @@ export const allMenuItems = (): NavItem[] => {
     const sortedMenuItems = finalGroupedMenuItems.sort((a, b) => ((a?.order || 999) - (b?.order || 999)));
 
     const permissionSet = new Set(userPermissions);
-    const finalMenuItems = filterByPermission(sortedMenuItems, permissionSet);
+    const finalMenuItems = filterByPermission(sortedMenuItems, permissionSet, userRoles);
 
     cachedMenuKey = cacheKey;
     cachedMenuResult = finalMenuItems;

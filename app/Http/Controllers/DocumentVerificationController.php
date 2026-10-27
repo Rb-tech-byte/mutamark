@@ -13,7 +13,7 @@ class DocumentVerificationController extends Controller implements \Illuminate\R
 {
     public static function middleware(): array
     {
-        return [new \Illuminate\Routing\Controllers\Middleware('can:manage-sales-invoices', except: ['verify', 'apiVerify'])];
+        return [new \Illuminate\Routing\Controllers\Middleware('can:manage-sales-invoices', except: ['verify', 'apiVerify', 'publicVerifyPortal'])];
     }
     /**
      * Authenticated Verification Ledger Page
@@ -57,19 +57,52 @@ class DocumentVerificationController extends Controller implements \Illuminate\R
     }
 
     /**
-     * Public Verification Page
+     * Public Document Verification Search & Validation Portal
      */
-    public function verify(Request $request, string $hash): Response
+    public function publicVerifyPortal(Request $request): Response
     {
-        $verification = DocumentVerificationService::findByHash($hash);
+        $hash = trim((string) ($request->input('hash') ?: $request->input('q', '')));
+        $documentNumber = trim((string) $request->input('document_number', ''));
+
+        $verification = null;
+        $hasSearched = false;
+
+        if (!empty($hash)) {
+            $hasSearched = true;
+            $verification = DocumentVerificationService::findByHash($hash);
+            // Also search by document number if hash lookup wasn't found directly
+            if (!$verification) {
+                $verification = DocumentVerification::where('document_number', $hash)->first();
+                if ($verification) {
+                    $hash = $verification->verification_hash;
+                }
+            }
+        } elseif (!empty($documentNumber)) {
+            $hasSearched = true;
+            $verification = DocumentVerification::where('document_number', $documentNumber)->first();
+            if ($verification) {
+                $hash = $verification->verification_hash;
+            }
+        }
 
         return Inertia::render('Verify/Document', [
             'verification' => $verification,
             'hash' => $hash,
             'isVerified' => $verification !== null,
+            'hasSearched' => $hasSearched,
+            'searchQuery' => $hash ?: $documentNumber,
             'appName' => config('app.name', 'Mutamark ERP'),
-            'companyName' => $verification ? $verification->issuer_name : 'Mutamark Enterprises',
+            'companyName' => $verification ? $verification->issuer_name : (company_setting('company_name') ?: 'Mutamark Enterprises Ltd'),
         ]);
+    }
+
+    /**
+     * Public Verification Page by Hash
+     */
+    public function verify(Request $request, ?string $hash = null): Response
+    {
+        $resolvedHash = $hash ?: (string) $request->input('hash', '');
+        return $this->publicVerifyPortal($request->merge(['hash' => $resolvedHash]));
     }
 
     /**

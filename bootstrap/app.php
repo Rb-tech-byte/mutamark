@@ -45,5 +45,39 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
+            $is403 = $e instanceof \Spatie\Permission\Exceptions\UnauthorizedException
+                  || $e instanceof \Illuminate\Auth\Access\AuthorizationException
+                  || ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface && $e->getStatusCode() === 403);
+
+            if ($is403) {
+                $rawMsg = $e->getMessage();
+                $cleanMsg = 'You do not have the required permissions to access this enterprise module or perform this action.';
+                if (!empty($rawMsg) && !str_contains($rawMsg, 'User does not have') && $rawMsg !== 'This action is unauthorized.') {
+                    $cleanMsg = $rawMsg;
+                }
+
+                if ($request->header('X-Inertia')) {
+                    return \Inertia\Inertia::render('errors/403', [
+                        'status' => 403,
+                        'title' => 'Access Restricted',
+                        'message' => $cleanMsg,
+                    ])->toResponse($request)->setStatusCode(403);
+                }
+
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'message' => $cleanMsg,
+                        'status' => 403,
+                        'error' => 'Forbidden'
+                    ], 403);
+                }
+
+                return response()->view('errors.403', [
+                    'status' => 403,
+                    'title' => 'Access Restricted',
+                    'message' => $cleanMsg,
+                ], 403);
+            }
+        });
     })->create();

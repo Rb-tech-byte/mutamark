@@ -95,8 +95,12 @@ class HandleInertiaRequests extends Middleware
 
     public function onException($request, $exception)
     {
-        if ($exception instanceof AuthorizationException) {
-            return redirect()->route('users.index')->with('error', 'Permission denied');
+        if ($exception instanceof AuthorizationException || $exception instanceof \Spatie\Permission\Exceptions\UnauthorizedException) {
+            return \Inertia\Inertia::render('errors/403', [
+                'status' => 403,
+                'title' => 'Access Restricted',
+                'message' => 'You do not have the required permissions to access this enterprise module or perform this action.',
+            ])->toResponse($request)->setStatusCode(403);
         }
 
         return parent::onException($request, $exception);
