@@ -22,6 +22,8 @@ npm-debug.log
 yarn-error.log
 .DS_Store
 Thumbs.db
-/scratch
-/tmp
+/scratch/*
+!/scratch/.gitignore
+/tmp/*
+!/tmp/.gitignore
 *.bak

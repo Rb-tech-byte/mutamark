@@ -33,13 +33,14 @@ sed -i 's/^APP_DEBUG=.*/APP_DEBUG=false/' "$APP_DIR/.env"
 
 # 3. Set secure permissions early
 echo "🔒 Setting directory permissions..."
+mkdir -p "$APP_DIR/scratch" "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" "$APP_DIR/tmp"
 chmod 644 "$APP_DIR/.env"
-chmod -R 775 "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" "$APP_DIR/public" 2>/dev/null || true
+chmod -R 775 "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" "$APP_DIR/public" "$APP_DIR/scratch" "$APP_DIR/tmp" 2>/dev/null || true
 
 # Detect CyberPanel site owner
 SITE_USER=$(stat -c '%U' "$APP_DIR" 2>/dev/null || echo "mutam9314")
 if [ "$SITE_USER" != "root" ] && [ -n "$SITE_USER" ]; then
-    chown -R "$SITE_USER:$SITE_USER" "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" 2>/dev/null || true
+    chown -R "$SITE_USER:$SITE_USER" "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" "$APP_DIR/scratch" "$APP_DIR/tmp" 2>/dev/null || true
 fi
 
 # 4. Mark as installed so CheckInstallation middleware allows access

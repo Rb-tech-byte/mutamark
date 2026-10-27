@@ -38,7 +38,11 @@ return new class extends Migration
             if ($orphans) $violations[] = ['table' => $table, 'column' => $column, 'parent' => $parent, 'orphans' => $orphans];
             $pending[] = [$table, $column, $parent];
         }
-        file_put_contents(base_path('scratch/mutamark-fk-preflight.json'), json_encode($violations, JSON_PRETTY_PRINT));
+
+        if (!is_dir(base_path('scratch'))) {
+            @mkdir(base_path('scratch'), 0775, true);
+        }
+        @file_put_contents(base_path('scratch/mutamark-fk-preflight.json'), json_encode($violations, JSON_PRETTY_PRINT));
         if ($violations) throw new RuntimeException('Reconcile orphan rows listed in scratch/mutamark-fk-preflight.json before adding foreign keys. No rows changed.');
         foreach ($pending as [$table, $column, $parent]) {
             Schema::table($table, fn (Blueprint $blueprint) => $blueprint->foreign($column, 'mutamark_'.substr(hash('sha256', $table.'.'.$column), 0, 20))->references('id')->on($parent)->restrictOnDelete());
