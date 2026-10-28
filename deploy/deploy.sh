@@ -2,63 +2,60 @@
 set -e
 
 # ==============================================================================
-# Mutamark ERP - Continuous Deployment (CD) Script
+# Mutamark ERP - One-Click Production Deployment Script
 # Domain: https://mutamark.wolinet.com/
 # ==============================================================================
 
 APP_DIR="${1:-/home/mutamark.wolinet.com/public_html}"
 cd "$APP_DIR"
 
-echo "🔄 Deploying Mutamark ERP at $(date '+%Y-%m-%d %H:%M:%S')..."
+echo "=========================================================="
+echo "🚀 Starting Mutamark ERP Deployment at $(date '+%Y-%m-%d %H:%M:%S')"
+echo "=========================================================="
 
-# 1. Pull latest code from main (discard any server build drift)
-echo "📥 Fetching and syncing latest commits from origin/main..."
-git checkout -- storage/app/public/.gitignore 2>/dev/null || true
+# 1. Fetch & force-sync cleanly from origin/main
+echo "📥 [1/6] Syncing latest commits from GitHub origin/main..."
 git fetch origin main
 git checkout -f main
 git reset --hard origin/main
 
-# 2. Install composer dependencies (no-dev, optimized)
-echo "📦 Updating composer packages..."
-composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
-composer dump-autoload -o
+# 2. Composer dump-autoload & dependencies
+echo "📦 [2/6] Optimizing composer autoload..."
+composer dump-autoload -o --no-interaction
 
-# 3. Run database migrations and sync niche demo users
-echo "🗄️ Running migrations..."
+# 3. Database migrations & seeders
+echo "🗄️ [3/6] Running migrations and syncing niche enterprise users & modules..."
 php artisan migrate --force
-echo "👥 Syncing Mutamark enterprise niche users & roles..."
-php artisan db:seed --class=MutamarkNicheUsersSeeder --force || true
+php artisan db:seed --class=MutamarkNicheUsersSeeder --force
 
-# 4. Clear and rebuild production caches
-echo "⚡ Rebuilding production caches..."
+# 4. Clear and rebuild all application caches
+echo "⚡ [4/6] Purging and rebuilding production caches..."
 php artisan optimize:clear
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-# 4b. Ensure storage link and media synchronization
-php artisan storage:link --force || true
-mkdir -p "$APP_DIR/storage/app/public/media"
-mkdir -p "$APP_DIR/public/storage/media"
-cp -n "$APP_DIR/public/"*.png "$APP_DIR/storage/app/public/media/" 2>/dev/null || true
-cp -n "$APP_DIR/public/"*.ico "$APP_DIR/storage/app/public/media/" 2>/dev/null || true
-cp -n "$APP_DIR/public/"*.png "$APP_DIR/public/storage/media/" 2>/dev/null || true
-cp -n "$APP_DIR/public/"*.ico "$APP_DIR/public/storage/media/" 2>/dev/null || true
-
-ln -sfn public/build "$APP_DIR/build" 2>/dev/null || true
-ln -sfn public/images "$APP_DIR/images" 2>/dev/null || true
-ln -sfn public/assets "$APP_DIR/assets" 2>/dev/null || true
-ln -sfn public/js "$APP_DIR/js" 2>/dev/null || true
-
-# 5. Ensure permissions remain correct
-chmod 644 "$APP_DIR/.env" 2>/dev/null || true
+# 5. Reset storage links & public asset symlinks
+echo "🔗 [5/6] Verifying storage and asset links..."
+php artisan storage:link --force 2>/dev/null || true
+mkdir -p "$APP_DIR/storage/framework/cache/data"
+mkdir -p "$APP_DIR/storage/framework/views"
+mkdir -p "$APP_DIR/storage/framework/sessions"
 chmod -R 775 "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" 2>/dev/null || true
 
-# 6. Restart OpenLiteSpeed / PHP worker
+# 6. Flush OpenLiteSpeed / PHP opcode cache & restart worker
+echo "🔄 [6/6] Reloading OpenLiteSpeed and PHP workers..."
 mkdir -p "$APP_DIR/tmp"
-touch "$APP_DIR/tmp/restart.txt" 2>/dev/null || true
+touch "$APP_DIR/tmp/restart.txt"
+
+# Kill any stale stuck lsphp worker processes to reload opcode cache immediately
+pkill -9 -f lsphp 2>/dev/null || true
+
+# Graceful restart of OpenLiteSpeed if running with systemctl
 if command -v systemctl &> /dev/null; then
     systemctl restart lsws 2>/dev/null || true
 fi
 
-echo "✅ Deployment successful at $(date '+%Y-%m-%d %H:%M:%S')!"
+echo "=========================================================="
+echo "✅ Mutamark ERP Deployment Complete at $(date '+%Y-%m-%d %H:%M:%S')!"
+echo "=========================================================="
