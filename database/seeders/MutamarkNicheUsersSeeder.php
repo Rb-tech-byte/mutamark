@@ -4,10 +4,18 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\User;
+use App\Models\AddOn;
+use App\Models\Warehouse;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Workdo\Pos\Models\PosBillingCounter;
+use Workdo\Pos\Models\PosDiscount;
+use Workdo\ProductService\Models\ProductServiceItem;
+use Workdo\ProductService\Models\ProductServiceCategory;
+use Workdo\ProductService\Models\ProductServiceTax;
+use Workdo\ProductService\Models\WarehouseStock;
 
 class MutamarkNicheUsersSeeder extends Seeder
 {
@@ -215,6 +223,260 @@ class MutamarkNicheUsersSeeder extends Seeder
             }
         }
 
-        echo "Successfully seeded Mutamark Niche Users and Roles!\n";
+        // -----------------------------------------------------------------
+        // Core Add-Ons Activation (ProductService, Pos, Inventory, etc.)
+        // -----------------------------------------------------------------
+        $coreAddons = [
+            ['module' => 'ProductService', 'name' => 'Product & Service', 'package_name' => 'product-service', 'priority' => 0],
+            ['module' => 'Account', 'name' => 'Accounting', 'package_name' => 'account', 'priority' => 10],
+            ['module' => 'Hrm', 'name' => 'HRM', 'package_name' => 'hrm', 'priority' => 20],
+            ['module' => 'Inventory', 'name' => 'Inventory', 'package_name' => null, 'priority' => 30],
+            ['module' => 'Pos', 'name' => 'POS', 'package_name' => 'pos', 'priority' => 40],
+            ['module' => 'Lead', 'name' => 'CRM', 'package_name' => 'lead', 'priority' => 50],
+            ['module' => 'Taskly', 'name' => 'Project', 'package_name' => 'taskly', 'priority' => 60],
+            ['module' => 'Fleet', 'name' => 'Fleet', 'package_name' => 'fleet', 'priority' => 70],
+            ['module' => 'LandingPage', 'name' => 'CMS', 'package_name' => 'landing-page', 'priority' => 80],
+            ['module' => 'MobileServiceManagement', 'name' => 'Mobile Service Management', 'package_name' => 'mobile-service-management', 'priority' => 90],
+        ];
+
+        foreach ($coreAddons as $ca) {
+            AddOn::updateOrCreate(
+                ['module' => $ca['module']],
+                [
+                    'name' => $ca['name'],
+                    'package_name' => $ca['package_name'],
+                    'priority' => $ca['priority'],
+                    'is_enable' => 1,
+                    'monthly_price' => 0,
+                    'yearly_price' => 0,
+                ]
+            );
+        }
+
+        // -----------------------------------------------------------------
+        // Warehouses
+        // -----------------------------------------------------------------
+        $warehousesData = [
+            [
+                'name' => 'Dar es Salaam Central Warehouse',
+                'address' => 'Plot 45, Nyerere Road, Industrial Area',
+                'city' => 'Dar es Salaam',
+                'zip_code' => '11101',
+                'phone' => '+255 22 211 4455',
+                'email' => 'dar.warehouse@mutamark.co.tz',
+                'is_active' => true,
+                'creator_id' => $companyId,
+                'created_by' => $companyId,
+            ],
+            [
+                'name' => 'Arusha Regional Depot',
+                'address' => 'Njiro Road, Near Complex',
+                'city' => 'Arusha',
+                'zip_code' => '23100',
+                'phone' => '+255 27 254 8899',
+                'email' => 'arusha.depot@mutamark.co.tz',
+                'is_active' => true,
+                'creator_id' => $companyId,
+                'created_by' => $companyId,
+            ],
+            [
+                'name' => 'Mwanza Lake-Zone Depot',
+                'address' => 'Capripoint, Kenyatta Road',
+                'city' => 'Mwanza',
+                'zip_code' => '33100',
+                'phone' => '+255 28 250 1122',
+                'email' => 'mwanza.depot@mutamark.co.tz',
+                'is_active' => true,
+                'creator_id' => $companyId,
+                'created_by' => $companyId,
+            ],
+        ];
+
+        $warehouseModels = [];
+        foreach ($warehousesData as $wd) {
+            $wh = Warehouse::updateOrCreate(
+                ['name' => $wd['name'], 'created_by' => $companyId],
+                $wd
+            );
+            $warehouseModels[] = $wh;
+        }
+
+        // -----------------------------------------------------------------
+        // POS Billing Counters
+        // -----------------------------------------------------------------
+        $bankAccount = DB::table('bank_accounts')->where('created_by', $companyId)->first();
+        $bankAccountId = $bankAccount ? $bankAccount->id : 1;
+
+        $countersData = [
+            [
+                'name' => 'Counter 01 - Dar Showroom Retail Desk',
+                'code' => 'CTR-01',
+                'bank_account_id' => $bankAccountId,
+                'status' => 1,
+                'creator_id' => $companyId,
+                'created_by' => $companyId,
+            ],
+            [
+                'name' => 'Counter 02 - Express POS Checkout',
+                'code' => 'CTR-02',
+                'bank_account_id' => $bankAccountId,
+                'status' => 1,
+                'creator_id' => $companyId,
+                'created_by' => $companyId,
+            ],
+        ];
+
+        foreach ($countersData as $cd) {
+            PosBillingCounter::updateOrCreate(
+                ['code' => $cd['code'], 'created_by' => $companyId],
+                $cd
+            );
+        }
+
+        // -----------------------------------------------------------------
+        // Product Categories & VAT Tax
+        // -----------------------------------------------------------------
+        $categoriesData = [
+            ['name' => 'Enterprise Hardware', 'color' => '#2563eb'],
+            ['name' => 'Networking & Telecom', 'color' => '#0284c7'],
+            ['name' => 'POS & Auto-ID', 'color' => '#16a34a'],
+            ['name' => 'Power & Datacenter', 'color' => '#d97706'],
+        ];
+
+        $catMap = [];
+        foreach ($categoriesData as $cat) {
+            $cModel = ProductServiceCategory::updateOrCreate(
+                ['name' => $cat['name'], 'created_by' => $companyId],
+                [
+                    'color' => $cat['color'],
+                    'creator_id' => $companyId,
+                    'created_by' => $companyId,
+                ]
+            );
+            $catMap[$cat['name']] = $cModel->id;
+        }
+
+        $vatTax = ProductServiceTax::updateOrCreate(
+            ['tax_name' => 'VAT 18%', 'created_by' => $companyId],
+            [
+                'rate' => 18.00,
+                'creator_id' => $companyId,
+                'created_by' => $companyId,
+            ]
+        );
+
+        // -----------------------------------------------------------------
+        // 6 High-Quality Demo Products with Images
+        // -----------------------------------------------------------------
+        $productsData = [
+            [
+                'name' => 'High-Capacity Industrial Barcode Scanner',
+                'sku' => 'MUT-HW-BCSCAN',
+                'sale_price' => 350000.00,
+                'purchase_price' => 210000.00,
+                'type' => 'product',
+                'unit' => 'Pcs',
+                'image' => 'pos_scanner.jpg',
+                'category_id' => $catMap['POS & Auto-ID'] ?? null,
+                'description' => 'Industrial grade 2D/QR wireless barcode scanner with charging cradle and ultra-fast optical sensor.',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Direct Thermal Receipt Printer 80mm',
+                'sku' => 'MUT-HW-PRINTER',
+                'sale_price' => 280000.00,
+                'purchase_price' => 170000.00,
+                'type' => 'product',
+                'unit' => 'Pcs',
+                'image' => 'pos_printer.jpg',
+                'category_id' => $catMap['POS & Auto-ID'] ?? null,
+                'description' => 'High-speed 260mm/s auto-cutter thermal receipt printer with USB, LAN and Serial interfaces.',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Industrial 4G/5G Enterprise Gateway Router',
+                'sku' => 'MUT-HW-RTR5G',
+                'sale_price' => 750000.00,
+                'purchase_price' => 490000.00,
+                'type' => 'product',
+                'unit' => 'Pcs',
+                'image' => 'pos_router.jpg',
+                'category_id' => $catMap['Networking & Telecom'] ?? null,
+                'description' => 'Ruggedized dual-SIM failover Gigabit router for enterprise branch networks and remote sites.',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'High-Density 48-Port Fiber Distribution Panel',
+                'sku' => 'MUT-HW-FIB48',
+                'sale_price' => 420000.00,
+                'purchase_price' => 260000.00,
+                'type' => 'product',
+                'unit' => 'Pcs',
+                'image' => 'pos_fiber_panel.jpg',
+                'category_id' => $catMap['Networking & Telecom'] ?? null,
+                'description' => '1U 19-inch rackmount optical distribution frame equipped with 48 SC/APC duplex couplers.',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Online Pure Sine Wave Rackmount UPS 3kVA',
+                'sku' => 'MUT-HW-UPS3K',
+                'sale_price' => 1850000.00,
+                'purchase_price' => 1200000.00,
+                'type' => 'product',
+                'unit' => 'Pcs',
+                'image' => 'pos_ups_system.jpg',
+                'category_id' => $catMap['Power & Datacenter'] ?? null,
+                'description' => 'Double conversion online UPS with 2700W active power, zero transfer time, and LCD management.',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Enterprise 24-Port Gigabit PoE+ Managed Switch',
+                'sku' => 'MUT-HW-SW24P',
+                'sale_price' => 920000.00,
+                'purchase_price' => 610000.00,
+                'type' => 'product',
+                'unit' => 'Pcs',
+                'image' => 'pos_switch.jpg',
+                'category_id' => $catMap['Enterprise Hardware'] ?? null,
+                'description' => 'Layer 2+ managed PoE switch with 370W total power budget and 4x 10G SFP+ uplink ports.',
+                'is_active' => true,
+            ],
+        ];
+
+        foreach ($productsData as $pd) {
+            $item = ProductServiceItem::updateOrCreate(
+                ['sku' => $pd['sku'], 'created_by' => $companyId],
+                array_merge($pd, [
+                    'tax_ids' => [$vatTax->id],
+                    'creator_id' => $companyId,
+                    'created_by' => $companyId,
+                ])
+            );
+
+            // Seed inventory in all warehouses
+            foreach ($warehouseModels as $wh) {
+                WarehouseStock::updateOrCreate(
+                    ['product_id' => $item->id, 'warehouse_id' => $wh->id],
+                    ['quantity' => rand(25, 60)]
+                );
+            }
+        }
+
+        // Active POS Discount
+        PosDiscount::updateOrCreate(
+            ['name' => '10% Retail Hardware Promo', 'created_by' => $companyId],
+            [
+                'discount_type' => 'percentage',
+                'discount_value' => 10.00,
+                'min_quantity' => 1,
+                'start_date' => now()->subDays(5)->toDateString(),
+                'end_date' => now()->addDays(90)->toDateString(),
+                'is_active' => 1,
+                'creator_id' => $companyId,
+                'created_by' => $companyId,
+            ]
+        );
+
+        echo "Successfully seeded Mutamark Niche Users, Roles, Core Modules, Warehouses and Products with Stock!\n";
     }
 }

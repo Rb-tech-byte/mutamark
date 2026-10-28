@@ -25,6 +25,10 @@
     </FilesMatch>
 </IfModule>
 
+<IfModule LiteSpeed>
+    CacheLookup off
+</IfModule>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes +FollowSymLinks
@@ -41,6 +45,10 @@
     </FilesMatch>
 
     RewriteEngine On
+
+    # Prevent LiteSpeed / CyberPanel aggressive caching on dynamic requests
+    RewriteCond %{REQUEST_URI} !(\.css|\.js|\.png|\.webp|\.jpg|\.jpeg|\.gif|robots\.txt|\.ico|\.woff|\.woff2|\.ttf|\.svg)$ [NC]
+    RewriteRule .* - [E=Cache-Control:no-cache]
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .

@@ -126,14 +126,18 @@ const getImagePath = (path: string, pageProps?: any): string => {
   if (!path || typeof path !== 'string') return '';
   if (path.startsWith('http')) return path;
 
-  // Handle workdo package paths or storage/media paths - use baseUrl directly
-  if (path.includes('packages/workdo') || path.includes('storage/media')) {
+  // Handle workdo package paths, images, or storage/media paths - use baseUrl directly
+  if (path.includes('packages/workdo') || path.includes('storage/media') || path.startsWith('/images/') || path.startsWith('images/')) {
     let baseUrl;
     if (pageProps?.baseUrl) {
       baseUrl = pageProps.baseUrl;
     } else {
-      const { props } = usePage();
-      baseUrl = (props as any).baseUrl || window.location.origin;
+      try {
+        const { props } = usePage();
+        baseUrl = (props as any).baseUrl || window.location.origin;
+      } catch {
+        baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+      }
     }
     const cleanPath = path.startsWith('/') ? path : '/' + path;
     return `${baseUrl}${cleanPath}`;
@@ -148,7 +152,11 @@ const getImagePath = (path: string, pageProps?: any): string => {
       imageUrlPrefix = (props as any).imageUrlPrefix || '';
     }
 
-    if (!imageUrlPrefix) return '';
+    if (!imageUrlPrefix) {
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      const cleanPath = path.startsWith('/') ? path : '/' + path;
+      return `${origin}/storage/media${cleanPath}`;
+    }
 
     const prefixEndsWithSlash = imageUrlPrefix.endsWith('/');
     const pathStartsWithSlash = path.startsWith('/');
@@ -161,7 +169,9 @@ const getImagePath = (path: string, pageProps?: any): string => {
       return imageUrlPrefix + path;
     }
   } catch {
-    return '';
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const cleanPath = path.startsWith('/') ? path : '/' + path;
+    return `${origin}/storage/media${cleanPath}`;
   }
 };
 

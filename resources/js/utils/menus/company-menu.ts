@@ -210,7 +210,7 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
     // 3. Supply Chain, Logistics & Warehousing (Procure-to-Pay)
     // ----------------------------------------------------
     {
-        title: t('Product & Service'),
+        title: t('Product & Service Catalog'),
         icon: Layers,
         permission: 'manage-product-service-item',
         name: 'product-service',
@@ -218,12 +218,12 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
         order: 80,
         children: [
             {
-                title: t('Items'),
+                title: t('Products & Services'),
                 href: route('product-service.items.index'),
                 permission: 'manage-product-service-item',
             },
             {
-                title: t('Item Categories & Setup'),
+                title: t('Categories & Tax Setup'),
                 href: route('product-service.item-categories.index'),
                 permission: 'manage-product-service-item',
             },
@@ -282,17 +282,12 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
         order: 100,
         children: [
             {
-                title: t('Stock Levels'),
+                title: t('Stock Valuation & Levels'),
                 href: route('product-service.stock.index'),
                 permission: 'manage-stock',
             },
             {
-                title: t('Serial & Batch Tracking'),
-                href: route('inventory-serials.index'),
-                permission: 'manage-inventory-serials',
-            },
-            {
-                title: t('Warehouses'),
+                title: t('Warehouses & Depots'),
                 href: route('warehouses.index'),
                 permission: 'manage-warehouses',
             },
@@ -307,9 +302,9 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
                 permission: 'manage-stock',
             },
             {
-                title: t('Products & Items'),
-                href: route('product-service.items.index'),
-                permission: 'manage-product-service-item',
+                title: t('Serial & Batch Tracking'),
+                href: route('inventory-serials.index'),
+                permission: 'manage-inventory-serials',
             },
         ],
     },

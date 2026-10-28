@@ -435,7 +435,22 @@ Route::get('/api/v1/verify/{hash}', [DocumentVerificationController::class, 'api
 Route::get('/pay/checkout/{token}', [PaymentGatewayController::class, 'publicCheckout'])->name('payment.checkout');
 Route::post('/pay/checkout/{token}', [PaymentGatewayController::class, 'processPublicPayment'])->name('payment.checkout.process');
 Route::get('/pay/checkout/{token}/success', [PaymentGatewayController::class, 'checkoutSuccess'])->name('payment.checkout.success');
-Route::post('/api/v1/payments/webhook/{gateway}', [PaymentGatewayController::class, 'webhook'])->name('payment.webhook');
+// Fallback route for package favicons and images to prevent 404s
+Route::get('packages/workdo/{module}/favicon.png', function ($module) {
+    $publicPath = public_path('packages/workdo/' . $module . '/favicon.png');
+    if (file_exists($publicPath)) {
+        return response()->file($publicPath, ['Content-Type' => 'image/png']);
+    }
+    $sourcePath = base_path('packages/workdo/' . $module . '/favicon.png');
+    if (file_exists($sourcePath)) {
+        return response()->file($sourcePath, ['Content-Type' => 'image/png']);
+    }
+    $innerSourcePath = base_path('packages/workdo/' . $module . '/src/Resources/assets/images/favicon.png');
+    if (file_exists($innerSourcePath)) {
+        return response()->file($innerSourcePath, ['Content-Type' => 'image/png']);
+    }
+    return response()->file(public_path('favicon.png'), ['Content-Type' => 'image/png']);
+});
 
 require __DIR__.'/installer.php';
 require __DIR__.'/updater.php';

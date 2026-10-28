@@ -113,6 +113,38 @@ class ModuleController extends Controller
                         $this->Check_Parent_Module($module);
                     }
                 } else {
+                    $parentModuleDir = base_path('packages/workdo/' . $value);
+                    if (File::isDirectory($parentModuleDir)) {
+                        $parentAddon = AddOn::where('module', $value)->first();
+                        if (!$parentAddon) {
+                            try {
+                                Artisan::call('migrate --path=/packages/workdo/' . $value . '/src/Database/Migrations --force');
+                                Artisan::call('package:seed ' . $value);
+                            } catch (\Throwable $e) {}
+
+                            $parentJsonPath = $parentModuleDir . '/module.json';
+                            $parentData = File::exists($parentJsonPath) ? json_decode(File::get($parentJsonPath), true) : [];
+
+                            $parentAddon = new AddOn;
+                            $parentAddon->module = $parentData['name'] ?? $value;
+                            $parentAddon->name = $parentData['alias'] ?? $value;
+                            $parentAddon->monthly_price = $parentData['monthly_price'] ?? 0;
+                            $parentAddon->yearly_price = $parentData['yearly_price'] ?? 0;
+                            $parentAddon->package_name = $parentData['package_name'] ?? null;
+                            $parentAddon->for_admin = $parentData['for_admin'] ?? false;
+                            $parentAddon->priority = $parentData['priority'] ?? 0;
+                        }
+                        $parentAddon->is_enable = 1;
+                        $parentAddon->save();
+                        (new Module())->moduleCacheForget($value);
+
+                        $parentObj = (new Module())->find($value);
+                        if ($parentObj) {
+                            $this->Check_Parent_Module($parentObj);
+                        }
+                        continue;
+                    }
+
                     $data['status'] = false;
                     $data['msg'] = 'please activate this module ' . $modules;
                     return $data;

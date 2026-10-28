@@ -39,6 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 'plans/*/assign-free',
                 'api/v1/payments/webhook/*',
                 'pay/checkout/*',
+                'logout',
             ]
         );
 
@@ -46,6 +47,25 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
+            if ($e instanceof \Illuminate\Session\TokenMismatchException) {
+                if ($request->is('logout')) {
+                    \Illuminate\Support\Facades\Auth::guard('web')->logout();
+                    $request->session()->invalidate();
+                    $request->session()->regenerateToken();
+                    return redirect()->route('login')->with('info', 'You have been logged out.');
+                }
+
+                if ($request->header('X-Inertia')) {
+                    return back()->with('error', 'Your session expired. Please refresh the page and try again.');
+                }
+
+                if ($request->is('login')) {
+                    return redirect()->route('login')->with('error', 'Login session expired. Please sign in again.');
+                }
+
+                return redirect()->back()->with('error', 'Your session expired. Please refresh the page and try again.');
+            }
+
             $is403 = $e instanceof \Spatie\Permission\Exceptions\UnauthorizedException
                   || $e instanceof \Illuminate\Auth\Access\AuthorizationException
                   || ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface && $e->getStatusCode() === 403);

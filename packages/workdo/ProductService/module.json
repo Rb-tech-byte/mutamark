@@ -1,11 +1,11 @@
 {
     "name": "ProductService",
     "alias": "Product & Service",
-    "description": "",
+    "description": "Core enterprise catalog, services, pricing and warehouse inventory engine for Mutamark ERP",
     "priority": 0,
     "version": 5.1,
     "monthly_price": 0,
     "yearly_price": 0,
-    "display": false,
+    "display": true,
     "package_name": "product-service"
 }
