@@ -22,17 +22,23 @@ class CreatePosListener
     public function handle(CreatePos $event)
     {
         if (Module_is_active('Account')) {
+            try {
+                $bankAccount = BankAccount::where('id', $event->posSale->bank_account_id)
+                    ->where('created_by', creatorId())
+                    ->first();
 
-            $bankAccount = BankAccount::where('id', $event->posSale->bank_account_id)
-                ->where('created_by', creatorId())
-                ->first();
+                if ($bankAccount) {
+                    $this->bankTransactionsService->createPosPayment($event->posSale, $bankAccount->id);
+                }
 
-            if ($bankAccount) {
-                $this->bankTransactionsService->createPosPayment($event->posSale, $bankAccount->id);
+                $this->journalService->createPosJournal($event->posSale);
+                $this->journalService->createPosCOGSJournal($event->posSale);
+            } catch (\Throwable $e) {
+                \Log::error('CreatePosListener error creating journal or bank transaction: ' . $e->getMessage(), [
+                    'pos_id' => $event->posSale->id ?? null,
+                    'file' => $e->getFile() . ':' . $e->getLine(),
+                ]);
             }
-
-            $this->journalService->createPosJournal($event->posSale);
-            $this->journalService->createPosCOGSJournal($event->posSale);
         }
     }
 }

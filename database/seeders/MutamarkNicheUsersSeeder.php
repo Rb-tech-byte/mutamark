@@ -85,6 +85,10 @@ class MutamarkNicheUsersSeeder extends Seeder
                 'label' => 'Logistics & Warehouse Manager',
                 'permissions' => [
                     'manage-dashboard',
+                    'manage-stock', 'create-stock',
+                    'manage-product-service-item', 'view-product-service-item', 'create-product-service-item', 'edit-product-service-item', 'delete-product-service-item',
+                    'manage-product-service-categories', 'create-product-service-categories', 'edit-product-service-categories',
+                    'manage-product-service-units', 'create-product-service-units',
                     'manage-warehouses', 'view-warehouses', 'create-warehouses', 'edit-warehouses',
                     'manage-transfers', 'view-transfers', 'create-transfers', 'dispatch-transfers', 'receive-transfers',
                     'manage-stock-adjustments', 'view-stock-adjustments', 'create-stock-adjustments', 'post-stock-adjustments',
@@ -98,12 +102,26 @@ class MutamarkNicheUsersSeeder extends Seeder
                 'label' => 'Commercial Sales & CRM Executive',
                 'permissions' => [
                     'manage-dashboard',
+                    'manage-product-service-item', 'view-product-service-item', 'create-product-service-item',
+                    'manage-pos', 'view-pos', 'create-pos', 'manage-pos-orders', 'view-pos-orders',
+                    'manage-pos-returns', 'manage-pos-barcodes', 'manage-pos-billing-counters', 'manage-pos-discounts', 'manage-pos-reports',
                     'manage-sales-proposals', 'view-sales-proposals', 'create-sales-proposals', 'edit-sales-proposals', 'sent-sales-proposals',
                     'manage-sales-orders', 'view-sales-orders', 'create-sales-orders', 'edit-sales-orders',
                     'manage-proformas', 'view-proformas', 'create-proformas', 'convert-proformas',
                     'manage-sales-invoices', 'view-sales-invoices', 'create-sales-invoices', 'print-sales-invoices',
                     'manage-customers', 'view-customers', 'create-customers', 'edit-customers',
                     'manage-delivery-notes', 'view-delivery-notes', 'create-delivery-notes',
+                    'manage-profile', 'edit-profile',
+                ]
+            ],
+            'pos_cashier' => [
+                'label' => 'POS Cashier & Retail Desk',
+                'permissions' => [
+                    'manage-dashboard',
+                    'manage-pos', 'view-pos', 'create-pos',
+                    'manage-pos-orders', 'view-pos-orders',
+                    'manage-pos-returns', 'manage-pos-barcodes', 'manage-pos-discounts', 'manage-pos-reports',
+                    'view-product-service-item',
                     'manage-profile', 'edit-profile',
                 ]
             ],
@@ -172,8 +190,8 @@ class MutamarkNicheUsersSeeder extends Seeder
                 'email' => 'daudi.mfaume@mutamark.co.tz',
                 'name' => 'Daudi Hamisi Mfaume',
                 'type' => 'employee',
-                'role' => 'staff',
-                'secondary_role' => null,
+                'role' => 'pos_cashier',
+                'secondary_role' => 'staff',
                 'mobile_no' => '+255 713 554 005',
             ],
             [
@@ -307,6 +325,14 @@ class MutamarkNicheUsersSeeder extends Seeder
         // -----------------------------------------------------------------
         $bankAccountId = null;
         if (Schema::hasTable('bank_accounts')) {
+            $glAccountId = null;
+            if (Schema::hasTable('chart_of_accounts')) {
+                $glAccountId = DB::table('chart_of_accounts')
+                    ->where('created_by', $companyId)
+                    ->whereIn('account_code', ['1010', '1020', '1000'])
+                    ->value('id');
+            }
+
             $bankAccount = DB::table('bank_accounts')->where('created_by', $companyId)->first();
             if (!$bankAccount) {
                 try {
@@ -316,6 +342,7 @@ class MutamarkNicheUsersSeeder extends Seeder
                         'bank_name'       => 'CRDB Bank Plc',
                         'branch_name'     => 'Tower Branch, Dar es Salaam',
                         'account_type'    => '0',
+                        'gl_account_id'   => $glAccountId,
                         'opening_balance' => 50000000.00,
                         'current_balance' => 50000000.00,
                         'is_active'       => 1,
@@ -329,6 +356,9 @@ class MutamarkNicheUsersSeeder extends Seeder
                 }
             } else {
                 $bankAccountId = $bankAccount->id;
+                if ($glAccountId && empty($bankAccount->gl_account_id) && Schema::hasColumn('bank_accounts', 'gl_account_id')) {
+                    DB::table('bank_accounts')->where('id', $bankAccount->id)->update(['gl_account_id' => $glAccountId]);
+                }
             }
 
             // Verify the ID actually exists before assigning to avoid foreign key violations

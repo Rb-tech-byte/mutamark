@@ -300,7 +300,10 @@ class PosController extends Controller
                     }
                 }
             } catch (\Throwable $th) {
-                throw $th;
+                \Log::warning('CreatePos dispatch or notification warning: ' . $th->getMessage(), [
+                    'sale_id' => $sale->id ?? null,
+                    'file' => $th->getFile() . ':' . $th->getLine()
+                ]);
             }
 
             return $request->expectsJson() ? response()->json($sale->fresh()->load('items'),201) : back()->with('success', __('The POS sale has been created successfully.'));

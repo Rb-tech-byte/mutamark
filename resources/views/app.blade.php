@@ -89,13 +89,20 @@
                 setTimeout(hideLoader, 2000);
             });
         </script>
-            <!-- PWA Service Worker Registration -->
+            <!-- Unregister old service workers & purge CacheStorage -->
         <script>
             if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('{{ asset("sw.js") }}')
-                        .then(reg => console.log('Mutamark PWA Service Worker Registered', reg.scope))
-                        .catch(err => console.log('Service Worker registration skipped:', err));
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for (var i = 0; i < registrations.length; i++) {
+                        registrations[i].unregister();
+                    }
+                });
+            }
+            if ('caches' in window) {
+                caches.keys().then(function(keys) {
+                    for (var j = 0; j < keys.length; j++) {
+                        caches.delete(keys[j]);
+                    }
                 });
             }
         </script>
