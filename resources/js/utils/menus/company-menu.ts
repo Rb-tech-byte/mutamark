@@ -30,14 +30,6 @@ import {
 import { NavItem } from '@/types';
 
 export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
-    {
-        title: t('Proforma Invoices'), href: route('proformas.index'), icon: Receipt,
-        permission: 'manage-sales-invoices', name: 'proformas', order: 54,
-    },
-    {
-        title: t('Document Repository'), href: route('documents.index'), icon: FileText,
-        permission: 'manage-media', name: 'documents', order: 172,
-    },
     // ----------------------------------------------------
     // 1. Executive & Governance
     // ----------------------------------------------------
@@ -124,11 +116,20 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
         order: 50,
     },
     {
+        title: t('Proforma Invoices'),
+        href: route('proformas.index'),
+        icon: Receipt,
+        permission: 'manage-sales-invoices',
+        name: 'proformas',
+        order: 52,
+    },
+    {
         title: t('Sales Orders'),
         href: route('sales-orders.index'),
         icon: ShoppingBag,
+        permission: 'manage-sales-invoices',
         name: 'sales-orders',
-        order: 55,
+        order: 54,
     },
 
     {
@@ -179,6 +180,16 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
                 permission: 'manage-pos-orders',
             },
             {
+                title: t('Products & Items Catalog'),
+                href: route('product-service.items.index'),
+                permission: 'manage-product-service-item',
+            },
+            {
+                title: t('Add New Product'),
+                href: route('product-service.items.create'),
+                permission: 'create-product-service-item',
+            },
+            {
                 title: t('Returns & Refunds'),
                 href: route('pos.returns.index'),
                 permission: 'manage-pos-returns',
@@ -221,6 +232,11 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
                 title: t('Products & Services'),
                 href: route('product-service.items.index'),
                 permission: 'manage-product-service-item',
+            },
+            {
+                title: t('Add New Product'),
+                href: route('product-service.items.create'),
+                permission: 'create-product-service-item',
             },
             {
                 title: t('Categories & Tax Setup'),
@@ -282,6 +298,16 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
         order: 100,
         children: [
             {
+                title: t('Products & Items'),
+                href: route('product-service.items.index'),
+                permission: 'manage-product-service-item',
+            },
+            {
+                title: t('Add New Product'),
+                href: route('product-service.items.create'),
+                permission: 'create-product-service-item',
+            },
+            {
                 title: t('Stock Valuation & Levels'),
                 href: route('product-service.stock.index'),
                 permission: 'manage-stock',
@@ -305,6 +331,11 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
                 title: t('Serial & Batch Tracking'),
                 href: route('inventory-serials.index'),
                 permission: 'manage-inventory-serials',
+            },
+            {
+                title: t('Categories & Tax Setup'),
+                href: route('product-service.item-categories.index'),
+                permission: 'manage-product-service-item',
             },
         ],
     },
@@ -500,6 +531,14 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
         icon: ShieldCheck,
         name: 'document-verifications',
         order: 160,
+    },
+    {
+        title: t('Document Repository'),
+        href: route('documents.index'),
+        icon: FileText,
+        permission: 'manage-media',
+        name: 'documents',
+        order: 165,
     },
 
     // ----------------------------------------------------

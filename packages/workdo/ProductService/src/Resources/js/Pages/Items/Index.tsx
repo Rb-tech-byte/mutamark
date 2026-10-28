@@ -257,28 +257,16 @@ export default function Index() {
                             <div key={button.id}>{button.component}</div>
                         ))}
                         {auth.user?.permissions?.includes('manage-stock') && (
-                            <Tooltip delayDuration={0}>
-                                <TooltipTrigger asChild>
-                                    <Button variant="outline" size="sm" onClick={() => router.visit(route('product-service.stock.index'))}>
-                                        <Package className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t('Add Stock')}</p>
-                                </TooltipContent>
-                            </Tooltip>
+                            <Button variant="outline" size="sm" onClick={() => router.visit(route('product-service.stock.index'))} className="gap-1.5 border-gray-300 hover:bg-gray-100">
+                                <Package className="h-4 w-4 text-gray-600" />
+                                <span className="hidden sm:inline font-medium">{t('Manage Stock')}</span>
+                            </Button>
                         )}
                         {auth.user?.permissions?.includes('create-product-service-item') && (
-                            <Tooltip delayDuration={0}>
-                                <TooltipTrigger asChild>
-                                    <Button size="sm" onClick={() => router.visit(route('product-service.items.create'))}>
-                                        <Plus className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t('Create')}</p>
-                                </TooltipContent>
-                            </Tooltip>
+                            <Button size="sm" onClick={() => router.visit(route('product-service.items.create'))} className="gap-1.5 shadow-sm font-semibold bg-primary hover:bg-primary/90 text-white">
+                                <Plus className="h-4 w-4" />
+                                <span>{t('Add Product / Item')}</span>
+                            </Button>
                         )}
                     </div>
                 }
