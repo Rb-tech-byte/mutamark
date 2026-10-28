@@ -9,7 +9,7 @@ class CompanyAccess
 {
     public static function requirePermission(string $permission): void
     {
-        abort_unless(Auth::check() && Auth::user()->can($permission), 403);
+        abort_unless(Auth::check() && (Auth::user()->can($permission) || Auth::user()->type === 'company' || Auth::user()->type === 'superadmin'), 403);
     }
 
     public static function check(Model $record, string $column = 'created_by'): void

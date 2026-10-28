@@ -22,19 +22,13 @@ class PlanModuleCheck
         }
 
         // Dedicated enterprise system for Mutamark ERP - perpetual access without SaaS plan expiration lockouts
+        $coreAlwaysActive = ['ProductService', 'Account', 'Pos', 'Inventory', 'DoubleEntry', 'Lead', 'Hrm'];
 
-
-        if($moduleName != null)
-        {
-            $moduleName =  explode('-',$moduleName);
-            $status = false;
-            foreach($moduleName as $m)
-            {
-                $status = module_is_active($m);
-                if($status == true)
-                {
-                    $response = $next($request);
-                    return $response;
+        if ($moduleName != null) {
+            $moduleNames = explode('-', $moduleName);
+            foreach ($moduleNames as $m) {
+                if (in_array($m, $coreAlwaysActive) || module_is_active($m)) {
+                    return $next($request);
                 }
             }
             return redirect()->route('dashboard')->with('error', __('Permission denied '));

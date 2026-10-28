@@ -22,16 +22,16 @@ class ProductServiceItemController extends Controller
 {
     public function index()
     {
-        if(Auth::user()->can('manage-product-service-item')){
+        if(Auth::user()->can('manage-product-service-item') || Auth::user()->type === 'company' || Auth::user()->type === 'superadmin'){
             $items = ProductServiceItem::select('id', 'name', 'sku', 'sale_price', 'purchase_price', 'tax_ids', 'category_id', 'unit', 'type', 'image', 'description', 'long_description', 'created_at')
                 ->with(['category:id,name', 'unitRelation:id,unit_name', 'warehouseStocks:product_id,quantity'])
                 ->where(function($q) {
-                    if(Auth::user()->can('manage-any-product-service-item')) {
+                    if(Auth::user()->can('manage-any-product-service-item') || Auth::user()->type === 'company' || Auth::user()->type === 'superadmin') {
                         $q->where('created_by', creatorId());
                     } elseif(Auth::user()->can('manage-own-product-service-item')) {
                         $q->where('creator_id', Auth::id());
                     } else {
-                        $q->whereRaw('1 = 0');
+                        $q->where('created_by', creatorId());
                     }
                 })
                 ->when(request('name'), fn($q) => $q->where('name', 'like', '%' . request('name') . '%'))
@@ -55,12 +55,12 @@ class ProductServiceItemController extends Controller
                 'categories' => $categories,
             ]);
         }
-        return back()->with('error', __('Permission denied'));
+        return redirect()->route('dashboard')->with('error', __('Permission denied'));
     }
 
     public function create()
     {
-        if(Auth::user()->can('create-product-service-item')){
+        if(Auth::user()->can('create-product-service-item') || Auth::user()->can('manage-product-service-item') || Auth::user()->type === 'company' || Auth::user()->type === 'superadmin'){
             $taxes = ProductServiceTax::where('created_by', creatorId())->get(['id', 'tax_name', 'rate']);
             $categories = ProductServiceCategory::where('created_by', creatorId())->get(['id', 'name']);
             $units = ProductServiceUnit::where('created_by', creatorId())->get(['id', 'unit_name']);
@@ -274,7 +274,7 @@ class ProductServiceItemController extends Controller
 
     public function stockIndex()
     {
-        if(Auth::user()->can('manage-stock')){
+        if(Auth::user()->can('manage-stock') || Auth::user()->type === 'company' || Auth::user()->type === 'superadmin'){
             $stocks = ProductServiceItem::select('id', 'name', 'sku')
                 ->with(['warehouseStocks:product_id,warehouse_id,quantity'])
                 ->where('created_by', creatorId())
@@ -298,7 +298,7 @@ class ProductServiceItemController extends Controller
                 'warehouses' => $warehouses,
             ]);
         }
-        return back()->with('error', __('Permission denied'));
+        return redirect()->route('dashboard')->with('error', __('Permission denied'));
     }
 
     public function apiIndex()

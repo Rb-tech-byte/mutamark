@@ -64,6 +64,42 @@ class MutamarkNicheUsersSeeder extends Seeder
         // Ensure base company roles exist
         User::MakeRole($companyId);
 
+        // Ensure all core enterprise modules are enabled in add_ons
+        if (Schema::hasTable('add_ons')) {
+            $coreModules = [
+                'ProductService' => ['name' => 'Product & Service', 'package_name' => 'product-service'],
+                'Account'        => ['name' => 'Accounting & Finance', 'package_name' => 'account'],
+                'Pos'            => ['name' => 'Point of Sale (POS)', 'package_name' => 'pos'],
+                'Inventory'      => ['name' => 'Inventory Management', 'package_name' => 'inventory'],
+                'Lead'           => ['name' => 'CRM & Leads', 'package_name' => 'lead'],
+                'Hrm'            => ['name' => 'HRM & Payroll', 'package_name' => 'hrm'],
+                'DoubleEntry'    => ['name' => 'Double Entry Accounting', 'package_name' => 'double-entry'],
+                'Taskly'         => ['name' => 'Project Management', 'package_name' => 'taskly'],
+                'Fleet'          => ['name' => 'Fleet & Transport', 'package_name' => 'fleet'],
+                'LandingPage'    => ['name' => 'Landing Page', 'package_name' => 'landing-page'],
+            ];
+
+            foreach ($coreModules as $modKey => $modInfo) {
+                DB::table('add_ons')->updateOrInsert(
+                    ['module' => $modKey],
+                    [
+                        'name' => $modInfo['name'],
+                        'package_name' => $modInfo['package_name'],
+                        'monthly_price' => 0.00,
+                        'yearly_price' => 0.00,
+                        'is_enable' => 1,
+                        'updated_at' => now(),
+                    ]
+                );
+            }
+        }
+
+        // Grant company role all existing permissions
+        $companyRole = Role::where('name', 'company')->first();
+        if ($companyRole) {
+            $companyRole->syncPermissions(Permission::pluck('name')->toArray());
+        }
+
         // Define Niche Roles for Company
         $nicheRolesConfig = [
             'finance_manager' => [

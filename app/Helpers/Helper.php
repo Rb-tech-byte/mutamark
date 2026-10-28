@@ -175,6 +175,11 @@ if (!function_exists('ActivatedModule')) {
 if (!function_exists('Module_is_active')) {
     function Module_is_active($module, $user_id = null)
     {
+        $coreAlwaysActive = ['ProductService', 'Account', 'Pos', 'Inventory', 'DoubleEntry', 'Lead', 'Hrm'];
+        if (in_array($module, $coreAlwaysActive)) {
+            return true;
+        }
+
         if ((new Module())->has($module)) {
 
             $isModuleActive = (new Module())->isEnabled($module);
