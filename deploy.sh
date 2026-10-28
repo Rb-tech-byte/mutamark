@@ -31,6 +31,7 @@ php artisan db:seed --class=MutamarkNicheUsersSeeder --force
 # 4. Clear and rebuild all application caches
 echo "⚡ [4/6] Purging and rebuilding production caches..."
 php artisan optimize:clear
+php artisan permission:cache-reset 2>/dev/null || true
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
@@ -42,6 +43,11 @@ mkdir -p "$APP_DIR/storage/framework/cache/data"
 mkdir -p "$APP_DIR/storage/framework/views"
 mkdir -p "$APP_DIR/storage/framework/sessions"
 chmod -R 775 "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" 2>/dev/null || true
+# Restore ownership to the site user (artisan above ran as root)
+SITE_OWNER="$(stat -c '%U:%G' "$APP_DIR" 2>/dev/null || true)"
+if [ -n "$SITE_OWNER" ] && [ "$SITE_OWNER" != "root:root" ]; then
+    chown -R "$SITE_OWNER" "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" 2>/dev/null || true
+fi
 
 # 6. Flush OpenLiteSpeed / PHP opcode cache & restart worker
 echo "🔄 [6/6] Reloading OpenLiteSpeed and PHP workers..."

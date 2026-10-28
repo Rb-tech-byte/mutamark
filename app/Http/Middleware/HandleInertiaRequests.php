@@ -120,6 +120,13 @@ class HandleInertiaRequests extends Middleware
         if (!$user) {
             return [];
         }
+        // Mutamark single-company ERP: the system owner (company) and superadmin have full access.
+        if (in_array($user->type ?? null, ['company', 'superadmin'], true)) {
+            return Cache::remember('all_permissions_names_cache', 3600, function () {
+                return \Spatie\Permission\Models\Permission::query()->pluck('name')->unique()->values()->toArray();
+            });
+        }
+
         $cacheKey = 'user_permissions_cache_' . $user->id;
         return Cache::remember($cacheKey, 3600, function () use ($user) {
             if (method_exists($user, 'getAllPermissions')) {

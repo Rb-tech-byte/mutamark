@@ -159,15 +159,15 @@ const filterByActiveModule = (items: NavItem[], activeModuleSet: Set<string>): N
 
 // Filter menu items based on permissions with O(1) Set lookup
 // Completely hides unauthorized items and empty parent containers to avoid user confusion
-const filterByPermission = (items: NavItem[], permissionSet: Set<string>, userRoles: string[] = []): NavItem[] => {
+const filterByPermission = (items: NavItem[], permissionSet: Set<string>, userRoles: string[] = [], fullAccess = false): NavItem[] => {
     if (!Array.isArray(items)) return [];
     const isSuperAdmin = Array.isArray(userRoles) && userRoles.includes('superadmin');
 
     return items.filter(item => {
         if (!item) return false;
 
-        // Superadmin on superadmin menu retains master visibility
-        if (isSuperAdmin) {
+        // Superadmin and the Mutamark system owner (company) retain full visibility
+        if (isSuperAdmin || fullAccess) {
             return true;
         }
 
@@ -175,7 +175,7 @@ const filterByPermission = (items: NavItem[], permissionSet: Set<string>, userRo
 
         // If item has children, recursively filter them
         if (Array.isArray(item.children) && item.children.length > 0) {
-            item.children = filterByPermission(item.children, permissionSet, userRoles);
+            item.children = filterByPermission(item.children, permissionSet, userRoles, fullAccess);
         }
 
         // 1. If item originally had sub-items, but all of them were restricted/filtered out:
@@ -223,8 +223,10 @@ export const allMenuItems = (): NavItem[] => {
     const activatedPackages: string[] = Array.isArray(auth?.user?.activatedPackages) ? auth.user.activatedPackages : [];
     const userId = auth?.user?.id || 'guest';
     const currentLang = i18n?.language || 'en';
+    // Mutamark single-company ERP: system owner has full access to every menu
+    const isOwner = auth?.user?.type === 'company' || auth?.user?.type === 'superadmin' || userRoles.includes('company');
 
-    const cacheKey = `${userId}_${currentLang}_${userRoles.join(',')}_${activatedPackages.join(',')}_${userPermissions.length}`;
+    const cacheKey = `${userId}_${currentLang}_${isOwner ? 'owner' : 'user'}_${userRoles.join(',')}_${activatedPackages.join(',')}_${userPermissions.length}`;
     if (cachedMenuKey === cacheKey && Array.isArray(cachedMenuResult) && cachedMenuResult.length > 0) {
         return cachedMenuResult;
     }
@@ -247,7 +249,7 @@ export const allMenuItems = (): NavItem[] => {
     const sortedMenuItems = finalGroupedMenuItems.sort((a, b) => ((a?.order || 999) - (b?.order || 999)));
 
     const permissionSet = new Set(userPermissions);
-    const finalMenuItems = filterByPermission(sortedMenuItems, permissionSet, userRoles);
+    const finalMenuItems = filterByPermission(sortedMenuItems, permissionSet, userRoles, isOwner);
 
     cachedMenuKey = cacheKey;
     cachedMenuResult = finalMenuItems;
