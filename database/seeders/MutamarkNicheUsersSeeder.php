@@ -10,6 +10,7 @@ use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Workdo\Pos\Models\PosBillingCounter;
 use Workdo\Pos\Models\PosDiscount;
 use Workdo\ProductService\Models\ProductServiceItem;
@@ -302,10 +303,39 @@ class MutamarkNicheUsersSeeder extends Seeder
         }
 
         // -----------------------------------------------------------------
-        // POS Billing Counters
+        // POS Billing Counters & Operating Bank Account
         // -----------------------------------------------------------------
-        $bankAccount = DB::table('bank_accounts')->where('created_by', $companyId)->first();
-        $bankAccountId = $bankAccount ? $bankAccount->id : 1;
+        $bankAccountId = null;
+        if (Schema::hasTable('bank_accounts')) {
+            $bankAccount = DB::table('bank_accounts')->where('created_by', $companyId)->first();
+            if (!$bankAccount) {
+                try {
+                    $bankAccountId = DB::table('bank_accounts')->insertGetId([
+                        'account_number'  => '0150123456700',
+                        'account_name'    => 'Mutamark Enterprises Operating Account',
+                        'bank_name'       => 'CRDB Bank Plc',
+                        'branch_name'     => 'Tower Branch, Dar es Salaam',
+                        'account_type'    => '0',
+                        'opening_balance' => 50000000.00,
+                        'current_balance' => 50000000.00,
+                        'is_active'       => 1,
+                        'creator_id'      => $companyId,
+                        'created_by'      => $companyId,
+                        'created_at'      => now(),
+                        'updated_at'      => now(),
+                    ]);
+                } catch (\Throwable $e) {
+                    $bankAccountId = null;
+                }
+            } else {
+                $bankAccountId = $bankAccount->id;
+            }
+
+            // Verify the ID actually exists before assigning to avoid foreign key violations
+            if ($bankAccountId && !DB::table('bank_accounts')->where('id', $bankAccountId)->exists()) {
+                $bankAccountId = null;
+            }
+        }
 
         $countersData = [
             [
