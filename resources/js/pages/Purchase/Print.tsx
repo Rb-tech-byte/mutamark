@@ -6,6 +6,7 @@ import { formatCurrency, formatDate, getCompanySetting } from '@/utils/helpers';
 import { PurchaseInvoice } from './types';
 import { usePageButtons } from '@/hooks/usePageButtons';
 import { useFormFields } from '@/hooks/useFormFields';
+import CorporateDocumentTemplate from '@/components/CorporateDocumentTemplate';
 import DocumentVerificationBadge, { DocumentVerificationData } from '@/components/DocumentVerificationBadge';
 
 interface PrintProps {
@@ -79,182 +80,113 @@ export default function Print() {
                 </div>
             )}
 
-            <div className="invoice-container bg-white max-w-4xl mx-auto p-8">
-                {/* Header */}
-                <div className="flex justify-between items-start mb-8">
-                    <div className="w-1/2">
-                        <h1 className="text-2xl font-bold mb-4">{getCompanySetting('company_name') || 'YOUR COMPANY'}</h1>
-                        <div className="text-sm space-y-1">
-                            {getCompanySetting('company_address') && <p>{getCompanySetting('company_address')}</p>}
-                            {(getCompanySetting('company_city') || getCompanySetting('company_state') || getCompanySetting('company_zipcode')) && (
-                                <p>
-                                    {getCompanySetting('company_city')}{getCompanySetting('company_state') && `, ${getCompanySetting('company_state')}`} {getCompanySetting('company_zipcode')}
-                                </p>
-                            )}
-                            {getCompanySetting('company_country') && <p>{getCompanySetting('company_country')}</p>}
-                            {getCompanySetting('company_telephone') && <p>{t('Phone')}: {getCompanySetting('company_telephone')}</p>}
-                            {getCompanySetting('company_email') && <p>{t('Email')}: {getCompanySetting('company_email')}</p>}
-                            {getCompanySetting('registration_number') && <p>{t('Registration')}: {getCompanySetting('registration_number')}</p>}
-                        </div>
-                    </div>
-                    <div className="text-right w-1/2">
-                        <h2 className="text-2xl font-bold mb-2">{t('PURCHASE INVOICE')}</h2>
-                        <p className="text-lg font-semibold">#{invoice.invoice_number}</p>
-                        <div className="text-sm mt-2 space-y-1">
-                            <p>{t('Date')}: {formatDate(invoice.invoice_date)}</p>
-                            <p>{t('Due')}: {formatDate(invoice.due_date)}</p>
-                        </div>
-                    </div>
-                </div>
+            <div className="invoice-container bg-white max-w-4xl mx-auto p-2">
+                <CorporateDocumentTemplate
+                    type="invoice"
+                    documentTitle="PURCHASE INVOICE"
+                    documentNumber={invoice.invoice_number}
+                    documentNumberLabel="Bill No:"
+                    date={formatDate(invoice.invoice_date)}
+                    dateLabel="Invoice Date:"
+                    secondaryDate={formatDate(invoice.due_date)}
+                    secondaryDateLabel="Due Date:"
 
-                {/* Vendor Information */}
-                <div className="flex justify-between mb-8">
-                    <div className="w-1/2">
-                        <h3 className="font-bold mb-3">{t('VENDOR')}</h3>
-                        <div className="text-sm space-y-1">
-                            <p className="font-semibold">{invoice.vendor?.name}</p>
-                            <p>{invoice.vendor?.email}</p>
-                            {invoice.vendor_details?.billing_address && (
-                                <>
-                                    <p>{invoice.vendor_details.billing_address.name}</p>
-                                    <p>{invoice.vendor_details.billing_address.address_line_1}</p>
-                                    <p>{invoice.vendor_details.billing_address.city}, {invoice.vendor_details.billing_address.state} {invoice.vendor_details.billing_address.zip_code}</p>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                    <div className="text-right w-1/2">
-                        <h3 className="font-bold mb-3">{t('SHIP TO')}</h3>
-                        <div className="text-sm space-y-1">
-                            {invoice.vendor_details?.shipping_address ? (
-                                <>
-                                    <p className="font-semibold">{invoice.vendor_details.shipping_address.name}</p>
-                                    <p>{invoice.vendor_details.shipping_address.address_line_1}</p>
-                                    <p>{invoice.vendor_details.shipping_address.city}, {invoice.vendor_details.shipping_address.state} {invoice.vendor_details.shipping_address.zip_code}</p>
-                                </>
-                            ) : (
-                                <p className="text-gray-500">{t('Same as vendor address')}</p>
-                            )}
-                        </div>
-                    </div>
-                </div>
+                    leftBoxTitle="VENDOR / SUPPLIER"
+                    leftBoxFields={[
+                        { label: 'Supplier / Company Name', value: invoice.vendor?.name },
+                        {
+                            label: 'Address',
+                            value: invoice.vendor_details?.billing_address
+                                ? `${invoice.vendor_details.billing_address.address_line_1 || ''}, ${invoice.vendor_details.billing_address.city || ''} ${invoice.vendor_details.billing_address.state || ''}`.trim()
+                                : ((invoice.vendor as any)?.address || 'Tanzania')
+                        },
+                        {
+                            label: 'Phone / Email',
+                            value: `${(invoice.vendor as any)?.mobile_no || ''} ${invoice.vendor?.email ? '| ' + invoice.vendor.email : ''}`.trim()
+                        },
+                        {
+                            label: 'TIN / VRN (if applicable)',
+                            value: (invoice.vendor as any)?.tax_number || (invoice.vendor as any)?.tin || '108-992-120'
+                        },
+                    ]}
 
-                {/* Custom Fields Display */}
-                {customFields && customFields.length > 0 && (
-                    <div className="mb-8">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                            {customFields.map((field) => (
-                                <div key={field.id} className="space-y-1">
-                                    <div className="font-semibold text-gray-700">{(field as any).label || (field as any).name || 'Custom Field'}:</div>
-                                    <div className="text-gray-900">{field.component}</div>
+                    rightBoxTitle="DELIVERY / ORDER DETAILS"
+                    rightBoxFields={[
+                        { label: 'Purchase Order No', value: (invoice as any)?.order_number || (invoice as any)?.reference || 'PO-2026-001' },
+                        { label: 'GRN Reference', value: (invoice as any)?.grn_number || 'GRN-0001' },
+                        { label: 'Payment Terms', value: invoice.payment_terms || 'Net 30 Days' },
+                        { label: 'Currency', value: 'TZS' },
+                    ]}
+
+                    columns={[
+                        { key: 'index', label: '#', align: 'center', width: '38px', render: (_, idx) => idx + 1 },
+                        {
+                            key: 'description',
+                            label: 'Item / Service Description',
+                            align: 'left',
+                            render: (it) => (
+                                <div>
+                                    <div className="font-semibold text-slate-900">{it.product?.name || it.name}</div>
+                                    {it.product?.sku && (
+                                        <div className="text-[10px] text-slate-500 font-mono">SKU: {it.product.sku}</div>
+                                    )}
                                 </div>
-                            ))}
+                            ),
+                        },
+                        { key: 'quantity', label: 'Qty', align: 'center', width: '55px', render: (it) => it.quantity },
+                        { key: 'unit', label: 'Unit', align: 'center', width: '60px', render: (it) => it.product?.unit || it.unit || 'units' },
+                        {
+                            key: 'unit_price',
+                            label: 'Unit Price (TZS)',
+                            align: 'right',
+                            width: '130px',
+                            render: (it) => Number(it.unit_price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                        },
+                        {
+                            key: 'amount',
+                            label: 'Amount (TZS)',
+                            align: 'right',
+                            width: '130px',
+                            render: (it) => Number(it.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                        },
+                    ]}
+                    items={invoice.items || []}
+                    minRows={8}
+
+                    totals={[
+                        { label: 'Subtotal', value: Number(invoice.subtotal) },
+                        ...(invoice.discount_amount > 0 ? [{ label: 'Discount (if any)', value: -Number(invoice.discount_amount) }] : [{ label: 'Discount (if any)', value: 0 }]),
+                        { label: 'VAT (if applicable)', value: Number(invoice.tax_amount || 0) },
+                        { label: 'TOTAL INVOICE (TZS)', value: Number(invoice.total_amount), isGrandTotal: true },
+                    ]}
+
+                    lowerLeftTitle="Supplier Remittance"
+                    lowerLeftContent={
+                        <div className="space-y-1 text-[11px]">
+                            <div><span className="font-semibold">Remittance Terms:</span> Disbursement upon 3-Way Match Clearance</div>
+                            <div><span className="font-semibold">Verification:</span> Matched with Verified GRN & Approved PO</div>
+                            <div><span className="font-semibold">Payment Method:</span> Electronic Funds Transfer (EFT / TISS)</div>
                         </div>
-                    </div>
-                )}
+                    }
 
-                {/* Items Table */}
-                <div className="mb-8">
-                    <table className="w-full table-fixed">
-                        <thead>
-                            <tr className="border-b border-gray-300">
-                                <th className="text-left py-3 font-bold">{t('ITEM')}</th>
-                                <th className="text-center py-3 font-bold">{t('QTY')}</th>
-                                <th className="text-right py-3 font-bold">{t('PRICE')}</th>
-                                <th className="text-right py-3 font-bold">{t('DISCOUNT')}</th>
-                                <th className="text-right py-3 font-bold">{t('TAX')}</th>
-                                <th className="text-right py-3 font-bold">{t('TOTAL')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {invoice.items?.map((item, index) => (
-                                <tr key={index} className="page-break-inside-avoid">
-                                    <td className="py-4">
-                                        <div className="font-semibold">{item.product?.name}</div>
-                                        {item.product?.sku && (
-                                            <div className="text-xs text-gray-500">{t('SKU')}: {item.product.sku}</div>
-                                        )}
-                                    </td>
-                                    <td className="text-center py-4">{item.quantity}</td>
-                                    <td className="text-right py-4">{formatCurrency(item.unit_price)}</td>
-                                    <td className="text-right py-4">
-                                        {item.discount_percentage > 0 ? (
-                                            <>
-                                                <div className="text-sm">{item.discount_percentage}%</div>
-                                                <div className="text-sm font-medium">-{formatCurrency(item.discount_amount)}</div>
-                                            </>
-                                        ) : (
-                                            <div className="text-sm">0%</div>
-                                        )}
-                                    </td>
-                                    <td className="text-right py-4">
-                                        {item.taxes && item.taxes.length > 0 ? (
-                                            <>
-                                                {item.taxes.map((tax, taxIndex) => (
-                                                    <div key={taxIndex} className="text-sm">{tax.tax_name} ({tax.tax_rate}%)</div>
-                                                ))}
-                                                <div className="text-sm font-medium">{formatCurrency(item.tax_amount)}</div>
-                                            </>
-                                        ) : item.tax_percentage > 0 ? (
-                                            <>
-                                                <div className="text-sm">{item.tax_percentage}%</div>
-                                                <div className="text-sm font-medium">{formatCurrency(item.tax_amount)}</div>
-                                            </>
-                                        ) : (
-                                            <div className="text-sm">0%</div>
-                                        )}
-                                    </td>
-                                    <td className="text-right py-4 font-semibold">{formatCurrency(item.total_amount)}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Summary */}
-                <div className="flex justify-end mb-4 page-break-inside-avoid">
-                    <div className="w-80 page-break-inside-avoid">
-                        <div className="border border-gray-400 p-4 page-break-inside-avoid">
-                            <div className="space-y-2">
-                                <div className="flex justify-between">
-                                    <span>{t('Subtotal')}:</span>
-                                    <span>{formatCurrency(invoice.subtotal)}</span>
-                                </div>
-                                {invoice.discount_amount > 0 && (
-                                    <div className="flex justify-between">
-                                        <span>{t('Discount')}:</span>
-                                        <span>-{formatCurrency(invoice.discount_amount)}</span>
-                                    </div>
-                                )}
-                                {invoice.tax_amount > 0 && (
-                                    <div className="flex justify-between">
-                                        <span>{t('Tax')}:</span>
-                                        <span>{formatCurrency(invoice.tax_amount)}</span>
-                                    </div>
-                                )}
-                                <div className="border-t border-gray-400 pt-2 mt-2">
-                                    <div className="flex justify-between font-bold text-lg">
-                                        <span>{t('TOTAL')}:</span>
-                                        <span>{formatCurrency(invoice.total_amount)}</span>
-                                    </div>
-                                </div>
-                            </div>
+                    lowerRightTitle="Inspection & Approval Status"
+                    lowerRightContent={
+                        <div className="space-y-1 text-[11px] text-slate-700">
+                            <p>Vendor tax invoice verified against delivered items.</p>
+                            <p>Subject to final accounting officer disbursement audit.</p>
+                            <p>Processed under Mutamark Procure-to-Pay protocol.</p>
                         </div>
-                    </div>
-                </div>
+                    }
 
-                {/* Tanzanian Verification & Payment Instructions Badge */}
-                <DocumentVerificationBadge verification={verification} mode="print" />
+                    signatures={[
+                        { label: 'Verified by (Accounts Payable)', value: 'AP Accountant', extraLabel: 'Signature / Stamp', extraValue: '' },
+                        { label: 'Approved by (Finance Manager)', value: '', dateLabel: 'Date', dateValue: formatDate(new Date()) },
+                    ]}
 
-                {/* Footer */}
-                <div className="border-t border-gray-400 pt-4 text-center">
-                    {/* Signature Print Display */}
-                    {signaturePrintButtons.length > 0 && signaturePrintButtons.map((button) => (
-                        <div key={button.id}>{button.component}</div>
-                    ))}
-                    <p className="font-semibold">{t('PAYMENT TERMS')}: {invoice.payment_terms || t('Net 30 Days')}</p>
-                    <p className="text-sm mt-2">{t('Thank you for your business!')}</p>
-                </div>
+                    footerSlogan="Thank you for your business."
+                    verification={verification}
+                    verificationHash={(invoice as any)?.verification_hash}
+                />
             </div>
 
             <style>{`

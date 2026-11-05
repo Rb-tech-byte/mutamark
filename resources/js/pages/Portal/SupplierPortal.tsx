@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import AuthenticatedLayout from "@/layouts/authenticated-layout";
+import CorporateDocumentTemplate from '@/components/CorporateDocumentTemplate';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -21,7 +22,8 @@ import {
     AlertCircle,
     Calendar,
     DollarSign,
-    Package
+    Package,
+    Printer
 } from 'lucide-react';
 
 interface Props {
@@ -45,6 +47,8 @@ export default function SupplierPortal({
     const [activeTab, setActiveTab] = useState<'rfqs' | 'bids' | 'orders'>('rfqs');
     const [selectedRfq, setSelectedRfq] = useState<any | null>(null);
     const [bidModalOpen, setBidModalOpen] = useState(false);
+    const [selectedPo, setSelectedPo] = useState<any | null>(null);
+    const [poModalOpen, setPoModalOpen] = useState(false);
 
     // Bid submission form
     const bidForm = useForm({
@@ -311,6 +315,10 @@ export default function SupplierPortal({
                                                         {po.status || 'Pending'}
                                                     </Badge>
                                                     {!po.supplier_accepted_at && <Button size="sm" variant="outline" className="ml-2" onClick={()=>router.post(route('portal.supplier.accept-order',po.id))}>{t('Accept order')}</Button>}
+                                                    <Button size="sm" variant="outline" className="ml-2" onClick={() => { setSelectedPo(po); setPoModalOpen(true); }}>
+                                                        <Printer className="h-3.5 w-3.5 mr-1" />
+                                                        {t('View / Print PO')}
+                                                    </Button>
                                                     <Input className="mt-2" aria-label={t('Upload supplier invoice or delivery note')} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.jpg,.jpeg,.png,.webp" onChange={event=>{const file=event.target.files?.[0];if(file)router.post(route('portal.supplier.upload',po.id),{file},{forceFormData:true,onError:errors=>setAttachmentError(Object.values(errors).join(' '))});}} />
                                                 </TableCell>
                                             </TableRow>
@@ -415,6 +423,140 @@ export default function SupplierPortal({
                     </form>
                 </DialogContent>
             </Dialog>
+            {/* PURCHASE ORDER VIEW / PRINT DIALOG */}
+            <Dialog open={poModalOpen} onOpenChange={setPoModalOpen}>
+                <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
+                    <DialogHeader className="print:hidden">
+                        <DialogTitle className="flex items-center justify-between">
+                            <span className="flex items-center gap-2">
+                                <Printer className="w-5 h-5 text-indigo-500" />
+                                Official Purchase Order: {selectedPo?.po_number}
+                            </span>
+                            <Button
+                                onClick={() => window.print()}
+                                size="sm"
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
+                            >
+                                <Printer className="w-4 h-4 mr-2" /> Print PO
+                            </Button>
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    {selectedPo && (
+                        <CorporateDocumentTemplate
+                            type="purchase_order"
+                            documentTitle="PURCHASE ORDER"
+                            documentNumber={selectedPo.po_number}
+                            documentNumberLabel="PO No:"
+                            date={selectedPo.po_date || selectedPo.created_at?.split('T')[0] || 'DD/MM/YYYY'}
+                            dateLabel="Order Date:"
+                            secondaryDate={selectedPo.expected_delivery_date || 'DD/MM/YYYY'}
+                            secondaryDateLabel="Delivery Date:"
+
+                            leftBoxTitle="VENDOR / SUPPLIER"
+                            leftBoxFields={[
+                                { label: 'Supplier / Company Name', value: selectedPo.vendor?.company_name || vendor?.name },
+                                { label: 'Address', value: selectedPo.vendor?.billing_address || (vendor as any)?.address || 'Dar es Salaam, Tanzania' },
+                                {
+                                    label: 'Phone / Email',
+                                    value: `${selectedPo.vendor?.contact_person_mobile || vendor?.contact || ''} ${vendor?.email ? '| ' + vendor.email : ''}`.trim() || 'info@supplier.co.tz',
+                                },
+                                { label: 'TIN / VRN (if applicable)', value: selectedPo.vendor?.tax_number || '119-823-455' },
+                            ]}
+
+                            rightBoxTitle="SHIP TO / ORDER DETAILS"
+                            rightBoxFields={[
+                                { label: 'Deliver To', value: selectedPo.warehouse?.name || 'Main Factory Warehouse, Dar es Salaam' },
+                                { label: 'Quotation / RFQ Ref', value: selectedPo.rfq?.rfq_number || 'RFQ-2026-REF' },
+                                { label: 'Payment Terms', value: selectedPo.payment_terms || '30 days' },
+                                { label: 'Currency', value: 'TZS' },
+                            ]}
+
+                            columns={[
+                                { key: 'index', label: '#', align: 'center', width: '38px', render: (_, idx) => idx + 1 },
+                                {
+                                    key: 'description',
+                                    label: 'Item / Service Description',
+                                    align: 'left',
+                                    render: (it) => (
+                                        <div>
+                                            <div className="font-semibold text-slate-900">{it.product?.name || it.name}</div>
+                                            {it.product?.sku && <div className="text-[10px] text-slate-500 font-mono">SKU: {it.product.sku}</div>}
+                                        </div>
+                                    ),
+                                },
+                                { key: 'quantity', label: 'Qty', align: 'center', width: '55px', render: (it) => it.quantity },
+                                { key: 'unit', label: 'Unit', align: 'center', width: '60px', render: (it) => it.unit || 'units' },
+                                {
+                                    key: 'unit_price',
+                                    label: 'Unit Price (TZS)',
+                                    align: 'right',
+                                    width: '130px',
+                                    render: (it) => Number(it.unit_price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                                },
+                                {
+                                    key: 'amount',
+                                    label: 'Amount (TZS)',
+                                    align: 'right',
+                                    width: '130px',
+                                    render: (it) => Number(it.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                                },
+                            ]}
+                            items={selectedPo.items || []}
+                            minRows={8}
+
+                            totals={[
+                                { label: 'Subtotal', value: Number(selectedPo.subtotal || selectedPo.total_amount) },
+                                { label: 'Discount (if any)', value: Number(selectedPo.discount_amount || 0) },
+                                { label: 'VAT (if applicable)', value: Number(selectedPo.tax_amount || 0) },
+                                { label: 'TOTAL ORDER VALUE (TZS)', value: Number(selectedPo.total_amount), isGrandTotal: true },
+                            ]}
+
+                            lowerLeftTitle="Invoicing Instructions"
+                            lowerLeftContent={
+                                <div className="space-y-1 text-[11px] text-slate-700">
+                                    <p>Send invoice to: accounts@mutamark.co.tz</p>
+                                    <p>Quote the PO number on all invoices, delivery notes and correspondence.</p>
+                                </div>
+                            }
+
+                            lowerRightTitle="Terms & Conditions"
+                            lowerRightContent={
+                                <div className="space-y-1 text-[11px] text-slate-700">
+                                    <p>Goods must match the specification ordered.</p>
+                                    <p>Goods are subject to inspection on delivery.</p>
+                                    <p>Non-conforming goods may be rejected.</p>
+                                    <p>Deliver on or before the date stated.</p>
+                                </div>
+                            }
+
+                            signatures={[
+                                {
+                                    label: 'Prepared by',
+                                    value: 'Procurement Specialist',
+                                    extraLabel: 'Name',
+                                    extraValue: 'Supply Chain Directorate',
+                                },
+                                {
+                                    label: 'Authorised signature',
+                                    value: 'Managing Director / CFO',
+                                    dateLabel: 'Date',
+                                    dateValue: selectedPo.po_date || selectedPo.created_at?.split('T')[0],
+                                },
+                                {
+                                    label: 'Vendor acknowledgement',
+                                    value: selectedPo.supplier_accepted_at ? 'ACCEPTED VIA SUPPLIER PORTAL' : 'Pending Vendor Signature',
+                                    dateLabel: 'Date',
+                                    dateValue: selectedPo.supplier_accepted_at ? selectedPo.supplier_accepted_at.split('T')[0] : '',
+                                },
+                            ]}
+
+                            footerSlogan="Please acknowledge receipt of this order."
+                        />
+                    )}
+                </DialogContent>
+            </Dialog>
+
             {attachmentError && <p role="alert" className="text-sm text-destructive">{attachmentError}</p>}
             <Card className="mt-6"><CardHeader><CardTitle>{t('Supplier contact details')}</CardTitle></CardHeader><CardContent><form className="space-y-3" onSubmit={event=>{event.preventDefault();profileForm.patch(route('portal.supplier.update-profile'));}}>{(['company_name','contact_person_name','contact_person_email'] as const).map(key=><div key={key}><Label htmlFor={key}>{t(key.replaceAll('_',' '))}</Label><Input id={key} type={key.endsWith('email')?'email':'text'} value={profileForm.data[key]} onChange={event=>profileForm.setData(key,event.target.value)} /></div>)}{Object.values(profileForm.errors).map((error,index)=><p className="text-sm text-destructive" role="alert" key={index}>{error}</p>)}<Button disabled={profileForm.processing}>{t('Save contact details')}</Button></form></CardContent></Card>
         </AuthenticatedLayout>

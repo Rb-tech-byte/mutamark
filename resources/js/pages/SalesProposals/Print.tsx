@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import html2pdf from 'html2pdf.js';
 import { formatCurrency, formatDate, getCompanySetting } from '@/utils/helpers';
 import { useFormFields } from '@/hooks/useFormFields';
+import CorporateDocumentTemplate from '@/components/CorporateDocumentTemplate';
 
 interface SalesProposal {
     id: number;
@@ -110,158 +111,103 @@ export default function Print() {
                 </div>
             )}
 
-            <div className="proposal-container bg-white max-w-4xl mx-auto p-8">
-                <div className="flex justify-between items-start mb-8">
-                    <div className="w-1/2">
-                        <h1 className="text-2xl font-bold mb-4">{getCompanySetting('company_name') || 'YOUR COMPANY'}</h1>
-                        <div className="text-sm space-y-1">
-                            {getCompanySetting('company_address') && <p>{getCompanySetting('company_address')}</p>}
-                            {(getCompanySetting('company_city') || getCompanySetting('company_state') || getCompanySetting('company_zipcode')) && (
-                                <p>
-                                    {getCompanySetting('company_city')}{getCompanySetting('company_state') && `, ${getCompanySetting('company_state')}`} {getCompanySetting('company_zipcode')}
-                                </p>
-                            )}
-                            {getCompanySetting('company_country') && <p>{getCompanySetting('company_country')}</p>}
-                            {getCompanySetting('company_telephone') && <p>{t('Phone')}: {getCompanySetting('company_telephone')}</p>}
-                            {getCompanySetting('company_email') && <p>{t('Email')}: {getCompanySetting('company_email')}</p>}
-                            {getCompanySetting('registration_number') && <p>{t('Registration')}: {getCompanySetting('registration_number')}</p>}
-                        </div>
-                    </div>
-                    <div className="text-right w-1/2">
-                        <h2 className="text-2xl font-bold mb-2">{t(documentTitle).toUpperCase()}</h2>
-                        <p className="text-lg font-semibold">#{proposal.proposal_number}</p>
-                        <div className="text-sm mt-2 space-y-1">
-                            <p>{t('Date')}: {formatDate(proposal.proposal_date)}</p>
-                            <p>{t('Due')}: {formatDate(proposal.due_date)}</p>
-                        </div>
-                    </div>
-                </div>
+            <div className="proposal-container bg-white max-w-4xl mx-auto p-2">
+                <CorporateDocumentTemplate
+                    type="invoice"
+                    documentTitle={t(documentTitle).toUpperCase()}
+                    documentNumber={proposal.proposal_number}
+                    documentNumberLabel="Ref No:"
+                    date={formatDate(proposal.proposal_date)}
+                    dateLabel="Date:"
+                    secondaryDate={formatDate(proposal.due_date)}
+                    secondaryDateLabel="Valid Until:"
 
-                <div className="flex justify-between mb-8">
-                    <div className="w-1/2">
-                        <h3 className="font-bold mb-3">{t('PROPOSAL TO')}</h3>
-                        <div className="text-sm space-y-1">
-                            <p className="font-semibold">{proposal.customer?.name}</p>
-                            <p>{proposal.customer?.email}</p>
-                        </div>
-                    </div>
-                    <div className="text-right w-1/2">
-                        <h3 className="font-bold mb-3">{t('WAREHOUSE')}</h3>
-                        <div className="text-sm space-y-1">
-                            <p>{proposal.warehouse?.name || '-'}</p>
-                        </div>
-                    </div>
-                </div>
+                    leftBoxTitle="PROPOSAL / QUOTATION TO"
+                    leftBoxFields={[
+                        { label: 'Customer / Company Name', value: proposal.customer?.name },
+                        { label: 'Address', value: 'Dar es Salaam, Tanzania' },
+                        { label: 'Phone / Email', value: proposal.customer?.email || 'customer@client.co.tz' },
+                        { label: 'TIN / VRN (if applicable)', value: '119-823-455' },
+                    ]}
 
-                {/* Custom Fields Display */}
-                {customFields && customFields.length > 0 && (
-                    <div className="mb-8">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                            {customFields.map((field) => (
-                                <div key={field.id} className="space-y-1">
-                                    <div className="font-semibold text-gray-700">{(field as any).name || (field as any).label || 'Custom Field'}:</div>
-                                    <div className="text-gray-900">{field.component}</div>
+                    rightBoxTitle="DELIVERY & LOGISTICS"
+                    rightBoxFields={[
+                        { label: 'Delivery Warehouse', value: proposal.warehouse?.name || 'Main Warehouse' },
+                        { label: 'Payment Terms', value: proposal.payment_terms || '30 days Net' },
+                        { label: 'Quotation Validity', value: '30 Calendar Days' },
+                        { label: 'Currency', value: 'TZS' },
+                    ]}
+
+                    columns={[
+                        { key: 'index', label: '#', align: 'center', width: '38px', render: (_, idx) => idx + 1 },
+                        {
+                            key: 'description',
+                            label: 'Item / Service Description',
+                            align: 'left',
+                            render: (it) => (
+                                <div>
+                                    <div className="font-semibold text-slate-900">{it.product?.name || it.name}</div>
+                                    {it.product?.sku && (
+                                        <div className="text-[10px] text-slate-500 font-mono">SKU: {it.product.sku}</div>
+                                    )}
                                 </div>
-                            ))}
+                            ),
+                        },
+                        { key: 'quantity', label: 'Qty', align: 'center', width: '55px', render: (it) => it.quantity },
+                        { key: 'unit', label: 'Unit', align: 'center', width: '60px', render: (it) => it.product?.unit || it.unit || 'units' },
+                        {
+                            key: 'unit_price',
+                            label: 'Unit Price (TZS)',
+                            align: 'right',
+                            width: '130px',
+                            render: (it) => Number(it.unit_price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                        },
+                        {
+                            key: 'amount',
+                            label: 'Amount (TZS)',
+                            align: 'right',
+                            width: '130px',
+                            render: (it) => Number(it.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                        },
+                    ]}
+                    items={proposal.items || []}
+                    minRows={8}
+
+                    totals={[
+                        { label: 'Subtotal', value: Number(proposal.subtotal) },
+                        ...(proposal.discount_amount > 0 ? [{ label: 'Discount (if any)', value: -Number(proposal.discount_amount) }] : [{ label: 'Discount (if any)', value: 0 }]),
+                        { label: 'VAT (if applicable)', value: Number(proposal.tax_amount || 0) },
+                        { label: 'TOTAL ESTIMATED (TZS)', value: Number(proposal.total_amount), isGrandTotal: true },
+                    ]}
+
+                    lowerLeftTitle="Payment Details"
+                    lowerLeftContent={
+                        <div className="space-y-1 text-[11px]">
+                            <div><span className="font-semibold">Bank:</span> CRDB Bank Plc / NMB Bank Plc</div>
+                            <div><span className="font-semibold">Account Name:</span> {getCompanySetting('company_name') || 'MUTAMARK ENTERPRISES LTD'}</div>
+                            <div><span className="font-semibold">Account No:</span> 0150-2938-4100 (TZS) / 0250-2938-4101 (USD)</div>
+                            <div><span className="font-semibold">Mobile Money:</span> Lipa Namba: 5492810 (MUTAMARK) — M-Pesa / Tigo Pesa / Airtel Money</div>
                         </div>
-                    </div>
-                )}
+                    }
 
-                <div className="mb-8">
-                    <table className="w-full table-fixed">
-                        <thead>
-                            <tr className="border-b border-gray-300">
-                                <th className="text-left py-3 font-bold">{t('ITEM')}</th>
-                                <th className="text-center py-3 font-bold">{t('QTY')}</th>
-                                <th className="text-right py-3 font-bold">{t('PRICE')}</th>
-                                <th className="text-right py-3 font-bold">{t('DISCOUNT')}</th>
-                                <th className="text-right py-3 font-bold">{t('TAX')}</th>
-                                <th className="text-right py-3 font-bold">{t('TOTAL')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {proposal.items?.map((item, index) => (
-                                <tr key={index} className="page-break-inside-avoid">
-                                    <td className="py-4">
-                                        <div className="font-semibold">{item.product?.name}</div>
-                                        {item.product?.sku && (
-                                            <div className="text-xs text-gray-500">{t('SKU')}: {item.product.sku}</div>
-                                        )}
-                                    </td>
-                                    <td className="text-center py-4">{item.quantity}</td>
-                                    <td className="text-right py-4">{formatCurrency(item.unit_price)}</td>
-                                    <td className="text-right py-4">
-                                        {item.discount_percentage > 0 ? (
-                                            <>
-                                                <div className="text-sm">{item.discount_percentage}%</div>
-                                                <div className="text-sm font-medium">-{formatCurrency(item.discount_amount)}</div>
-                                            </>
-                                        ) : (
-                                            <div className="text-sm">0%</div>
-                                        )}
-                                    </td>
-                                    <td className="text-right py-4">
-                                        {item.taxes && item.taxes.length > 0 ? (
-                                            <>
-                                                {item.taxes.map((tax, taxIndex) => (
-                                                    <div key={taxIndex} className="text-sm">{tax.tax_name} ({tax.tax_rate}%)</div>
-                                                ))}
-                                                <div className="text-sm font-medium">{formatCurrency(item.tax_amount)}</div>
-                                            </>
-                                        ) : item.tax_percentage > 0 ? (
-                                            <>
-                                                <div className="text-sm">{item.tax_percentage}%</div>
-                                                <div className="text-sm font-medium">{formatCurrency(item.tax_amount)}</div>
-                                            </>
-                                        ) : (
-                                            <div className="text-sm">0%</div>
-                                        )}
-                                    </td>
-                                    <td className="text-right py-4 font-semibold">{formatCurrency(item.total_amount)}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div className="flex justify-end mb-4 page-break-inside-avoid">
-                    <div className="w-80 page-break-inside-avoid">
-                        <div className="border border-gray-400 p-4 page-break-inside-avoid">
-                            <div className="space-y-2">
-                                <div className="flex justify-between">
-                                    <span>{t('Subtotal')}:</span>
-                                    <span>{formatCurrency(proposal.subtotal)}</span>
-                                </div>
-                                {proposal.discount_amount > 0 && (
-                                    <div className="flex justify-between">
-                                        <span>{t('Discount')}:</span>
-                                        <span>-{formatCurrency(proposal.discount_amount)}</span>
-                                    </div>
-                                )}
-                                {proposal.tax_amount > 0 && (
-                                    <div className="flex justify-between">
-                                        <span>{t('Tax')}:</span>
-                                        <span>{formatCurrency(proposal.tax_amount)}</span>
-                                    </div>
-                                )}
-                                <div className="border-t border-gray-400 pt-2 mt-2">
-                                    <div className="flex justify-between font-bold text-lg">
-                                        <span>{t('TOTAL')}:</span>
-                                        <span>{formatCurrency(proposal.total_amount)}</span>
-                                    </div>
-                                </div>
-                            </div>
+                    lowerRightTitle="Notes / Commercial Terms"
+                    lowerRightContent={
+                        <div className="space-y-1 text-[11px] text-slate-700">
+                            <p>Prices are firm and valid for 30 calendar days from issue date.</p>
+                            <p>Delivery within Dar es Salaam: 2-3 business days upon confirmation.</p>
+                            <p>Payment terms strictly as stated above upon invoice presentation.</p>
                         </div>
-                    </div>
-                </div>
+                    }
 
-                {/* Tanzanian Verification & Payment Instructions Badge */}
-                <DocumentVerificationBadge verification={verification} mode="print" />
+                    signatures={[
+                        { label: 'Prepared by', value: 'Commercial Sales Specialist', extraLabel: 'Name', extraValue: '' },
+                        { label: 'Authorized signature', value: '', dateLabel: 'Date', dateValue: formatDate(new Date()) },
+                    ]}
 
-                <div className="border-t border-gray-400 pt-4 text-center">
-                    <p className="font-semibold">{t('PAYMENT TERMS')}: {proposal.payment_terms || t('Net 30 Days')}</p>
-                    <p className="text-sm mt-2">{t('Thank you for your business!')}</p>
-                </div>
+                    footerSlogan="Thank you for your business."
+                    verification={verification}
+                    verificationHash={(proposal as any)?.verification_hash}
+                />
             </div>
 
             <style>{`

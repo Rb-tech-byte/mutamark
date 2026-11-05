@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import AuthenticatedLayout from "@/layouts/authenticated-layout";
+import CorporateDocumentTemplate, { DocumentKind } from '@/components/CorporateDocumentTemplate';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -769,193 +770,506 @@ export default function DocumentTemplatesIndex({
                         </DialogTitle>
                     </DialogHeader>
 
-                    {activeTemplate && (
-                        <div className="p-6 bg-white text-slate-900 rounded-xl border shadow-md space-y-5 print:m-0 print:border-none">
-                            {/* Color Accent Top Bar */}
-                            <div
-                                className="h-2 w-full rounded-t"
-                                style={{ backgroundColor: activeTemplate.primary_color }}
-                            />
+                    {activeTemplate && (() => {
+                        const kind: DocumentKind =
+                            activeTemplate.document_type === 'purchase_requisition' ? 'purchase_requisition' :
+                            activeTemplate.document_type === 'rfq' ? 'rfq' :
+                            activeTemplate.document_type === 'purchase_order' ? 'purchase_order' :
+                            activeTemplate.document_type === 'delivery_note' ? 'delivery_note' :
+                            activeTemplate.document_type === 'goods_received_note' ? 'goods_received_note' : 'invoice';
 
-                            {/* Letterhead */}
-                            <div className="flex justify-between items-start border-b pb-4">
-                                <div>
-                                    <h2
-                                        className="text-2xl font-black tracking-tight"
-                                        style={{ color: activeTemplate.secondary_color }}
-                                    >
-                                        MUTAMARK ENTERPRISES LTD
-                                    </h2>
-                                    <p className="text-xs text-slate-600 mt-0.5">
-                                        Plot 42, Nyerere Road Industrial Area, Dar es Salaam, Tanzania
-                                    </p>
-                                    <p className="text-xs text-slate-600">
-                                        TIN: 104-892-411 | VRN: 40019283-Z | info@mutamark.co.tz
-                                    </p>
-                                </div>
+                        const sampleItems = [
+                            { id: 1, name: 'Industrial Heavy Duty Rubber Conveyor Belting', sku: 'BLT-CONV-800', quantity: 2, unit: 'rolls', unit_price: 1050000, total_amount: 2100000, qty_ordered: 2, qty_delivered: 2, ordered_quantity: 2, received_quantity: 2, accepted_quantity: 2, rejected_quantity: 0 },
+                            { id: 2, name: 'Heavy Duty Steel Idler Roller Assemblies (100mm)', sku: 'IDL-STL-100', quantity: 10, unit: 'units', unit_price: 75000, total_amount: 750000, qty_ordered: 10, qty_delivered: 10, ordered_quantity: 10, received_quantity: 10, accepted_quantity: 10, rejected_quantity: 0 },
+                            { id: 3, name: 'High-Temperature Synthetic Machine Grease ISO VG 220', sku: 'LUB-SYN-220', quantity: 5, unit: 'drums', unit_price: 320000, total_amount: 1600000, qty_ordered: 5, qty_delivered: 5, ordered_quantity: 5, received_quantity: 5, accepted_quantity: 5, rejected_quantity: 0 },
+                        ];
 
-                                <div className="text-right">
-                                    <h1
-                                        className="text-xl font-extrabold uppercase tracking-wide"
-                                        style={{ color: activeTemplate.primary_color }}
-                                    >
-                                        {activeTemplate.header_title}
-                                    </h1>
-                                    {activeTemplate.header_subtitle && (
-                                        <p className="text-xs text-slate-500 font-medium">
-                                            {activeTemplate.header_subtitle}
-                                        </p>
-                                    )}
-                                    <div className="font-mono text-sm font-bold mt-1">DOC-2026-00084</div>
-                                    <div className="text-xs text-slate-500">Date: {new Date().toISOString().split('T')[0]}</div>
-                                </div>
-                            </div>
+                        return (
+                            <div className="space-y-4">
+                                {kind === 'purchase_requisition' ? (
+                                    <CorporateDocumentTemplate
+                                        type="purchase_requisition"
+                                        documentTitle={activeTemplate.header_title || 'PURCHASE REQUISITION'}
+                                        documentNumber="PR-2026-00042"
+                                        documentNumberLabel="PR No:"
+                                        date={new Date().toISOString().split('T')[0]}
+                                        dateLabel="Date:"
+                                        secondaryDate={new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]}
+                                        secondaryDateLabel="Date Required:"
 
-                            {/* Party Metadata */}
-                            <div className="grid grid-cols-2 gap-4 text-xs p-3.5 rounded-lg bg-slate-50 border">
-                                <div>
-                                    <span className="text-slate-500 uppercase text-[10px] font-bold block mb-1">
-                                        Billed / Issued To:
-                                    </span>
-                                    <div className="font-bold text-sm text-slate-900">Kilimanjaro Industrial Parts Ltd</div>
-                                    <div className="text-slate-600">TIN: 119-823-455 | VRN: 40098124-K</div>
-                                    <div className="text-slate-600">P.O. Box 4501, Dar es Salaam, Tanzania</div>
-                                </div>
+                                        leftBoxTitle="REQUESTING DEPARTMENT"
+                                        leftBoxFields={[
+                                            { label: 'Department / Unit', value: 'Operations & Plant Engineering' },
+                                            { label: 'Requested by', value: 'Eng. Juma Mwinyi' },
+                                            { label: 'Phone / Email', value: '+255 754 112 233 | juma@mutamark.co.tz' },
+                                            { label: 'Budget Line / Vote', value: 'BUD-2026-OPS-042' },
+                                        ]}
 
-                                <div className="text-right">
-                                    <span className="text-slate-500 uppercase text-[10px] font-bold block mb-1">
-                                        Payment & Terms:
-                                    </span>
-                                    <div className="font-semibold text-slate-800">Payment: 30 Days Net</div>
-                                    <div className="text-slate-600">Due Date: 30 Days from Issue</div>
-                                    <div className="text-slate-600">Currency: Tanzanian Shillings (TZS)</div>
-                                </div>
-                            </div>
+                                        rightBoxTitle="REQUISITION DETAILS"
+                                        rightBoxFields={[
+                                            { label: 'Priority', value: 'URGENT / Normal' },
+                                            { label: 'Delivery Location', value: 'Arusha Workshop Plant' },
+                                            { label: 'Procurement Method', value: 'Competitive Quotation RFQ' },
+                                            { label: 'Currency', value: 'TZS' },
+                                        ]}
 
-                            {/* Sample Items Schedule */}
-                            <div className="border rounded-lg overflow-hidden text-xs">
-                                <table className="w-full text-left">
-                                    <thead
-                                        className="text-white font-bold"
-                                        style={{ backgroundColor: activeTemplate.primary_color }}
-                                    >
-                                        <tr>
-                                            <th className="p-2.5">#</th>
-                                            <th className="p-2.5">Item Description</th>
-                                            <th className="p-2.5 text-right">Qty</th>
-                                            <th className="p-2.5 text-right">Unit Price (TZS)</th>
-                                            <th className="p-2.5 text-right">Total (TZS)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y text-slate-800">
-                                        <tr>
-                                            <td className="p-2.5 font-mono">1</td>
-                                            <td className="p-2.5 font-semibold">High-Grade Rubber Conveyor Belt (800mm x 50m)</td>
-                                            <td className="p-2.5 text-right">2 rolls</td>
-                                            <td className="p-2.5 text-right">1,050,000</td>
-                                            <td className="p-2.5 text-right font-bold">2,100,000</td>
-                                        </tr>
-                                        <tr>
-                                            <td className="p-2.5 font-mono">2</td>
-                                            <td className="p-2.5 font-semibold">Heavy Duty Steel Idler Roller Assemblies</td>
-                                            <td className="p-2.5 text-right">10 units</td>
-                                            <td className="p-2.5 text-right">75,000</td>
-                                            <td className="p-2.5 text-right font-bold">750,000</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                                        columns={[
+                                            { key: 'index', label: '#', align: 'center', width: '38px', render: (_, idx) => idx + 1 },
+                                            {
+                                                key: 'description',
+                                                label: 'Item / Description & Specification',
+                                                align: 'left',
+                                                render: (it) => (
+                                                    <div>
+                                                        <div className="font-semibold text-slate-900">{it.name}</div>
+                                                        <div className="text-[10px] text-slate-500 font-mono">SKU: {it.sku}</div>
+                                                    </div>
+                                                ),
+                                            },
+                                            { key: 'quantity', label: 'Qty', align: 'center', width: '55px', render: (it) => it.quantity },
+                                            { key: 'unit', label: 'Unit', align: 'center', width: '60px', render: (it) => it.unit },
+                                            { key: 'unit_price', label: 'Est. Unit Price (TZS)', align: 'right', width: '135px', render: (it) => it.unit_price.toLocaleString() },
+                                            { key: 'amount', label: 'Est. Amount (TZS)', align: 'right', width: '135px', render: (it) => it.total_amount.toLocaleString() },
+                                        ]}
+                                        items={sampleItems}
+                                        minRows={8}
 
-                            {/* Totals Section */}
-                            <div className="flex justify-end text-xs">
-                                <div className="w-64 space-y-1.5 p-3 rounded-lg bg-slate-50 border">
-                                    <div className="flex justify-between text-slate-600">
-                                        <span>Subtotal:</span>
-                                        <span>2,850,000 TZS</span>
-                                    </div>
-                                    {activeTemplate.show_tax_breakdown && (
-                                        <div className="flex justify-between text-slate-600">
-                                            <span>TRA VAT (18%):</span>
-                                            <span>513,000 TZS</span>
-                                        </div>
-                                    )}
-                                    <div
-                                        className="flex justify-between font-extrabold text-sm pt-1.5 border-t"
-                                        style={{ color: activeTemplate.primary_color }}
-                                    >
-                                        <span>Grand Total:</span>
-                                        <span>3,363,000 TZS</span>
-                                    </div>
-                                </div>
-                            </div>
+                                        totals={[
+                                            { label: 'Estimated Subtotal', value: 4450000 },
+                                            { label: 'VAT (if applicable)', value: 0 },
+                                            { label: 'Other Costs (if any)', value: 0 },
+                                            { label: 'TOTAL ESTIMATED (TZS)', value: 4450000, isGrandTotal: true },
+                                        ]}
 
-                            {/* Amount in Words */}
-                            {activeTemplate.show_amount_in_words && (
-                                <div className="p-2 bg-slate-100 rounded text-xs italic text-slate-700">
-                                    <strong>Amount in Words:</strong> Three Million Three Hundred Sixty-Three Thousand Tanzanian Shillings Only.
-                                </div>
-                            )}
+                                        lowerLeftTitle="Justification / Purpose"
+                                        lowerLeftContent={
+                                            <div className="space-y-1.5 text-[11px]">
+                                                <div><span className="font-semibold">Reason for purchase:</span> Essential quarterly maintenance and breakdown prevention for factory conveyor lines.</div>
+                                                <div className="pt-1"><span className="font-semibold">Existing stock checked:</span> Yes &nbsp;&nbsp;&nbsp;&nbsp; <span className="font-semibold">Funds available:</span> Yes</div>
+                                            </div>
+                                        }
 
-                            {/* Bank Details */}
-                            {activeTemplate.show_bank_details && (
-                                <div className="p-3 bg-slate-50 border rounded-lg text-xs space-y-1">
-                                    <span className="font-bold text-slate-800 block">Bank Transfer & Mobile Money Remittance:</span>
-                                    <p className="text-slate-600">
-                                        Bank: CRDB Bank Plc | Acc Name: MUTAMARK ENTERPRISES LTD | Acc No: 0150-2938-4100
-                                    </p>
-                                    <p className="text-slate-600 font-semibold">
-                                        Lipa Namba: [Merchant Till Number] (MUTAMARK ENTERPRISES LTD) — All Mobile Money (M-Pesa, Tigo Pesa, Airtel Money)
-                                    </p>
-                                </div>
-                            )}
+                                        lowerRightTitle="Notes / Conditions"
+                                        lowerRightContent={
+                                            <div className="text-[11px] text-slate-700 leading-relaxed">
+                                                <p>{activeTemplate.terms_and_conditions || 'Attach specifications or drawings where applicable. An approved requisition must be on file before any order is placed.'}</p>
+                                            </div>
+                                        }
 
-                            {/* Terms */}
-                            {activeTemplate.terms_and_conditions && (
-                                <div className="text-[11px] text-slate-600 border-t pt-2 space-y-0.5">
-                                    <span className="font-bold text-slate-700 block">Terms & Conditions:</span>
-                                    <p className="whitespace-pre-line">{activeTemplate.terms_and_conditions}</p>
-                                </div>
-                            )}
+                                        signatures={[
+                                            { label: 'Requested by', value: 'Eng. Juma Mwinyi', dateLabel: 'Date', dateValue: new Date().toISOString().split('T')[0] },
+                                            { label: 'Head of Department', value: 'Operations Manager', dateLabel: 'Date', dateValue: new Date().toISOString().split('T')[0] },
+                                            { label: 'Procurement Officer', value: 'Procurement Specialist', extraLabel: 'Signature', extraValue: '' },
+                                            { label: 'Approved by (Accounting Officer)', value: 'Managing Director / CFO', extraLabel: 'Signature / Stamp', extraValue: '' },
+                                        ]}
 
-                            {/* Signatures & QR Block */}
-                            <div className="pt-4 border-t flex justify-between items-end text-xs">
-                                {activeTemplate.show_signature_block && (
-                                    <div className="space-y-4">
-                                        <div className="h-10 border-b border-dashed border-slate-400 w-48"></div>
-                                        <p className="font-bold text-slate-800">Authorized Signature & Seal</p>
-                                    </div>
+                                        footerSlogan={activeTemplate.footer_text || 'Please attach supporting documents to this requisition.'}
+                                    />
+                                ) : kind === 'rfq' ? (
+                                    <CorporateDocumentTemplate
+                                        type="rfq"
+                                        documentTitle={activeTemplate.header_title || 'REQUEST FOR QUOTATION'}
+                                        documentNumber="RFQ-2026-00018"
+                                        documentNumberLabel="RFQ No:"
+                                        date={new Date().toISOString().split('T')[0]}
+                                        dateLabel="Issue Date:"
+                                        secondaryDate={new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]}
+                                        secondaryDateLabel="Closing Date:"
+
+                                        leftBoxTitle="TO (SUPPLIER)"
+                                        leftBoxFields={[
+                                            { label: 'Supplier / Company Name', value: 'Kilimanjaro Industrial Parts Ltd' },
+                                            { label: 'Address', value: 'Plot 15, Mandela Express, Dar es Salaam' },
+                                            { label: 'Phone / Email', value: '+255 22 286 1122 | sales@kilimanjaroparts.co.tz' },
+                                            { label: 'TIN / VRN (if applicable)', value: '119-823-455 | 40098124-K' },
+                                        ]}
+
+                                        rightBoxTitle="RFQ DETAILS"
+                                        rightBoxFields={[
+                                            { label: 'Reference / Tender No', value: 'TND-2026-OPS-004' },
+                                            { label: 'Delivery Location', value: 'Dar es Salaam Central Warehouse' },
+                                            { label: 'Quotation Validity', value: '30 days' },
+                                            { label: 'Currency', value: 'TZS' },
+                                        ]}
+
+                                        columns={[
+                                            { key: 'index', label: '#', align: 'center', width: '38px', render: (_, idx) => idx + 1 },
+                                            {
+                                                key: 'description',
+                                                label: 'Item / Description & Specification',
+                                                align: 'left',
+                                                render: (it) => (
+                                                    <div>
+                                                        <div className="font-semibold text-slate-900">{it.name}</div>
+                                                        <div className="text-[10px] text-slate-500 font-mono">SKU: {it.sku}</div>
+                                                    </div>
+                                                ),
+                                            },
+                                            { key: 'quantity', label: 'Qty', align: 'center', width: '60px', render: (it) => it.quantity },
+                                            { key: 'unit', label: 'Unit', align: 'center', width: '60px', render: (it) => it.unit },
+                                            { key: 'unit_price', label: 'Unit Price (TZS)', align: 'right', width: '135px', render: () => '________________' },
+                                            { key: 'amount', label: 'Amount (TZS)', align: 'right', width: '135px', render: () => '________________' },
+                                        ]}
+                                        items={sampleItems}
+                                        minRows={8}
+
+                                        totals={[
+                                            { label: 'Subtotal', value: '________________' },
+                                            { label: 'VAT (if applicable)', value: '________________' },
+                                            { label: 'Delivery / Other Costs', value: '________________' },
+                                            { label: 'TOTAL QUOTED (TZS)', value: '________________', isGrandTotal: true },
+                                        ]}
+
+                                        lowerLeftTitle="Instructions to Supplier"
+                                        lowerLeftContent={
+                                            <div className="text-[11px] text-slate-700 leading-relaxed space-y-1">
+                                                <p>Quote all prices in TZS and state whether VAT is included.</p>
+                                                <p>Submit your quotation on or before the closing date. Late quotations may not be considered.</p>
+                                            </div>
+                                        }
+
+                                        lowerRightTitle="Supplier Offer (to be completed)"
+                                        lowerRightContent={
+                                            <div className="space-y-1.5 text-[11px]">
+                                                <div><span className="font-semibold">Delivery Period (days):</span> _______________________________</div>
+                                                <div><span className="font-semibold">Payment Terms Offered:</span> ______________________________</div>
+                                                <div><span className="font-semibold">Warranty (if any):</span> ___________________________________</div>
+                                                <div><span className="font-semibold">Contact Person:</span> ____________________________________</div>
+                                            </div>
+                                        }
+
+                                        signatures={[
+                                            { label: 'Issued by', value: 'Procurement Specialist', extraLabel: 'Name', extraValue: 'Supply Chain Management Unit', dateLabel: 'Date', dateValue: new Date().toISOString().split('T')[0] },
+                                            { label: 'Supplier signature & stamp', value: '', extraLabel: 'Name', extraValue: '', dateLabel: 'Date', dateValue: '' },
+                                        ]}
+
+                                        footerSlogan={activeTemplate.footer_text || 'Thank you for your quotation.'}
+                                    />
+                                ) : kind === 'purchase_order' ? (
+                                    <CorporateDocumentTemplate
+                                        type="purchase_order"
+                                        documentTitle={activeTemplate.header_title || 'PURCHASE ORDER'}
+                                        documentNumber="PO-2026-00088"
+                                        documentNumberLabel="PO No:"
+                                        date={new Date().toISOString().split('T')[0]}
+                                        dateLabel="Order Date:"
+                                        secondaryDate={new Date(Date.now() + 10 * 86400000).toISOString().split('T')[0]}
+                                        secondaryDateLabel="Delivery Date:"
+
+                                        leftBoxTitle="VENDOR / SUPPLIER"
+                                        leftBoxFields={[
+                                            { label: 'Supplier / Company Name', value: 'Kilimanjaro Industrial Parts Ltd' },
+                                            { label: 'Address', value: 'Plot 15, Mandela Express, Dar es Salaam, Tanzania' },
+                                            { label: 'Phone / Email', value: '+255 22 286 1122 | sales@kilimanjaroparts.co.tz' },
+                                            { label: 'TIN / VRN (if applicable)', value: '119-823-455 | 40098124-K' },
+                                        ]}
+
+                                        rightBoxTitle="SHIP TO / ORDER DETAILS"
+                                        rightBoxFields={[
+                                            { label: 'Deliver To', value: 'Main Factory Warehouse, Dar es Salaam' },
+                                            { label: 'Quotation / RFQ Ref', value: 'RFQ-2026-00018' },
+                                            { label: 'Payment Terms', value: '30 days Net' },
+                                            { label: 'Currency', value: 'TZS' },
+                                        ]}
+
+                                        columns={[
+                                            { key: 'index', label: '#', align: 'center', width: '38px', render: (_, idx) => idx + 1 },
+                                            {
+                                                key: 'description',
+                                                label: 'Item / Service Description',
+                                                align: 'left',
+                                                render: (it) => (
+                                                    <div>
+                                                        <div className="font-semibold text-slate-900">{it.name}</div>
+                                                        <div className="text-[10px] text-slate-500 font-mono">SKU: {it.sku}</div>
+                                                    </div>
+                                                ),
+                                            },
+                                            { key: 'quantity', label: 'Qty', align: 'center', width: '55px', render: (it) => it.quantity },
+                                            { key: 'unit', label: 'Unit', align: 'center', width: '60px', render: (it) => it.unit },
+                                            { key: 'unit_price', label: 'Unit Price (TZS)', align: 'right', width: '130px', render: (it) => it.unit_price.toLocaleString() },
+                                            { key: 'amount', label: 'Amount (TZS)', align: 'right', width: '130px', render: (it) => it.total_amount.toLocaleString() },
+                                        ]}
+                                        items={sampleItems}
+                                        minRows={8}
+
+                                        totals={[
+                                            { label: 'Subtotal', value: 4450000 },
+                                            { label: 'Discount (if any)', value: 0 },
+                                            { label: 'VAT (if applicable)', value: 801000 },
+                                            { label: 'TOTAL ORDER VALUE (TZS)', value: 5251000, isGrandTotal: true },
+                                        ]}
+
+                                        lowerLeftTitle="Invoicing Instructions"
+                                        lowerLeftContent={
+                                            <div className="space-y-1 text-[11px] text-slate-700">
+                                                <p>Send invoice to: accounts@mutamark.co.tz</p>
+                                                <p>Quote the PO number on all invoices, delivery notes and correspondence.</p>
+                                            </div>
+                                        }
+
+                                        lowerRightTitle="Terms & Conditions"
+                                        lowerRightContent={
+                                            <div className="space-y-1 text-[11px] text-slate-700">
+                                                <p>Goods must match the specification ordered.</p>
+                                                <p>Goods are subject to inspection on delivery.</p>
+                                                <p>Non-conforming goods may be rejected.</p>
+                                                <p>Deliver on or before the date stated.</p>
+                                            </div>
+                                        }
+
+                                        signatures={[
+                                            { label: 'Prepared by', value: 'Procurement Specialist', extraLabel: 'Name', extraValue: 'Supply Chain Directorate' },
+                                            { label: 'Authorised signature', value: 'Managing Director / CFO', dateLabel: 'Date', dateValue: new Date().toISOString().split('T')[0] },
+                                            { label: 'Vendor acknowledgement', value: 'Accepted by Supplier Rep', dateLabel: 'Date', dateValue: new Date().toISOString().split('T')[0] },
+                                        ]}
+
+                                        footerSlogan={activeTemplate.footer_text || 'Please acknowledge receipt of this order.'}
+                                    />
+                                ) : kind === 'delivery_note' ? (
+                                    <CorporateDocumentTemplate
+                                        type="delivery_note"
+                                        documentTitle={activeTemplate.header_title || 'DELIVERY NOTE'}
+                                        documentNumber="DN-2026-00104"
+                                        documentNumberLabel="DN No:"
+                                        date={new Date().toISOString().split('T')[0]}
+                                        dateLabel="Delivery Date:"
+                                        tertiaryNumber="PO-2026-00088"
+                                        tertiaryNumberLabel="PO / Order No:"
+
+                                        leftBoxTitle="DELIVER TO"
+                                        leftBoxFields={[
+                                            { label: 'Customer / Company Name', value: 'Serengeti Breweries Logistics Unit' },
+                                            { label: 'Delivery Address', value: "Plot 88, Chang'ombe Industrial Area, Dar es Salaam" },
+                                            { label: 'Contact Person / Phone', value: 'Hassan Ally (+255 784 990 011)' },
+                                            { label: 'Receiving Department', value: 'Central Plant Receiving Warehouse' },
+                                        ]}
+
+                                        rightBoxTitle="DELIVERY DETAILS"
+                                        rightBoxFields={[
+                                            { label: 'Customer PO No', value: 'PO-SBL-2026-902' },
+                                            { label: 'Invoice No (if issued)', value: 'INV-2026-00214' },
+                                            { label: 'Vehicle / Driver', value: 'T 412 DKM / Ramadhani Bakari' },
+                                            { label: 'Delivered by', value: 'Mutamark Express Logistics' },
+                                        ]}
+
+                                        columns={[
+                                            { key: 'index', label: '#', align: 'center', width: '38px', render: (_, idx) => idx + 1 },
+                                            {
+                                                key: 'description',
+                                                label: 'Item / Description',
+                                                align: 'left',
+                                                render: (it) => (
+                                                    <div>
+                                                        <div className="font-semibold text-slate-900">{it.name}</div>
+                                                        <div className="text-[10px] text-slate-500 font-mono">SKU: {it.sku}</div>
+                                                    </div>
+                                                ),
+                                            },
+                                            { key: 'unit', label: 'Unit', align: 'center', width: '60px', render: (it) => it.unit },
+                                            { key: 'quantity_ordered', label: 'Qty Ordered', align: 'center', width: '85px', render: (it) => it.qty_ordered },
+                                            { key: 'quantity_shipped', label: 'Qty Delivered', align: 'center', width: '85px', render: (it) => it.qty_delivered },
+                                            { key: 'remarks', label: 'Remarks', align: 'left', width: '130px', render: () => 'Delivered in Good Order' },
+                                        ]}
+                                        items={sampleItems}
+                                        minRows={11}
+
+                                        lowerLeftTitle="Delivery Condition"
+                                        lowerLeftContent={
+                                            <div className="space-y-2 text-[11px]">
+                                                <div><span className="font-semibold">Received in good condition:</span> Yes / No</div>
+                                                <div><span className="font-semibold">Damages / shortages noted:</span> ___________________________</div>
+                                            </div>
+                                        }
+
+                                        lowerRightTitle="Notes"
+                                        lowerRightContent={
+                                            <div className="text-[11px] text-slate-700 leading-relaxed">
+                                                <p>Please check goods on receipt and note any discrepancies before signing. Report any shortage or damage promptly.</p>
+                                            </div>
+                                        }
+
+                                        signatures={[
+                                            { label: 'Delivered by (name & signature)', value: 'Ramadhani Bakari (Driver)', dateLabel: 'Date', dateValue: new Date().toISOString().split('T')[0], extraLabel: 'Supplier stamp', extraValue: '' },
+                                            { label: 'Received by (name & signature)', value: 'Hassan Ally (Storekeeper)', dateLabel: 'Date', dateValue: new Date().toISOString().split('T')[0], extraLabel: 'Receiver stamp', extraValue: '' },
+                                        ]}
+
+                                        footerSlogan={activeTemplate.footer_text || 'Thank you for your business.'}
+                                    />
+                                ) : kind === 'goods_received_note' ? (
+                                    <CorporateDocumentTemplate
+                                        type="goods_received_note"
+                                        documentTitle={activeTemplate.header_title || 'GOODS RECEIVED NOTE'}
+                                        documentNumber="GRN-2026-00075"
+                                        documentNumberLabel="GRN No:"
+                                        date={new Date().toISOString().split('T')[0]}
+                                        dateLabel="Date Received:"
+                                        tertiaryNumber="PO-2026-00088"
+                                        tertiaryNumberLabel="PO No:"
+
+                                        leftBoxTitle="SUPPLIER"
+                                        leftBoxFields={[
+                                            { label: 'Supplier Name', value: 'Kilimanjaro Industrial Parts Ltd' },
+                                            { label: 'Address', value: 'Plot 15, Mandela Express, Dar es Salaam' },
+                                            { label: 'Phone / Email', value: '+255 22 286 1122 | sales@kilimanjaroparts.co.tz' },
+                                            { label: 'Delivery Note No', value: 'DN-KIP-2026-441' },
+                                        ]}
+
+                                        rightBoxTitle="RECEIVING DETAILS"
+                                        rightBoxFields={[
+                                            { label: 'Received at (Store / Location)', value: 'Main Warehouse Bay 4' },
+                                            { label: 'Supplier Invoice No', value: 'INV-KIP-2026-1029' },
+                                            { label: 'Inspection Date', value: new Date().toISOString().split('T')[0] },
+                                            { label: 'Receiving Department', value: 'Stores & Inventory Directorate' },
+                                        ]}
+
+                                        columns={[
+                                            { key: 'index', label: '#', align: 'center', width: '38px', render: (_, idx) => idx + 1 },
+                                            {
+                                                key: 'description',
+                                                label: 'Item / Description',
+                                                align: 'left',
+                                                render: (it) => (
+                                                    <div>
+                                                        <div className="font-semibold text-slate-900">{it.name}</div>
+                                                        <div className="text-[10px] text-slate-500 font-mono">SKU: {it.sku}</div>
+                                                    </div>
+                                                ),
+                                            },
+                                            { key: 'unit', label: 'Unit', align: 'center', width: '55px', render: (it) => it.unit },
+                                            { key: 'ordered', label: 'Ordered', align: 'center', width: '65px', render: (it) => it.ordered_quantity },
+                                            { key: 'received', label: 'Received', align: 'center', width: '65px', render: (it) => it.received_quantity },
+                                            { key: 'accepted', label: 'Accepted', align: 'center', width: '65px', render: (it) => it.accepted_quantity },
+                                            { key: 'rejected', label: 'Rejected', align: 'center', width: '65px', render: (it) => it.rejected_quantity },
+                                            { key: 'remarks', label: 'Condition / Remarks', align: 'left', width: '135px', render: () => 'Inspected & Passed' },
+                                        ]}
+                                        items={sampleItems}
+                                        minRows={11}
+
+                                        lowerLeftTitle="Inspection Findings"
+                                        lowerLeftContent={
+                                            <div className="space-y-1.5 text-[11px]">
+                                                <div><span className="font-semibold">Specification met:</span> Yes / No</div>
+                                                <div><span className="font-semibold">Quantity matches order:</span> Yes / No</div>
+                                                <div><span className="font-semibold">Comments:</span> All items inspected and match approved procurement technical specification.</div>
+                                            </div>
+                                        }
+
+                                        lowerRightTitle="Disposition"
+                                        lowerRightContent={
+                                            <div className="space-y-1.5 text-[11px]">
+                                                <div><span className="font-semibold">Entered in store ledger:</span> Yes / No</div>
+                                                <div><span className="font-semibold">Ledger Folio No:</span> LF-2026-089</div>
+                                                <div><span className="font-semibold">Rejected items:</span> Return / Replace / Credit</div>
+                                            </div>
+                                        }
+
+                                        signatures={[
+                                            { label: 'Received by (Store Keeper)', value: 'Warehouse Storekeeper', extraLabel: 'Inspected by', extraValue: 'QA Technical Inspector' },
+                                            { label: 'Verified by (Procurement)', value: 'Procurement Officer', extraLabel: 'Approved by', extraValue: 'Operations Director' },
+                                            { label: 'Date', value: new Date().toISOString().split('T')[0], extraLabel: 'Date', extraValue: new Date().toISOString().split('T')[0] },
+                                        ]}
+
+                                        footerSlogan={activeTemplate.footer_text || 'Distribution: Accounts / Store / Procurement'}
+                                    />
+                                ) : (
+                                    <CorporateDocumentTemplate
+                                        type="invoice"
+                                        documentTitle={activeTemplate.header_title || 'INVOICE'}
+                                        documentNumber="INV-2026-00084"
+                                        documentNumberLabel="Invoice No:"
+                                        date={new Date().toISOString().split('T')[0]}
+                                        dateLabel="Invoice Date:"
+                                        secondaryDate={new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]}
+                                        secondaryDateLabel="Due Date:"
+
+                                        leftBoxTitle="BILL TO"
+                                        leftBoxFields={[
+                                            { label: 'Customer / Company Name', value: 'Kilimanjaro Industrial Parts Ltd' },
+                                            { label: 'Address', value: 'Plot 42, Nyerere Road, Dar es Salaam, Tanzania' },
+                                            { label: 'Phone / Email', value: '+255 754 000 111 | accounts@kilimanjaroparts.co.tz' },
+                                            { label: 'TIN / VRN (if applicable)', value: '119-823-455 | 40098124-K' },
+                                        ]}
+
+                                        rightBoxTitle="DELIVERY / REFERENCE DETAILS"
+                                        rightBoxFields={[
+                                            { label: 'Customer PO No', value: 'PO-2026-REF-88' },
+                                            { label: 'Delivery Note No', value: 'DN-2026-00104' },
+                                            { label: 'Payment Terms', value: '30 days Net' },
+                                            { label: 'Currency', value: 'TZS' },
+                                        ]}
+
+                                        columns={[
+                                            { key: 'index', label: '#', align: 'center', width: '38px', render: (_, idx) => idx + 1 },
+                                            {
+                                                key: 'description',
+                                                label: 'Item / Service Description',
+                                                align: 'left',
+                                                render: (it) => (
+                                                    <div>
+                                                        <div className="font-semibold text-slate-900">{it.name}</div>
+                                                        <div className="text-[10px] text-slate-500 font-mono">SKU: {it.sku}</div>
+                                                    </div>
+                                                ),
+                                            },
+                                            { key: 'quantity', label: 'Qty', align: 'center', width: '55px', render: (it) => it.quantity },
+                                            { key: 'unit', label: 'Unit', align: 'center', width: '60px', render: (it) => it.unit },
+                                            { key: 'unit_price', label: 'Unit Price (TZS)', align: 'right', width: '130px', render: (it) => it.unit_price.toLocaleString() },
+                                            { key: 'amount', label: 'Amount (TZS)', align: 'right', width: '130px', render: (it) => it.total_amount.toLocaleString() },
+                                        ]}
+                                        items={sampleItems}
+                                        minRows={8}
+
+                                        totals={[
+                                            { label: 'Subtotal', value: 4450000 },
+                                            { label: 'Discount (if any)', value: 0 },
+                                            { label: 'VAT (if applicable)', value: 801000 },
+                                            { label: 'TOTAL DUE (TZS)', value: 5251000, isGrandTotal: true },
+                                        ]}
+
+                                        lowerLeftTitle="Payment Details"
+                                        lowerLeftContent={
+                                            <div className="space-y-1 text-[11px]">
+                                                <div><span className="font-semibold">Bank:</span> CRDB Bank Plc / NMB Bank Plc</div>
+                                                <div><span className="font-semibold">Account Name:</span> MUTAMARK ENTERPRISES LTD</div>
+                                                <div><span className="font-semibold">Account No:</span> 0150-2938-4100 (TZS) / 0250-2938-4101 (USD)</div>
+                                                <div><span className="font-semibold">Mobile Money:</span> Lipa Namba: 5492810 (MUTAMARK) — M-Pesa / Tigo Pesa / Airtel Money</div>
+                                            </div>
+                                        }
+
+                                        lowerRightTitle="Notes / Terms"
+                                        lowerRightContent={
+                                            <div className="space-y-1 text-[11px] text-slate-700">
+                                                <p>{activeTemplate.terms_and_conditions || 'Payment due within 30 days unless agreed otherwise.'}</p>
+                                                <p>Please quote the invoice number when paying.</p>
+                                                <p>Goods/services supplied as described above.</p>
+                                            </div>
+                                        }
+
+                                        signatures={[
+                                            { label: 'Prepared by', value: 'Accounts Officer', extraLabel: 'Name', extraValue: '' },
+                                            { label: 'Authorised signature', value: '', dateLabel: 'Date', dateValue: new Date().toISOString().split('T')[0] },
+                                        ]}
+
+                                        footerSlogan={activeTemplate.footer_text || 'Thank you for your business.'}
+                                    />
                                 )}
 
-                                {activeTemplate.show_digital_seal && (
-                                    <div className="text-right font-mono text-[10px] text-slate-500">
-                                        <ShieldCheck className="w-4 h-4 text-emerald-600 inline mr-1" />
-                                        <span>CRYPTOGRAPHIC DIGITAL AUDIT VERIFIED</span>
-                                    </div>
-                                )}
+                                <DialogFooter className="pt-3 border-t print:hidden">
+                                    <Button variant="outline" onClick={() => setIsPreviewOpen(false)}>
+                                        {t("Close Preview")}
+                                    </Button>
+                                    <Button
+                                        onClick={() => window.print()}
+                                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold gap-1"
+                                    >
+                                        <Printer className="w-4 h-4" />
+                                        {t("Print Preview")}
+                                    </Button>
+                                </DialogFooter>
                             </div>
-
-                            {/* Footer Text */}
-                            {activeTemplate.footer_text && (
-                                <div className="text-center text-[10px] text-slate-500 pt-2 border-t">
-                                    {activeTemplate.footer_text}
-                                </div>
-                            )}
-
-                            <DialogFooter className="pt-3 border-t">
-                                <Button variant="outline" onClick={() => setIsPreviewOpen(false)}>
-                                    {t("Close Preview")}
-                                </Button>
-                                <Button
-                                    onClick={() => window.print()}
-                                    className="text-white font-semibold gap-1"
-                                    style={{ backgroundColor: activeTemplate.primary_color }}
-                                >
-                                    <Printer className="w-4 h-4" />
-                                    {t("Print Preview")}
-                                </Button>
-                            </DialogFooter>
-                        </div>
-                    )}
+                        );
+                    })()}
                 </DialogContent>
             </Dialog>
 

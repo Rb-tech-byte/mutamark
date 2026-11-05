@@ -1,0 +1,376 @@
+61. MODULE 43 — CLEARING & FORWARDING MANAGEMENT
+Document status: Proposed addition to the Mutamark ERP master SRS. This module extends the existing ERP and reuses its CRM, supplier, procurement, inventory, accounting, document management, approval, communication, customer portal, reporting and audit capabilities.
+Purpose: Manage the complete import, export, transit and domestic cargo forwarding lifecycle, from customer instruction and document collection through compliance checks, customs processing, cargo release, transport, tracking and signed cargo handover.
+Operating principle: One shipment/job file is the single source of truth for every instruction, document, declaration reference, payment, milestone, exception, cost, communication and handover record associated with a cargo movement.
+61.1 Objectives and business outcomes
+• Create a centralized electronic job file for every import, export, transit or forwarding assignment.
+• Control document collection, verification, permits, classification and valuation review, declaration records and supporting evidence.
+• Track customs processing and regulatory approvals without replacing official government systems or authority decisions.
+• Track cargo from shipper/origin through port, airport, border, warehouse and final consignee destination.
+• Manage transport orders, trucks, drivers, loading, dispatch, border events, delivery and signed proof of delivery.
+• Record statutory and third-party charges, customer advances, disbursements, invoices, receipts, refunds and job profitability.
+• Reduce missing documents, duplicate entry, avoidable delays, demurrage, detention and unapproved expenditure.
+• Provide customers with shipment status, document access, quotations, invoices and proof of delivery.
+• Maintain a complete, searchable audit trail.
+61.2 Scope and shipment types
+The module shall support configurable service categories:
+• Import clearance by sea, air, road and other approved modes.
+• Export clearance and export forwarding.
+• Transit cargo moving through Tanzania to or from another country.
+• Regional cross-border road freight and forwarding.
+• Domestic forwarding and inland transportation.
+• Port, airport, ICD, CFS, border, bonded-warehouse and terminal coordination.
+• Project cargo, oversized cargo, containerized cargo, bulk cargo, break-bulk and general cargo.
+• Clearing-only, forwarding-only and end-to-end door-to-door assignments.
+Shipment type, country, customs regime, transport mode, route, cargo category and required approvals shall be configurable. The exact operational process depends on applicable law, customs regime, cargo type and competent authority.
+61.3 End-to-end operating workflow
+[TABLE]
+Stage | Process | System output / control
+1. Enquiry & instruction | Receive customer enquiry, service request and authority to act. | Enquiry record; customer instruction; job acceptance.
+2. Job opening | Create unique shipment/job file and assign responsible team. | Job number; job checklist; assigned case owner.
+3. Document collection | Receive and classify softcopy/hardcopy documents. | Document register; missing-document list; version history.
+4. Document verification | Check parties, cargo, quantities, values, origin, route and references. | Verification checklist; discrepancy log.
+5. Permits & compliance | Identify and obtain applicable permits, licences and certificates. | Permit register; validity and approval status.
+6. Classification & valuation | Capture HS classification proposal, customs value inputs and origin evidence. | Controlled review worksheet.
+7. Costing & quotation | Estimate duties, taxes, agency fees, freight, handling and other costs. | Customer quotation/proforma and approval.
+8. Declaration preparation | Prepare declaration data and supporting documents for authorized submission. | Declaration draft, reference and checklist.
+9. Assessment & queries | Record assessment, customs queries, amendments, verification and inspection. | Assessment record; query log; action owner.
+10. Duties and charges | Request customer funds, record official payment evidence and reconcile disbursements. | Funding request; payment voucher; receipts.
+11. Release & gate process | Record customs release and other release/gate documents. | Release reference; gate-out evidence.
+12. Transport planning | Assign vehicle, driver, transporter, route and delivery instructions. | Transport order; dispatch checklist.
+13. In-transit tracking | Capture milestones, GPS where integrated, border events and exceptions. | Tracking timeline; alerts; incident log.
+14. Delivery & handover | Verify recipient, cargo condition, quantity and delivery evidence. | Delivery note; signed POD/handover certificate.
+15. Job closure | Reconcile costs, invoice customer, settle advances and close job. | Final job account; profitability report; archived file.
+[/TABLE]
+
+61.4 Detailed functional requirements
+A. Customer enquiry, instruction and job registration
+• FR-CF-001 The system shall create a clearing/forwarding enquiry linked to an existing or new customer.
+• FR-CF-002 Capture customer instruction, service scope, cargo owner, shipper, consignee, notify party, importer/exporter and authorized contacts.
+• FR-CF-003 Capture direction (import/export/transit/domestic), customs regime, service type, transport mode, Incoterms where applicable, origin, destination, route and requested delivery date.
+• FR-CF-004 Generate a unique configurable job number, e.g. CF-IMP-2026-00001, CF-EXP-2026-00001 or CF-TRN-2026-00001.
+• FR-CF-005 Assign job owner, operations officer, documentation officer, authorized declarant/agent, finance officer, transporter and approving manager.
+• FR-CF-006 Detect possible duplicate jobs using customer, transport document, container or shipment references; allow authorized override with reason.
+B. Shipment and cargo details
+• FR-CF-007 Capture master/house bill of lading, airway bill, consignment note, booking, manifest and other applicable identifiers.
+• FR-CF-008 Capture vessel/voyage, flight, shipping line/airline, ports, place of receipt/delivery, ETA, ATA, ETD and ATD where applicable.
+• FR-CF-009 Cargo lines shall capture description, packages, marks/numbers, gross/net weight, volume, quantity, unit, proposed HS code, origin, export country, declared value and currency.
+• FR-CF-010 Support multiple cargo lines, containers, packages, vehicles and transport legs under one job.
+• FR-CF-011 Container record shall capture number, size/type, seal, status, pickup/return location, free-time dates and empty-return evidence.
+• FR-CF-012 Vehicle cargo may capture chassis/VIN, registration, make/model and other identifiers.
+• FR-CF-013 Record cargo condition, photographs, seal condition, shortages, excesses, damage and discrepancies at custody transfers.
+C. Document collection and verification
+• FR-CF-014 Provide configurable checklists by shipment type, regime, commodity, country, mode and customer.
+• FR-CF-015 Support commercial invoice, packing list, bill of lading, airway bill, road consignment note, certificate of origin, insurance, permits, product certificates, inspection certificates, exemption evidence, tax details, agency appointment and other supporting documents.
+• FR-CF-016 each document shall record type, reference, issuer, issue/expiry dates, received date, source party, format, verification status, version and related job/cargo.
+• FR-CF-017 Accept PDF, Word, Excel, image and scanned documents; record whether original hardcopy is received, pending or not required.
+• FR-CF-018 Identify missing, expired, unreadable, inconsistent or duplicate documents and generate an action list.
+• FR-CF-019 Preserve original files, version history, uploader, timestamp and review comments; do not silently overwrite submitted versions.
+• FR-CF-020 Optional OCR/data extraction may assist capture, but an authorized user must verify extracted data before customs or financial use.
+• FR-CF-021 Generate customer document request lists and allow secure customer-portal uploads.
+D. Compliance, permits, HS classification and valuation
+• FR-CF-022 Maintain configurable regulatory requirements by cargo type, HS code, origin/destination, customs regime and effective date.
+• FR-CF-023 Record required permits, licences, certificates, inspections and approvals with authority, application reference, dates, validity, status and evidence.
+• FR-CF-024 Capture proposed HS code, tariff description, classification rationale, source/reference, reviewer and approval status.
+• FR-CF-025 Treat HS classification as a controlled decision; retain history and never treat an automated suggestion as approved classification.
+• FR-CF-026 Capture valuation inputs including transaction value, currency, freight, insurance and applicable additions/deductions.
+• FR-CF-027 Record origin, origin evidence and preferential treatment claim/certificate where relevant.
+• FR-CF-028 Provide configurable checks for restricted/prohibited goods, permit requirements, valuation anomalies and inconsistent descriptions.
+• FR-CF-029 Provide warnings/escalation without overriding decisions reserved for customs or regulatory authorities.
+E. Quotation, estimates and customer funding
+• FR-CF-030 Prepare job estimates covering professional fees, duties, taxes, levies, port/terminal, shipping line, inspection, storage, handling, transport, insurance, bank and other charges.
+• FR-CF-031 Classify charges as estimated, funded, incurred, invoiced, paid, refundable or disputed, with source evidence.
+• FR-CF-032 Support multiple currencies, configurable exchange rates, effective dates and rate source/history.
+• FR-CF-033 Support quotation approval, revision, expiry, customer acceptance and digital acknowledgement.
+• FR-CF-034 Generate customer advance/funding requests before disbursement where company policy requires.
+• FR-CF-035 Record customer funds received, allocate them to a job and maintain unspent-advance balances.
+• FR-CF-036 Costs above approved estimates/tolerance require reason, evidence and approval, subject to a logged emergency override.
+F. Customs declaration and processing register
+• FR-CF-037 Provide a declaration workspace for regime/type, customs office, declarant, importer/exporter, cargo lines, HS codes, quantities, values, origin and transport references.
+• FR-CF-038 Store declaration number, customs-system reference, submission date/time, submitting user, customs office and status.
+• FR-CF-039 Support preparation, internal review, approval to submit, submission record, assessment, query, amendment, examination, release and cancellation/rejection history.
+• FR-CF-040 Where an official customs platform has a supported and authorized API, exchange data securely; otherwise capture references and upload official evidence manually.
+• FR-CF-041 Do not claim to submit declarations, make official payments or obtain release unless a verified authorized integration has completed that action.
+• FR-CF-042 Retain every declaration version and amendment reason, including preparer, checker, authorizer and submitter.
+• FR-CF-043 Record assessed amounts by charge type, payment references, customs queries, examination instructions and release references.
+G. Inspections, port, terminal and border operations
+• FR-CF-044 Schedule and record physical examination, scanning, sampling, weighbridge, verification and other inspection events.
+• FR-CF-045 Capture authority, location, date/time, assigned officer, instructions, findings, photographs, seal changes, discrepancies and outcome.
+• FR-CF-046 Maintain event logs for ports, airports, ICDs, CFSs, customs stations, border posts, bonded facilities and warehouses.
+• FR-CF-047 Capture gate pass, exit note, release order, delivery order, terminal release, interchange receipt and other custody/gate documents.
+• FR-CF-048 Border records shall capture border post, entry/exit country, arrival/departure time, vehicle/rotation/manifest references where applicable and inspection status.
+• FR-CF-049 Record holds, queries, system outages, missing documents, inspection issues, congestion, demurrage and detention as assigned exceptions.
+H. Transport and forwarding management
+• FR-CF-050 Create transport orders linked to jobs, defining pickup, delivery, route, cargo, service level and instructions.
+• FR-CF-051 Transporter profile shall include business details, contacts, tax details, licences/insurance evidence where applicable, bank/payment details, service areas and performance.
+• FR-CF-052 Vehicle record shall include registration, type, capacity, transporter/owner, inspection/insurance/permit expiry and availability.
+• FR-CF-053 Driver record shall include name, contact, licence details/expiry and operational identifiers required for the movement.
+• FR-CF-054 Dispatch requires approved transport order, release confirmation where applicable, vehicle/driver assignment, loading confirmation and required transport documents.
+• FR-CF-055 Capture route, checkpoints, border crossings, estimated/actual arrival, trip advances, tolls and trip expenses where used.
+• FR-CF-056 Support GPS/telematics integration where provider and authorized API exist; retain manual milestone capture.
+• FR-CF-057 Support multiple vehicles, partial deliveries, split consignments, transshipment, route changes and return trips.
+• FR-CF-058 Record loading evidence, seal number, driver acknowledgement, cargo photos and dispatch time.
+I. Tracking, exceptions and customer visibility
+• FR-CF-059 Display a chronological shipment timeline from job opening to final handover.
+• FR-CF-060 Each milestone shall record status, location, event time, responsible user/source, notes and attachment.
+• FR-CF-061 Alert on document gaps, permit expiry, ETA changes, customs queries, assessment, payment due, release, delayed dispatch, border hold, late delivery and container return deadline.
+• FR-CF-062 Calculate elapsed time by stage and flag jobs exceeding configured service targets.
+• FR-CF-063 Customers may view permitted milestones and download released documents without access to internal notes or restricted data.
+• FR-CF-064 Record customer notifications and communication history against the job.
+J. Cargo delivery, proof of delivery and handover
+• FR-CF-065 Generate delivery note/handover document linked to job, transport order, cargo lines and consignee.
+• FR-CF-066 Capture delivery point, date/time, recipient name/organization/contact, lawful authority confirmation where appropriate, quantities/packages/containers and cargo condition.
+• FR-CF-067 Recipient may acknowledge by device signature, approved electronic acknowledgement or signed/scanned hardcopy.
+• FR-CF-068 Support partial delivery, rejected delivery, shortage, damage, seal discrepancy, refusal and redelivery workflows.
+• FR-CF-069 POD shall include acknowledgement, photos where appropriate, GPS evidence where enabled, delivery note and remarks.
+• FR-CF-070 Do not mark handover complete until required evidence and discrepancy disposition are recorded or an authorized exception is approved.
+• FR-CF-071 Notify customer and operations team when delivery/handover is completed.
+K. Job costing, billing and accounting integration
+• FR-CF-072 Link job costs and income to existing accounting, AR, AP, cash/bank and tax modules.
+• FR-CF-073 Distinguish agency/service revenue from statutory duties, taxes and third-party disbursements according to approved accounting policy.
+• FR-CF-074 Record third-party invoices and match to estimates, purchase orders or approved cost commitments where applicable.
+• FR-CF-075 Generate customer invoices, debit/credit notes, receipts and statements through existing ERP finance functions.
+• FR-CF-076 Reconcile customer advances against actual job expenses and invoices, showing refundable or additional amounts.
+• FR-CF-077 Calculate job profitability by customer, shipment, route, service, branch and period using approved accounting rules.
+• FR-CF-078 Support foreign-currency transactions and exchange differences with rate audit history.
+• FR-CF-079 Posted accounting entries shall use reversal/adjustment for corrections, not deletion.
+L. Job closure and archive
+• FR-CF-080 Closure checklist shall verify handover, final documents, official payment evidence, third-party invoices, customer billing, advance reconciliation, container/return obligations and claims.
+• FR-CF-081 Distinguish operationally completed, financially pending and fully closed statuses.
+• FR-CF-082 Closed jobs shall be read-only for ordinary users; reopening requires approval and reason.
+• FR-CF-083 Archive complete job file with searchable metadata, document versions, approvals, communications, costs, declaration references and handover evidence.
+61.5 Job statuses and workflow controls
+[TABLE]
+Status | Meaning / exit condition
+Enquiry | Customer request received; scope not accepted.
+Awaiting Instruction | Formal instruction/authority or required information pending.
+Job Open | Job accepted, numbered and assigned.
+Documents Pending | Required documents outstanding.
+Under Document Review | Documents being checked for completeness and consistency.
+Compliance Pending | Permits/certificates/regulatory approvals outstanding.
+Ready for Declaration | Required information and internal checks complete.
+Declaration Submitted | Submission reference and evidence recorded.
+Under Customs Processing | Assessment, query, examination or processing ongoing.
+Awaiting Payment | Assessment or approved charges await funding/payment.
+Awaiting Release | Requirements/payment evidence recorded; release confirmation pending.
+Released | Required cargo release evidence recorded.
+Awaiting Transport | Transport planning/vehicle allocation pending.
+In Transit | Cargo dispatched and movement underway.
+At Delivery Point | Vehicle/cargo arrived for delivery.
+Partially Delivered | Some cargo delivered; balance remains.
+Delivered / Handover Complete | Required POD recorded.
+Financial Reconciliation | Costs, advances and invoices being finalized.
+Operationally Complete | Physical delivery complete; financial/admin closure remains.
+Closed | Closure checklist approved and file archived.
+On Hold / Cancelled | Paused or cancelled with reason, authority and audit record.
+[/TABLE]
+
+Status transitions shall be configurable but controlled. Mandatory checks cannot be skipped to reach Released, Delivered or Closed without required evidence or an approved exception.
+61.6 User roles and segregation of duties
+[TABLE]
+Role | Main responsibilities
+Clearing & Forwarding Manager | Supervise jobs, assign teams, approve exceptions, estimates and closure; view operational reports.
+Customer Service / Sales Officer | Register enquiries, instructions, quotations and customer communications.
+Documentation Officer | Collect, classify, register and verify documents; maintain missing-document checklist.
+Customs Declarant / Authorized Agent | Prepare declaration data and record submissions, assessments, queries, amendments and release evidence within authorized scope.
+Compliance Officer | Review permits, restrictions, origin, HS proposals and compliance checklist.
+Operations Officer | Coordinate port/border/inspection events, release and cargo movement milestones.
+Transport / Fleet Coordinator | Assign transporter, vehicle, driver, route, dispatch and delivery.
+Driver / Transporter Portal User | View assigned trip instructions and submit permitted milestones, incidents and delivery evidence.
+Finance Officer / Accountant | Manage advances, disbursements, supplier/customer invoices, receipts and reconciliation.
+Approving Manager | Approve quotations, excess costs, payment requests, exceptions and job closure.
+Customer / Consignee | View permitted status, submit documents, approve quotations and acknowledge delivery.
+Auditor | Read-only access to authorized job records, documents, approvals and audit logs.
+[/TABLE]
+
+Permissions shall reuse the ERP role-based access model and be configurable by branch, job, customer, transaction amount and action. The preparer shall not approve their own transaction where segregation-of-duty rules prohibit it.
+61.7 Required document templates and outputs
+• Customer clearing/forwarding instruction and authority to act; shipment/job opening form; job checklist.
+• Document request list; document verification checklist; permit/regulatory approval tracker.
+• HS classification and customs valuation review worksheet.
+• Clearing and forwarding quotation/estimate; customer advance/funding request.
+• Declaration preparation and internal review checklist; assessment/payment tracking sheet.
+• Customs query/amendment/inspection record; cargo release and gate-out checklist.
+• Transport order; vehicle/driver assignment; loading checklist; cargo tally and seal register.
+• Trip sheet; route plan; border-crossing log; incident/delay/shortage/damage report.
+• Delivery note/cargo handover certificate; proof of delivery; job cost sheet; disbursement statement; final account; closure checklist.
+Templates shall reuse the ERP template engine, numbering, dynamic fields, PDF generation, versioning, approvals and digital signatures.
+61.8 Notifications and escalation
+• Missing, expired, rejected or replacement-required document; permit/licence expiry.
+• Quotation awaiting approval; customer advance below required funding; cost exceeding estimate.
+• Declaration submitted, assessed, queried, selected for examination, amended or released.
+• Official payment due or payment evidence unreconciled; ETA/ATA change; free-time/container-return deadline.
+• Cargo held, delayed, inspected, scanned, stopped at border or subject to incident.
+• Vehicle/driver document expiry; dispatch delay; route deviation or missed checkpoint.
+• Delivery due, partial/failed delivery, damage/shortage or completed handover.
+• Job inactive beyond service target; job cost overrun or margin below configured threshold.
+Channels shall reuse in-app, email, SMS, WhatsApp and mobile push notifications where configured and supported. Recipients, escalation timing and thresholds shall be configurable.
+61.9 Reports and management dashboard
+[TABLE]
+Report / KPI | Key information
+Shipment register | Job, customer, type, origin/destination, mode, owner, status and key dates.
+Job pipeline | Jobs at each stage, value, pending actions and aging.
+Document compliance | Missing, expired, rejected and pending documents by job/customer/commodity.
+Customs processing | Declaration references, submission/assessment/release dates, queries and elapsed time.
+Duties and disbursements | Estimated vs assessed vs paid amounts by charge type, currency and job.
+Port/border performance | Arrival, release, gate-out and crossing milestones; delays and reasons.
+Transport performance | Vehicle utilization, transporter performance, on-time dispatch/delivery and trip costs.
+Cargo delivery | Delivered, partial, failed, damaged, short or disputed consignments; POD completeness.
+Demurrage/detention exposure | Free-time deadlines, days at risk, actual charges and responsible cause.
+Job costing/profitability | Revenue, direct costs, disbursements, tax, margin and outstanding balances.
+Customer service | Turnaround time, complaints, response time and satisfaction.
+Staff productivity | Jobs handled, workload, processing time and exception resolution.
+Audit/compliance | Actions, approvals, overrides, amendments and document access history.
+[/TABLE]
+
+Dashboard filters shall include date, branch, customer, shipment type, mode, route, port/border, commodity, job owner, transporter and status.
+61.10 Integration requirements
+• CRM: reuse customer identity, contacts, credit limits, statements and customer portal.
+• Supplier Management: reuse shipping lines, airlines, transporters, warehouses, inspection providers and service-provider profiles.
+• Document Management: central repository, versioning, templates, signatures and QR verification.
+• Approval Workflow: quotation, funding, cost variation, declaration review, exception and closure approvals.
+• Accounting & Finance: advances, supplier liabilities, disbursements, invoices, receipts, multi-currency accounting and job profitability.
+• Procurement: purchase orders for approved third-party services, vehicle hire, handling and job-related purchases.
+• Inventory/Warehouse: cargo receipt, temporary storage, bonded/warehouse location and custody movement where applicable.
+• Communication: customer updates and internal task notifications.
+• API layer: approved integrations with customs, port, terminal, shipping, airline, transporter, GPS, banking and payment services where access is available.
+Integration limitation: External connectivity is conditional on documented APIs, credentials, permissions, security requirements and approval by each platform owner. Until an approved integration exists, provide controlled manual capture and official evidence attachments. The ERP must not imply an official declaration/payment/release action has occurred unless confirmed.
+61.11 Data model — additional entities
+[TABLE]
+Entity | Core fields / relationships
+CF_Job | Job ID/number, branch, customer, service type, direction, regime, status, owner, opened/closed dates.
+CF_Job_Party | Job, party role, customer/supplier reference, name, address, contact and tax identifiers.
+CF_Shipment | Job, mode, origin, destination, route, ETA/ATA/ETD/ATD, carrier and booking reference.
+CF_Cargo_Line | Job/shipment, description, packages, weight, volume, quantity, HS proposal, origin, value and currency.
+CF_Container | Job, container number, size/type, seal, status, free-time, pickup/return evidence.
+CF_Transport_Document | Job, type, number, issuer, issue date, file/version and verification status.
+CF_Document_Checklist | Job, required type, mandatory flag, received/verified status, reviewer and comments.
+CF_Permit | Job, authority, permit type, application/reference, validity, status, conditions and attachment.
+CF_Classification | Cargo line, HS proposal, rationale, tariff reference, reviewer, decision and effective date.
+CF_Valuation | Job/cargo line, transaction value, freight, insurance, adjustments, currency and review.
+CF_Declaration | Job, type/number, customs office, version, submission, assessment, query and release status.
+CF_Declaration_Line | Declaration, cargo line, HS code, quantity, value, origin and assessed charges.
+CF_Customs_Event | Job/declaration, event, authority, date/time, location, outcome and evidence.
+CF_Charge_Estimate | Job, charge category, estimate, currency, basis, approval and tolerance.
+CF_Disbursement | Job, payee/authority, charge, amount, currency, payment reference, evidence and reconciliation.
+CF_Transport_Order | Job, transporter, pickup/delivery, route, service dates, status and approved cost.
+CF_Vehicle_Assignment | Transport order, vehicle, driver, trailer, assignment dates and document validity.
+CF_Tracking_Event | Job/order, milestone, timestamp, location, source, notes and attachment.
+CF_Incident | Job, incident type/severity, reporter, time/location, owner, resolution and claim reference.
+CF_Delivery | Job, delivery point, recipient, date/time, quantities, condition, status and POD reference.
+CF_Handover_Item | Delivery, cargo line/container/package, expected/delivered quantity, condition and discrepancy.
+CF_Proof_Of_Delivery | Delivery, acknowledgement method, recipient, signature/file, photos, GPS if enabled and verification.
+CF_Job_Costing | Job, revenue, direct cost, disbursement, tax, currency, exchange rate and margin.
+CF_Job_Approval | Job, approval type, approver, decision, reason, timestamp and document version.
+[/TABLE]
+
+These entities shall link to existing Customer, Supplier, Branch, User, Document, Approval, Invoice, Payment, Account and Audit Log records. Do not create duplicate customer, supplier or accounting master records.
+61.12 Non-functional, security and operational requirements
+• Reuse ERP authentication, role-based permissions, multi-branch architecture, audit trail, backup and disaster recovery.
+• Protect customer, cargo, financial and identity information in transit and at rest using approved platform security standards.
+• Restrict access to declarations, permits, payment evidence, customer documents and POD by role and job assignment.
+• Log creation, editing, upload, download, approval, rejection, amendment, override, payment allocation, status change and closure with user/time.
+• Support configurable retention and archival policies subject to applicable legal and contractual requirements.
+• Support desktop, tablet and mobile/PWA use for photographs, signatures and milestone updates.
+• Optional offline capture for selected transport milestones and delivery evidence shall synchronize safely and show pending-sync status.
+• Support multiple currencies and configurable date/time formats while retaining original timestamps.
+• Scale for high shipment volumes, multiple branches, customs stations and transport legs.
+• Provide a simple interface and be ready for English and Kiswahili localization.
+61.13 Business rules and mandatory controls
+1. Every operational shipment must have a unique job number before processing activity is recorded.
+2. A job must identify the customer, service scope, cargo owner/consignee and responsible officer.
+3. Mandatory document requirements must be checked before Ready for Declaration.
+4. HS code and valuation proposals must retain supporting references and review/approval where required; automated suggestions are not final decisions.
+5. Only authorized users may prepare or record declaration submission and amendments.
+6. Official assessment, duty/tax payment and release must have an official reference or evidence attachment.
+7. Distinguish estimates from official assessed amounts and actual payments.
+8. Cargo dispatch normally requires release and transport checks, unless an authorized documented exception applies.
+9. Vehicle and driver assignment must satisfy configured operational validity checks.
+10. Handover must record recipient acknowledgement and cargo condition; discrepancies must be documented.
+11. Customer advances and disbursements must reconcile to the job and accounting records.
+12. Closed jobs are read-only for ordinary users; reopening requires authorization and reason.
+13. Audit records cannot be erased and approved document versions cannot be silently replaced.
+61.14 Acceptance criteria and user acceptance testing
+1. Authorized user can create enquiry, accept instruction and open a uniquely numbered job.
+2. A job can contain multiple cargo lines, containers, transport documents and parties.
+3. Document checklist identifies missing, expired, duplicate and unverified documents.
+4. Permits and regulatory requirements can be recorded, tracked and evidenced.
+5. Classification and valuation worksheets retain proposal, source, reviewer and approval history.
+6. Quotation can be prepared, approved, sent and accepted by the customer.
+7. Customer advances can be received, allocated, spent and reconciled against disbursements.
+8. Declaration data, references, assessments, queries, amendments, inspections and release evidence can be recorded and audited.
+9. Port, airport, warehouse and border events appear in a chronological timeline.
+10. Transport orders can be created with transporter, vehicle, driver, route and dispatch checklist.
+11. Authorized users can record milestones, exceptions and customer notifications.
+12. Partial and full delivery can be recorded with quantities, condition, recipient acknowledgement and POD.
+13. Job account reconciles estimates, actual costs, advances, invoices, receipts and outstanding balances.
+14. Reports cover shipment register, document compliance, customs processing, transport, delivery, disbursement and profitability.
+15. Role restrictions, segregation of duties, audit logs, backups and document controls pass security testing.
+16. A complete job can be traced from customer instruction through document verification, customs processing, release, transport, signed cargo handover and financial closure.
+61.15 Development priority and implementation phases
+[TABLE]
+Phase | Scope | Priority
+CF Phase 1 — Core job and documents | Job registration, shipment/cargo data, document repository, checklists, roles, statuses and audit trail. | Critical
+CF Phase 2 — Compliance and customs tracking | Permits, HS/valuation worksheets, declaration register, assessment, queries, inspection and release evidence. | Critical
+CF Phase 3 — Quotation and financial control | Estimates, customer funding, disbursement register, invoicing, advances, reconciliation and job costing. | Critical
+CF Phase 4 — Transport and handover | Transporter/vehicle/driver, transport orders, dispatch, tracking, incidents, delivery and POD. | High
+CF Phase 5 — Portals and notifications | Customer document upload, shipment visibility, notifications, escalation and transporter portal. | High
+CF Phase 6 — External integrations and analytics | Approved customs/port/terminal/GPS/payment integrations and advanced analytics. | Advanced
+[/TABLE]
+
+61.16 Additional navigation menu
+• Clearing & Forwarding Dashboard; Enquiries & Customer Instructions; Shipment/Job Register.
+• Document Collection & Verification; Permits & Compliance; HS Classification & Valuation.
+• Quotations & Customer Funding; Customs Declarations; Assessment, Queries & Inspections.
+• Duties, Taxes & Disbursements; Cargo Release & Gate Passes; Transport Orders.
+• Transporters, Vehicles & Drivers; Shipment Tracking & Border Events; Delivery & Cargo Handover.
+• Proof of Delivery; Job Costing & Reconciliation; Clearing & Forwarding Reports.
+• Settings for shipment types, checklists, charge codes, routes, milestones and service-level targets.
+61.17 Implementation assumptions and limitations
+• This module describes ERP workflow and records. It does not replace customs-agent licensing, statutory procedures, official declarations or decisions by competent authorities.
+• Tanzania-specific customs, tax, permit, port and border rules must be validated against current official requirements before production configuration.
+• External platform names and reference data must be configurable and maintained as platforms and procedures change.
+• External connectivity requires documented APIs, credentials, permissions, security review and approval from the platform owner.
+• Tariff/tax rates, exemptions, valuation rules, restricted-goods lists, document requirements and retention periods must be configurable and effective-dated, not hard-coded as permanent assumptions.
+• Business owners must approve charge catalogue, accounting treatment of statutory disbursements, customer advance policy, service targets and approval thresholds before go-live.
+62. REQUIRED UPDATES TO THE EXISTING MASTER SRS
+The following cross-reference amendments integrate Clearing & Forwarding into the original ERP blueprint.
+62.1 Section 3 — System Scope
+Add Module 43 — Clearing & Forwarding Management: shipment/job management, customs documentation and tracking, permits/compliance, declaration register, duties/disbursements, port/border operations, transport management, cargo tracking, delivery, proof of delivery and job costing.
+62.2 Section 4 — ERP Operating Model
+Add workflow: Customer Enquiry → Customer Instruction → Job Opening → Document Collection → Verification → Permits/Compliance → HS Classification & Valuation Review → Quotation/Funding → Declaration Preparation & Submission Record → Assessment/Queries/Inspection → Duties & Taxes Payment Evidence → Cargo Release → Transport Order → Dispatch → In-transit Tracking/Border Events → Delivery → Signed Handover/POD → Job Cost Reconciliation → Customer Invoice/Receipt → Job Closure.
+62.3 Section 5 — System Users
+Add Clearing & Forwarding Manager, Documentation Officer, Customs Declarant/Authorized Agent, Compliance Officer, Operations Officer, Transport/Fleet Coordinator, Driver/Transporter Portal User and Consignee/Handover Recipient with limited acknowledgement access.
+62.4 Section 28 — Document Management
+Add shipment/job documents, customs declarations, permits, certificates, transport documents, assessment notices, payment evidence, inspection reports, release orders, gate passes, trip sheets, incident reports, delivery notes and POD evidence.
+62.5 Section 34 — Notification Engine
+Add shipment document gaps, permit expiry, declaration query, customs assessment, payment due, cargo release, ETA/ATA change, free-time/container return deadline, border delay, vehicle/driver document expiry, delivery exception and POD alerts.
+62.6 Section 39 — Reporting
+Add the reports in Section 61.9: shipment register, job pipeline, document compliance, customs processing, duties/disbursements, border performance, transport performance, delivery/POD, demurrage/detention exposure and job profitability.
+62.7 Section 49 — Data Model
+Add the entities in Section 61.11 and link them to existing Customer, Supplier, Branch, User, Document, Approval, Invoice, Payment, Account and Audit Log records.
+62.8 Section 54 — Master Dashboard Menu
+Add a top-level Clearing & Forwarding menu with the submenus listed in Section 61.16.
+62.9 Section 55 — Development Priority
+Add core job management, document checklist, customs tracking, customer funding/disbursement and audit trail to Priority 1. Add transport tracking, delivery/POD and customer portal to Priority 2. Add external platform integrations and advanced analytics to Priority 3, subject to access and authorization.
+62.10 Section 56 — ERP Development Phases
+Include CF Phases 1–4 after the ERP foundation, master data, document management and accounting foundations are available. Implement external integrations only after platform access and interface specifications are confirmed.
+62.11 Section 57 — Acceptance Criteria
+Add Section 61.14 acceptance criteria. Production acceptance must demonstrate a complete traceable shipment from customer instruction through document verification, customs processing record, release evidence, transport, delivery acknowledgement and financial closure.
+62.12 Section 59 — Final System Vision
+Add Clearing & Forwarding as an integrated operational stream connected to CRM, documents, approvals, accounting, payments, procurement, communication, customer portal, transport and management reporting.
+63. RECOMMENDED CLEARING & FORWARDING IMPLEMENTATION CHECKLIST
+[TABLE]
+Workstream | Deliverable before development / go-live
+Process validation | Approved import, export, transit and domestic forwarding process maps for services Mutamark will provide.
+Regulatory configuration | Validated country/commodity/regime document checklist, permit matrix, charge codes and responsible authorities.
+Data design | Approved ERD, field dictionary, reference tables, relationships and retention policy.
+Accounting design | Approved mapping for agency revenue, customer advances, statutory disbursements, third-party costs, taxes and foreign exchange.
+Approval design | Authority matrix for quotations, advances, cost variations, declarations, write-offs, exceptions and closure.
+Document design | Approved templates for instruction, checklist, quotation, funding request, transport order, delivery note, POD and final account.
+Integration assessment | Confirmed API availability, access permission, security requirements and test environment for each external platform.
+Security and audit | Role/permission matrix, segregation-of-duty rules, audit-event catalogue and portal access policy.
+Testing | Test cases for normal, partial, delayed, rejected, amended, cancelled, damaged, short-delivered and disputed shipments.
+Training and deployment | User training, operating procedures, active-job migration and controlled go-live sign-off.
+[/TABLE]
+

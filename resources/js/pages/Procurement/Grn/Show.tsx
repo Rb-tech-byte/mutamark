@@ -3,6 +3,7 @@ import { Head, usePage, router, Link, useForm } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import AuthenticatedLayout from "@/layouts/authenticated-layout";
+import CorporateDocumentTemplate from '@/components/CorporateDocumentTemplate';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -136,6 +137,7 @@ export default function Show() {
 
     // Inspection Dialog State
     const [isInspectOpen, setIsInspectOpen] = useState(false);
+    const [isPrintSlipOpen, setIsPrintSlipOpen] = useState(false);
     const { data: inspectData, setData: setInspectData, post: postInspect, processing: inspectProcessing } = useForm({
         inspection_status: grn.inspection_status || 'inspected_passed',
         quality_inspection_notes: grn.quality_inspection_notes || '',
@@ -217,7 +219,7 @@ export default function Show() {
                         </Button>
                     )}
 
-                    <Button variant="outline" size="sm" onClick={() => window.print()}>
+                    <Button variant="outline" size="sm" onClick={() => setIsPrintSlipOpen(true)}>
                         <Printer className="h-4 w-4 mr-1.5" />
                         {t('Print Slip')}
                     </Button>
@@ -534,6 +536,127 @@ export default function Show() {
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* GRN Printable Slip Dialog */}
+            <Dialog open={isPrintSlipOpen} onOpenChange={setIsPrintSlipOpen}>
+                <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
+                    <DialogHeader className="print:hidden">
+                        <DialogTitle className="flex items-center justify-between">
+                            <span className="flex items-center gap-2">
+                                <Printer className="w-5 h-5 text-indigo-500" />
+                                Goods Received Note: {grn.grn_number}
+                            </span>
+                            <Button
+                                onClick={() => window.print()}
+                                size="sm"
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
+                            >
+                                <Printer className="w-4 h-4 mr-2" /> Print GRN
+                            </Button>
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <CorporateDocumentTemplate
+                        type="goods_received_note"
+                        documentTitle="GOODS RECEIVED NOTE"
+                        documentNumber={grn.grn_number}
+                        documentNumberLabel="GRN No:"
+                        date={formatDate(grn.grn_date)}
+                        dateLabel="Date Received:"
+                        tertiaryNumber={(grn as any)?.purchase_order?.po_number || (grn as any)?.po_number || 'PO-2026-0001'}
+                        tertiaryNumberLabel="PO No:"
+
+                        leftBoxTitle="SUPPLIER"
+                        leftBoxFields={[
+                            { label: 'Supplier Name', value: grn.vendor?.company_name },
+                            { label: 'Address', value: grn.vendor?.billing_address || 'Dar es Salaam, Tanzania' },
+                            {
+                                label: 'Phone / Email',
+                                value: `${grn.vendor?.contact_person_mobile || ''} ${grn.vendor?.contact_person_name ? '(' + grn.vendor.contact_person_name + ')' : ''}`.trim() || 'info@supplier.co.tz',
+                            },
+                            { label: 'Delivery Note No', value: (grn as any).delivery_note_number || (grn as any).delivery_challan_number || 'DN-0001' },
+                        ]}
+
+                        rightBoxTitle="RECEIVING DETAILS"
+                        rightBoxFields={[
+                            { label: 'Received at (Store / Location)', value: grn.warehouse?.name || 'Main Warehouse' },
+                            { label: 'Supplier Invoice No', value: (grn as any).supplier_invoice_number || (grn as any).invoice_number || 'INV-SUP-001' },
+                            { label: 'Inspection Date', value: formatDate(grn.created_at) },
+                            { label: 'Receiving Department', value: 'Warehouse & Stores Directorate' },
+                        ]}
+
+                        columns={[
+                            { key: 'index', label: '#', align: 'center', width: '38px', render: (_, idx) => idx + 1 },
+                            {
+                                key: 'description',
+                                label: 'Item / Description',
+                                align: 'left',
+                                render: (it) => (
+                                    <div>
+                                        <div className="font-semibold text-slate-900">{it.product?.name}</div>
+                                        {it.product?.sku && <div className="text-[10px] text-slate-500 font-mono">SKU: {it.product.sku}</div>}
+                                    </div>
+                                ),
+                            },
+                            { key: 'unit', label: 'Unit', align: 'center', width: '55px', render: (it) => it.product?.unit || 'units' },
+                            { key: 'ordered', label: 'Ordered', align: 'center', width: '65px', render: (it) => Math.round(it.ordered_quantity) },
+                            { key: 'received', label: 'Received', align: 'center', width: '65px', render: (it) => Math.round(it.received_quantity) },
+                            { key: 'accepted', label: 'Accepted', align: 'center', width: '65px', render: (it) => Math.round(it.accepted_quantity) },
+                            { key: 'rejected', label: 'Rejected', align: 'center', width: '65px', render: (it) => Math.round(it.rejected_quantity) },
+                            {
+                                key: 'remarks',
+                                label: 'Condition / Remarks',
+                                align: 'left',
+                                width: '135px',
+                                render: (it) => (it.rejected_quantity > 0 ? 'Defective / Variance' : 'Inspected & Passed'),
+                            },
+                        ]}
+                        items={grn.items || []}
+                        minRows={11}
+
+                        lowerLeftTitle="Inspection Findings"
+                        lowerLeftContent={
+                            <div className="space-y-1.5 text-[11px]">
+                                <div><span className="font-semibold">Specification met:</span> Yes / No</div>
+                                <div><span className="font-semibold">Quantity matches order:</span> Yes / No</div>
+                                <div><span className="font-semibold">Comments:</span> {grn.quality_inspection_notes || 'All received hardware items inspected and certified conforming.'}</div>
+                            </div>
+                        }
+
+                        lowerRightTitle="Disposition"
+                        lowerRightContent={
+                            <div className="space-y-1.5 text-[11px]">
+                                <div><span className="font-semibold">Entered in store ledger:</span> Yes / No</div>
+                                <div><span className="font-semibold">Ledger Folio No:</span> {(grn as any)?.ledger_folio || 'LF-2026-089'}</div>
+                                <div><span className="font-semibold">Rejected items:</span> Return / Replace / Credit</div>
+                            </div>
+                        }
+
+                        signatures={[
+                            {
+                                label: 'Received by (Store Keeper)',
+                                value: grn.receiver?.name || 'Warehouse Storekeeper',
+                                extraLabel: 'Inspected by',
+                                extraValue: 'QA Technical Inspector',
+                            },
+                            {
+                                label: 'Verified by (Procurement)',
+                                value: 'Procurement Officer',
+                                extraLabel: 'Approved by',
+                                extraValue: 'Operations Director',
+                            },
+                            {
+                                label: 'Date',
+                                value: formatDate(grn.grn_date),
+                                extraLabel: 'Date',
+                                extraValue: formatDate(grn.grn_date),
+                            },
+                        ]}
+
+                        footerSlogan="Distribution: Accounts / Store / Procurement"
+                    />
                 </DialogContent>
             </Dialog>
         </AuthenticatedLayout>

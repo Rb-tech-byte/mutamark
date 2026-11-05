@@ -34,6 +34,8 @@
         Options -MultiViews -Indexes +FollowSymLinks
     </IfModule>
 
+    DirectoryIndex index.php
+
     <FilesMatch "(^\.env|composer\.(json|lock)|package(-lock)?\.json|phpunit(\.srs)?\.xml|artisan|\.(sql|log|bak|yml|yaml))$">
         <IfModule mod_authz_core.c>
             Require all denied

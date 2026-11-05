@@ -47,6 +47,15 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
+            if ($e instanceof \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException) {
+                if ($request->isMethod('GET') && ($request->path() === '/' || $request->path() === '' || $request->is('mutadash*'))) {
+                    if (class_exists(\Workdo\LandingPage\Http\Controllers\LandingPageController::class)) {
+                        return app(\Workdo\LandingPage\Http\Controllers\LandingPageController::class)->index();
+                    }
+                    return redirect()->route('login');
+                }
+            }
+
             if ($e instanceof \Illuminate\Session\TokenMismatchException) {
                 if ($request->is('logout')) {
                     \Illuminate\Support\Facades\Auth::guard('web')->logout();

@@ -25,7 +25,8 @@ import {
     Settings,
     Database,
     Globe,
-    Smartphone
+    Smartphone,
+    Ship
 } from 'lucide-react';
 import { NavItem } from '@/types';
 
@@ -347,6 +348,45 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
         name: 'fleet',
         module: 'Fleet',
         order: 110,
+    },
+    {
+        title: t('Clearing & Forwarding'),
+        icon: Ship,
+        permission: 'manage-cf-dashboard',
+        name: 'clearing-forwarding',
+        order: 115,
+        children: [
+            {
+                title: t('C&F Dashboard'),
+                href: route('clearing-forwarding.dashboard'),
+                permission: 'manage-cf-dashboard',
+            },
+            {
+                title: t('Shipment & Job Register'),
+                href: route('clearing-forwarding.jobs.index'),
+                permission: 'manage-cf-jobs',
+            },
+            {
+                title: t('New Shipment Job'),
+                href: route('clearing-forwarding.jobs.create'),
+                permission: 'create-cf-jobs',
+            },
+            {
+                title: t('Customs & TANCIS Workspace'),
+                href: route('clearing-forwarding.declarations.index'),
+                permission: 'manage-cf-declarations',
+            },
+            {
+                title: t('Container Demurrage Tracker'),
+                href: route('clearing-forwarding.containers.index'),
+                permission: 'manage-cf-jobs',
+            },
+            {
+                title: t('Haulage & Transport Orders'),
+                href: route('clearing-forwarding.transport.index'),
+                permission: 'manage-cf-transport',
+            },
+        ],
     },
 
     // ----------------------------------------------------

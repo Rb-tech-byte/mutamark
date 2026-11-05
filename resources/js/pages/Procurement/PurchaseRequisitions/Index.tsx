@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
+import CorporateDocumentTemplate from '@/components/CorporateDocumentTemplate';
 import { Head, useForm, router } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -1285,140 +1286,133 @@ export default function PurchaseRequisitionsIndex({
                         </DialogHeader>
 
                         {/* Printable Voucher */}
-                        <div className="p-8 bg-white text-slate-900 rounded-xl border border-slate-200 shadow-sm space-y-6">
-                            {/* Header */}
-                            <div className="flex justify-between items-start border-b pb-6">
-                                <div>
-                                    <h2 className="text-2xl font-black tracking-tight text-slate-900">
-                                        MUTAMARK ENTERPRISES LIMITED
-                                    </h2>
-                                    <p className="text-xs text-slate-600 font-medium">
-                                        Internal Procurement & Material Requisition Department | Dar es Salaam, Tanzania
-                                    </p>
-                                    <div className="text-xs text-slate-600 space-x-3 mt-1">
-                                        <span><strong>TIN:</strong> 104-982-341</span>
-                                        <span><strong>VRN:</strong> 40-023912-K</span>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-xl font-bold tracking-tight text-indigo-900">
-                                        PURCHASE REQUISITION
-                                    </div>
-                                    <div className="text-sm font-mono font-bold text-slate-900 mt-1">
-                                        {activeReq?.requisition_number}
-                                    </div>
-                                    <div className="text-xs text-slate-500 mt-0.5">
-                                        Date: {activeReq?.requisition_date}
-                                    </div>
-                                </div>
-                            </div>
+                        {activeReq && (
+                            <CorporateDocumentTemplate
+                                type="purchase_requisition"
+                                documentTitle="PURCHASE REQUISITION"
+                                documentNumber={activeReq.requisition_number}
+                                documentNumberLabel="PR No:"
+                                date={activeReq.requisition_date}
+                                dateLabel="Date:"
+                                secondaryDate={activeReq.required_by_date || activeReq.requisition_date}
+                                secondaryDateLabel="Date Required:"
 
-                            {/* Meta Grid */}
-                            <div className="grid grid-cols-2 gap-6 text-xs">
-                                <div className="p-3 bg-slate-50 rounded border border-slate-200 space-y-1">
-                                    <div className="font-bold text-slate-700 uppercase mb-1">REQUISITION ORIGIN:</div>
-                                    <div><strong>Department:</strong> {activeReq?.department}</div>
-                                    <div><strong>Requester:</strong> {activeReq?.requester?.name}</div>
-                                    <div><strong>Fulfillment Warehouse:</strong> {activeReq?.warehouse?.name}</div>
-                                </div>
+                                leftBoxTitle="REQUESTING DEPARTMENT"
+                                leftBoxFields={[
+                                    { label: 'Department / Unit', value: activeReq.department },
+                                    { label: 'Requested by', value: activeReq.requester?.name },
+                                    {
+                                        label: 'Phone / Email',
+                                        value: `${(activeReq.requester as any)?.mobile_no || (activeReq.requester as any)?.phone || ''} ${activeReq.requester?.email ? '| ' + activeReq.requester.email : ''}`.trim(),
+                                    },
+                                    { label: 'Budget Line / Vote', value: (activeReq as any).budget_reference || 'BUD-2026-OPS-001' },
+                                ]}
 
-                                <div className="p-3 bg-slate-50 rounded border border-slate-200 space-y-1">
-                                    <div className="font-bold text-slate-700 uppercase mb-1">APPROVAL & PRIORITY:</div>
-                                    <div><strong>Priority:</strong> <span className="uppercase font-bold">{activeReq?.priority}</span></div>
-                                    <div><strong>Status:</strong> <span className="uppercase font-bold">{activeReq?.status}</span></div>
-                                    {activeReq?.approver && (
-                                        <div><strong>Authorized By:</strong> {activeReq.approver.name} ({activeReq.approved_at})</div>
-                                    )}
-                                </div>
-                            </div>
+                                rightBoxTitle="REQUISITION DETAILS"
+                                rightBoxFields={[
+                                    { label: 'Priority', value: `${activeReq.priority ? activeReq.priority.toUpperCase() : 'NORMAL'} / Urgent` },
+                                    { label: 'Delivery Location', value: activeReq.warehouse?.name || 'Main Factory Warehouse' },
+                                    { label: 'Procurement Method', value: 'Direct Order / Competitive RFQ' },
+                                    { label: 'Currency', value: 'TZS' },
+                                ]}
 
-                            {/* Justification Box */}
-                            <div className="p-3 bg-slate-50 rounded border border-slate-200 text-xs">
-                                <div className="font-bold text-slate-700 uppercase mb-1">PURPOSE / JUSTIFICATION:</div>
-                                <div className="text-slate-800">{activeReq?.justification}</div>
-                            </div>
+                                columns={[
+                                    { key: 'index', label: '#', align: 'center', width: '38px', render: (_, idx) => idx + 1 },
+                                    {
+                                        key: 'description',
+                                        label: 'Item / Description & Specification',
+                                        align: 'left',
+                                        render: (it) => (
+                                            <div>
+                                                <div className="font-semibold text-slate-900">{it.product_name}</div>
+                                                {it.sku && (
+                                                    <div className="text-[10px] text-slate-500 font-mono">SKU: {it.sku}</div>
+                                                )}
+                                                {it.specifications && (
+                                                    <div className="text-[10px] text-slate-600 italic mt-0.5">{it.specifications}</div>
+                                                )}
+                                            </div>
+                                        ),
+                                    },
+                                    { key: 'quantity', label: 'Qty', align: 'center', width: '55px', render: (it) => it.quantity_requested || it.quantity },
+                                    { key: 'unit', label: 'Unit', align: 'center', width: '60px', render: (it) => it.unit || 'units' },
+                                    {
+                                        key: 'unit_price',
+                                        label: 'Est. Unit Price (TZS)',
+                                        align: 'right',
+                                        width: '135px',
+                                        render: (it) => Number(it.estimated_unit_cost || it.estimated_unit_price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                                    },
+                                    {
+                                        key: 'amount',
+                                        label: 'Est. Amount (TZS)',
+                                        align: 'right',
+                                        width: '135px',
+                                        render: (it) => Number(it.estimated_total_cost || it.estimated_total_price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                                    },
+                                ]}
+                                items={activeReq.items || []}
+                                minRows={8}
 
-                            {/* Itemized Table */}
-                            <div className="border border-slate-300 rounded overflow-hidden">
-                                <table className="w-full text-xs text-left">
-                                    <thead className="bg-slate-100 font-bold border-b border-slate-300">
-                                        <tr>
-                                            <th className="p-2.5">#</th>
-                                            <th className="p-2.5">Description</th>
-                                            <th className="p-2.5">SKU</th>
-                                            <th className="p-2.5 text-right">Quantity</th>
-                                            <th className="p-2.5 text-center">Unit</th>
-                                            <th className="p-2.5 text-right">Est. Unit Cost</th>
-                                            <th className="p-2.5 text-right">Estimated Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-200">
-                                        {activeReq?.items.map((item, idx) => (
-                                            <tr key={idx}>
-                                                <td className="p-2.5 text-slate-500">{idx + 1}</td>
-                                                <td className="p-2.5 font-semibold text-slate-900">{item.product_name}</td>
-                                                <td className="p-2.5 font-mono text-slate-600">{item.sku || '-'}</td>
-                                                <td className="p-2.5 text-right font-bold">{item.quantity_requested}</td>
-                                                <td className="p-2.5 text-center text-slate-600">{item.unit || 'units'}</td>
-                                                <td className="p-2.5 text-right font-mono">
-                                                    {Number(item.estimated_unit_cost).toLocaleString()} TZS
-                                                </td>
-                                                <td className="p-2.5 text-right font-mono font-bold text-slate-900">
-                                                    {Number(item.estimated_total_cost).toLocaleString()} TZS
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                    <tfoot className="bg-slate-50 font-bold border-t border-slate-300">
-                                        <tr>
-                                            <td colSpan={6} className="p-2.5 text-right">Total Estimated Requisition Value:</td>
-                                            <td className="p-2.5 text-right text-indigo-900 font-bold text-sm font-mono">
-                                                {Number(activeReq?.estimated_total_cost).toLocaleString()} TZS
-                                            </td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
+                                totals={[
+                                    { label: 'Estimated Subtotal', value: Number(activeReq.estimated_total_cost || 0) },
+                                    { label: 'VAT (if applicable)', value: 0 },
+                                    { label: 'Other Costs (if any)', value: 0 },
+                                    { label: 'TOTAL ESTIMATED (TZS)', value: Number(activeReq.estimated_total_cost || 0), isGrandTotal: true },
+                                ]}
 
-                            {/* Verification Block */}
-                            <div className="flex items-center justify-between pt-4 border-t border-slate-200 text-xs">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-slate-100 rounded border border-slate-300">
-                                        <QrCode className="w-12 h-12 text-slate-800" />
-                                    </div>
-                                    <div className="space-y-0.5">
-                                        <div className="font-bold text-slate-900">VERIFIED PROCUREMENT AUDIT TRAIL</div>
-                                        <div className="text-[10px] text-slate-500 font-mono">
-                                            HASH: {activeReq?.verification_hash?.substring(0, 24) || 'SYSTEM-GENERATED-STAMP'}
+                                lowerLeftTitle="Justification / Purpose"
+                                lowerLeftContent={
+                                    <div className="space-y-1.5 text-[11px]">
+                                        <div>
+                                            <span className="font-semibold">Reason for purchase:</span>{' '}
+                                            {activeReq.justification || (activeReq as any).purpose || 'Operational replenishment and regular maintenance.'}
+                                        </div>
+                                        <div className="pt-1 text-slate-800">
+                                            <span className="font-semibold">Existing stock checked:</span> Yes / No &nbsp;&nbsp;&nbsp;&nbsp;{' '}
+                                            <span className="font-semibold">Funds available:</span> Yes / No
                                         </div>
                                     </div>
-                                </div>
-                            </div>
+                                }
 
-                            {/* Signatures 3-Column */}
-                            <div className="grid grid-cols-3 gap-6 pt-6 border-t border-slate-200 text-xs text-center">
-                                <div className="space-y-10">
-                                    <div className="border-b border-slate-400 pb-1 font-semibold">
-                                        {activeReq?.requester?.name || 'Department Requester'}
+                                lowerRightTitle="Notes / Conditions"
+                                lowerRightContent={
+                                    <div className="text-[11px] text-slate-700 leading-relaxed">
+                                        <p>Attach specifications or drawings where applicable. An approved requisition must be on file before any order is placed.</p>
                                     </div>
-                                    <div className="text-[11px] text-slate-500">Initiator Signature</div>
-                                </div>
+                                }
 
-                                <div className="space-y-10">
-                                    <div className="border-b border-slate-400 pb-1 font-semibold">
-                                        {activeReq?.approver?.name || 'Department Head'}
-                                    </div>
-                                    <div className="text-[11px] text-slate-500">Department Approval</div>
-                                </div>
+                                signatures={[
+                                    {
+                                        label: 'Requested by',
+                                        value: activeReq.requester?.name || 'Department Requester',
+                                        dateLabel: 'Date',
+                                        dateValue: activeReq.requisition_date,
+                                    },
+                                    {
+                                        label: 'Head of Department',
+                                        value: activeReq.approver?.name || '',
+                                        dateLabel: 'Date',
+                                        dateValue: activeReq.approved_at ? activeReq.approved_at.split('T')[0] : '',
+                                    },
+                                    {
+                                        label: 'Procurement Officer',
+                                        value: 'Procurement Director',
+                                        extraLabel: 'Signature',
+                                        extraValue: '',
+                                    },
+                                    {
+                                        label: 'Approved by (Accounting Officer)',
+                                        value: 'Managing Director / CFO',
+                                        extraLabel: 'Signature / Stamp',
+                                        extraValue: '',
+                                    },
+                                ]}
 
-                                <div className="space-y-10">
-                                    <div className="border-b border-slate-400 pb-1 font-semibold">
-                                        Finance & Procurement Director
-                                    </div>
-                                    <div className="text-[11px] text-slate-500">Budget Authorization</div>
-                                </div>
-                            </div>
-                        </div>
+                                footerSlogan="Please attach supporting documents to this requisition."
+                                verificationHash={activeReq.verification_hash}
+                            />
+                        )}
                     </DialogContent>
                 </Dialog>
 

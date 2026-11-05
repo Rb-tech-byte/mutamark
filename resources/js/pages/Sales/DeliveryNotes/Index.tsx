@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
+import CorporateDocumentTemplate from '@/components/CorporateDocumentTemplate';
 import { Head, useForm, router } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -1364,163 +1365,102 @@ export default function DeliveryNotesIndex({
                         </DialogHeader>
 
                         {/* Printable Delivery Manifest Document */}
-                        <div className="p-8 bg-white text-slate-900 rounded-xl border border-slate-200 shadow-sm space-y-6">
-                            {/* Header */}
-                            <div className="flex justify-between items-start border-b pb-6">
-                                <div>
-                                    <h2 className="text-2xl font-black tracking-tight text-slate-900">
-                                        MUTAMARK ENTERPRISES LIMITED
-                                    </h2>
-                                    <p className="text-xs text-slate-600 font-medium">
-                                        Plot 42, Nyerere Road, Industrial Area | P.O. Box 7102, Dar es Salaam, Tanzania
-                                    </p>
-                                    <div className="text-xs text-slate-600 space-x-3 mt-1">
-                                        <span><strong>TIN:</strong> 104-982-341</span>
-                                        <span><strong>VRN:</strong> 40-023912-K</span>
-                                        <span><strong>Tel:</strong> +255 22 211 4455</span>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-xl font-bold tracking-tight text-emerald-800">
-                                        OFFICIAL DELIVERY NOTE
-                                    </div>
-                                    <div className="text-sm font-mono font-bold text-slate-900 mt-1">
-                                        {activeNote?.delivery_number}
-                                    </div>
-                                    <div className="text-xs text-slate-500 mt-0.5">
-                                        Date: {activeNote?.delivery_date}
-                                    </div>
-                                </div>
-                            </div>
+                        {activeNote && (
+                            <CorporateDocumentTemplate
+                                type="delivery_note"
+                                documentTitle="DELIVERY NOTE"
+                                documentNumber={activeNote.delivery_number}
+                                documentNumberLabel="DN No:"
+                                date={activeNote.delivery_date}
+                                dateLabel="Delivery Date:"
+                                tertiaryNumber={(activeNote.invoice as any)?.order_number || activeNote.tracking_number || 'PO-2026-001'}
+                                tertiaryNumberLabel="PO / Order No:"
 
-                            {/* Consignee & Transport Meta */}
-                            <div className="grid grid-cols-2 gap-6 text-xs">
-                                <div className="p-3 bg-slate-50 rounded border border-slate-200">
-                                    <div className="font-bold text-slate-700 uppercase mb-1">CONSIGNEE / SHIP TO:</div>
-                                    <div className="text-sm font-bold text-slate-900">{activeNote?.customer?.name}</div>
-                                    <div className="text-slate-600 mt-1 whitespace-pre-line">
-                                        {activeNote?.shipping_address}
-                                    </div>
-                                    <div className="text-slate-600 mt-1">
-                                        <strong>City:</strong> {activeNote?.destination_city}
-                                    </div>
-                                    {activeNote?.contact_person && (
-                                        <div className="text-slate-600">
-                                            <strong>Attn:</strong> {activeNote?.contact_person} ({activeNote?.contact_phone})
-                                        </div>
-                                    )}
-                                </div>
+                                leftBoxTitle="DELIVER TO"
+                                leftBoxFields={[
+                                    { label: 'Customer / Company Name', value: activeNote.customer?.name },
+                                    {
+                                        label: 'Delivery Address',
+                                        value: `${activeNote.shipping_address || ''}${activeNote.destination_city ? ', ' + activeNote.destination_city : ''}`.trim() || 'Dar es Salaam, Tanzania',
+                                    },
+                                    {
+                                        label: 'Contact Person / Phone',
+                                        value: `${activeNote.contact_person || ''} ${activeNote.contact_phone ? '(' + activeNote.contact_phone + ')' : ''}`.trim() || (activeNote.customer as any)?.mobile_no || (activeNote.customer as any)?.phone,
+                                    },
+                                    { label: 'Receiving Department', value: 'Operations & Receiving Stores' },
+                                ]}
 
-                                <div className="p-3 bg-slate-50 rounded border border-slate-200 space-y-1">
-                                    <div className="font-bold text-slate-700 uppercase mb-1">DISPATCH & LOGISTICS:</div>
-                                    <div><strong>Fulfillment Warehouse:</strong> {activeNote?.warehouse?.name}</div>
-                                    <div><strong>Vehicle Plate:</strong> <span className="font-mono font-bold">{activeNote?.vehicle_plate || 'N/A'}</span></div>
-                                    <div><strong>Driver:</strong> {activeNote?.driver_name || 'Assigned Driver'} {activeNote?.driver_phone && `(${activeNote?.driver_phone})`}</div>
-                                    <div><strong>Tracking Number:</strong> <span className="font-mono">{activeNote?.tracking_number}</span></div>
-                                    {activeNote?.invoice && (
-                                        <div><strong>Linked Invoice:</strong> {activeNote.invoice.invoice_number}</div>
-                                    )}
-                                </div>
-                            </div>
+                                rightBoxTitle="DELIVERY DETAILS"
+                                rightBoxFields={[
+                                    { label: 'Customer PO No', value: (activeNote.invoice as any)?.order_number || 'PO-2026-REF' },
+                                    { label: 'Invoice No (if issued)', value: activeNote.invoice?.invoice_number || 'INV-0001' },
+                                    {
+                                        label: 'Vehicle / Driver',
+                                        value: `${activeNote.vehicle_plate || 'Carrier'} / ${activeNote.driver_name || 'Assigned Driver'}`.trim(),
+                                    },
+                                    { label: 'Delivered by', value: activeNote.driver_name || 'Logistics Division' },
+                                ]}
 
-                            {/* Itemized Manifest */}
-                            <div className="border border-slate-300 rounded overflow-hidden">
-                                <table className="w-full text-xs text-left">
-                                    <thead className="bg-slate-100 font-bold border-b border-slate-300">
-                                        <tr>
-                                            <th className="p-2.5">#</th>
-                                            <th className="p-2.5">Item Description</th>
-                                            <th className="p-2.5">SKU / Code</th>
-                                            <th className="p-2.5">Batch / Serial</th>
-                                            <th className="p-2.5 text-right">Ordered</th>
-                                            <th className="p-2.5 text-right">Shipped Qty</th>
-                                            <th className="p-2.5 text-center">Unit</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-200">
-                                        {activeNote?.items.map((item, idx) => (
-                                            <tr key={idx}>
-                                                <td className="p-2.5 text-slate-500">{idx + 1}</td>
-                                                <td className="p-2.5 font-semibold text-slate-900">{item.product_name}</td>
-                                                <td className="p-2.5 font-mono text-slate-600">{item.sku || '-'}</td>
-                                                <td className="p-2.5 font-mono text-slate-600">{item.batch_number || '-'}</td>
-                                                <td className="p-2.5 text-right">{item.quantity_ordered}</td>
-                                                <td className="p-2.5 text-right font-bold text-slate-900">{item.quantity_shipped}</td>
-                                                <td className="p-2.5 text-center text-slate-600">{item.unit || 'units'}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                    <tfoot className="bg-slate-50 font-bold border-t border-slate-300">
-                                        <tr>
-                                            <td colSpan={5} className="p-2.5 text-right">Total Shipped Quantity:</td>
-                                            <td className="p-2.5 text-right text-emerald-800 font-bold text-sm">
-                                                {activeNote?.total_units_shipped}
-                                            </td>
-                                            <td></td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
+                                columns={[
+                                    { key: 'index', label: '#', align: 'center', width: '38px', render: (_, idx) => idx + 1 },
+                                    {
+                                        key: 'description',
+                                        label: 'Item / Description',
+                                        align: 'left',
+                                        render: (it) => (
+                                            <div>
+                                                <div className="font-semibold text-slate-900">{it.product_name}</div>
+                                                {it.sku && <div className="text-[10px] text-slate-500 font-mono">SKU: {it.sku}</div>}
+                                                {it.batch_number && <div className="text-[10px] text-slate-600 font-mono">Batch: {it.batch_number}</div>}
+                                            </div>
+                                        ),
+                                    },
+                                    { key: 'unit', label: 'Unit', align: 'center', width: '60px', render: (it) => it.unit || 'units' },
+                                    { key: 'quantity_ordered', label: 'Qty Ordered', align: 'center', width: '85px', render: (it) => it.quantity_ordered },
+                                    { key: 'quantity_shipped', label: 'Qty Delivered', align: 'center', width: '85px', render: (it) => it.quantity_shipped },
+                                    { key: 'remarks', label: 'Remarks', align: 'left', width: '130px', render: () => 'Delivered in Good Order' },
+                                ]}
+                                items={activeNote.items || []}
+                                minRows={11}
 
-                            {/* Notes */}
-                            {activeNote?.notes && (
-                                <div className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded border">
-                                    <strong>Special Instructions:</strong> {activeNote.notes}
-                                </div>
-                            )}
-
-                            {/* Verification QR and Digital Signature Block */}
-                            <div className="flex items-center justify-between pt-4 border-t border-slate-200 text-xs">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-slate-100 rounded border border-slate-300">
-                                        <QrCode className="w-12 h-12 text-slate-800" />
+                                lowerLeftTitle="Delivery Condition"
+                                lowerLeftContent={
+                                    <div className="space-y-2 text-[11px]">
+                                        <div><span className="font-semibold">Received in good condition:</span> Yes / No</div>
+                                        <div><span className="font-semibold">Damages / shortages noted:</span> ___________________________</div>
                                     </div>
-                                    <div className="space-y-0.5">
-                                        <div className="font-bold text-slate-900">VERIFIABLE DIGITAL DOCUMENT</div>
-                                        <div className="text-[10px] text-slate-500 font-mono">
-                                            HASH: {activeNote?.verification_hash?.substring(0, 24)}...
-                                        </div>
-                                        <div className="text-[10px] text-emerald-700 font-semibold">
-                                            Status: {activeNote?.status.toUpperCase()}
-                                        </div>
-                                    </div>
-                                </div>
+                                }
 
-                                {activeNote?.status === 'delivered' && (
-                                    <div className="text-right">
-                                        <div className="font-bold text-emerald-800">PROOF OF DELIVERY CONFIRMED</div>
-                                        <div className="text-slate-600">Recipient: {activeNote.proof_of_delivery_recipient}</div>
-                                        <div className="text-[10px] text-slate-500 font-mono">
-                                            SIG: {activeNote.proof_of_delivery_signature}
-                                        </div>
+                                lowerRightTitle="Notes"
+                                lowerRightContent={
+                                    <div className="text-[11px] text-slate-700 leading-relaxed">
+                                        <p>Please check goods on receipt and note any discrepancies before signing. Report any shortage or damage promptly.</p>
                                     </div>
-                                )}
-                            </div>
+                                }
 
-                            {/* Signatures 3-Column Block */}
-                            <div className="grid grid-cols-3 gap-6 pt-6 border-t border-slate-200 text-xs text-center">
-                                <div className="space-y-10">
-                                    <div className="border-b border-slate-400 pb-1 font-semibold">
-                                        Warehouse Logistics Officer
-                                    </div>
-                                    <div className="text-[11px] text-slate-500">Authorized Signature & Stamp</div>
-                                </div>
+                                signatures={[
+                                    {
+                                        label: 'Delivered by (name & signature)',
+                                        value: activeNote.driver_name || 'Driver / Logistics Dispatcher',
+                                        dateLabel: 'Date',
+                                        dateValue: activeNote.delivery_date,
+                                        extraLabel: 'Supplier stamp',
+                                        extraValue: '',
+                                    },
+                                    {
+                                        label: 'Received by (name & signature)',
+                                        value: activeNote.proof_of_delivery_recipient || '',
+                                        dateLabel: 'Date',
+                                        dateValue: activeNote.status === 'delivered' ? activeNote.delivery_date : '',
+                                        extraLabel: 'Receiver stamp',
+                                        extraValue: '',
+                                    },
+                                ]}
 
-                                <div className="space-y-10">
-                                    <div className="border-b border-slate-400 pb-1 font-semibold">
-                                        {activeNote?.driver_name || 'Driver / Carrier'}
-                                    </div>
-                                    <div className="text-[11px] text-slate-500">Transporter Handover</div>
-                                </div>
-
-                                <div className="space-y-10">
-                                    <div className="border-b border-slate-400 pb-1 font-semibold">
-                                        {activeNote?.proof_of_delivery_recipient || 'Consignee Receiver'}
-                                    </div>
-                                    <div className="text-[11px] text-slate-500">Received in Good Order</div>
-                                </div>
-                            </div>
-                        </div>
+                                footerSlogan="Thank you for your business."
+                                verificationHash={activeNote.verification_hash}
+                            />
+                        )}
                     </DialogContent>
                 </Dialog>
 

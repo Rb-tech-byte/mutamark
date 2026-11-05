@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Head, usePage, router, useForm } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import AuthenticatedLayout from "@/layouts/authenticated-layout";
+import CorporateDocumentTemplate from '@/components/CorporateDocumentTemplate';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -1560,97 +1561,117 @@ export default function RfqIndex({
                     </DialogHeader>
 
                     {activeRfq && (
-                        <div className="space-y-4 p-4 border rounded-xl bg-white text-slate-900 shadow-sm print:m-0 print:border-none">
-                            {/* Slip Header */}
-                            <div className="flex justify-between items-start border-b pb-4">
-                                <div>
-                                    <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
-                                        MUTAMARK ENTERPRISES LTD
-                                    </h2>
-                                    <p className="text-xs text-slate-600">
-                                        Plot 42, Nyerere Road Industrial Park, Dar es Salaam, Tanzania
-                                    </p>
-                                    <p className="text-xs text-slate-600">
-                                        TIN: 104-892-411 | VRN: 40019283-Z | info@mutamark.co.tz
-                                    </p>
-                                </div>
-                                <div className="text-right">
-                                    <span className="text-xs uppercase tracking-widest font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded border border-indigo-200 block mb-1">
-                                        TENDER INVITATION / RFQ
-                                    </span>
-                                    <span className="font-mono text-sm font-bold block">{activeRfq.rfq_number}</span>
-                                    <span className="text-xs text-slate-500">
-                                        Date: {activeRfq.issue_date ? activeRfq.issue_date.split('T')[0] : 'N/A'}
-                                    </span>
-                                </div>
-                            </div>
+                        <div className="space-y-4">
+                            <CorporateDocumentTemplate
+                                type="rfq"
+                                documentTitle="REQUEST FOR QUOTATION"
+                                documentNumber={activeRfq.rfq_number}
+                                documentNumberLabel="RFQ No:"
+                                date={activeRfq.issue_date ? activeRfq.issue_date.split('T')[0] : 'DD/MM/YYYY'}
+                                dateLabel="Issue Date:"
+                                secondaryDate={activeRfq.closing_date ? activeRfq.closing_date.split('T')[0] : 'DD/MM/YYYY'}
+                                secondaryDateLabel="Closing Date:"
 
-                            {/* Particulars */}
-                            <div className="grid grid-cols-2 gap-4 text-xs py-2 bg-slate-50 p-3 rounded-lg border">
-                                <div>
-                                    <span className="text-slate-500 block">{t("Tender Subject")}:</span>
-                                    <span className="font-bold text-slate-900">{activeRfq.title}</span>
-                                </div>
-                                <div>
-                                    <span className="text-slate-500 block">{t("Submission Deadline")}:</span>
-                                    <span className="font-bold text-red-600">
-                                        {activeRfq.closing_date ? activeRfq.closing_date.split('T')[0] : 'N/A'}
-                                    </span>
-                                </div>
-                                <div>
-                                    <span className="text-slate-500 block">{t("Delivery Terms")}:</span>
-                                    <span className="font-semibold text-slate-900">{activeRfq.delivery_terms || 'DAP'}</span>
-                                </div>
-                                <div>
-                                    <span className="text-slate-500 block">{t("Payment Terms")}:</span>
-                                    <span className="font-semibold text-slate-900">{activeRfq.payment_terms || 'Net 30 Days'}</span>
-                                </div>
-                            </div>
+                                leftBoxTitle="TO (SUPPLIER)"
+                                leftBoxFields={[
+                                    { label: 'Supplier / Company Name', value: '__________________________________________' },
+                                    { label: 'Address', value: '__________________________________________' },
+                                    { label: 'Phone / Email', value: '__________________________________________' },
+                                    { label: 'TIN / VRN (if applicable)', value: '__________________________________________' },
+                                ]}
 
-                            {/* Item Schedule */}
-                            <div>
-                                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                                    {t("Bill of Quantities & Technical Specifications")}
-                                </h3>
-                                <div className="border rounded overflow-hidden">
-                                    <table className="w-full text-xs text-left">
-                                        <thead className="bg-slate-100 text-slate-700 font-bold border-b">
-                                            <tr>
-                                                <th className="p-2">#</th>
-                                                <th className="p-2">{t("Item Description")}</th>
-                                                <th className="p-2">{t("Specifications")}</th>
-                                                <th className="p-2 text-right">{t("Required Qty")}</th>
-                                                <th className="p-2">{t("Unit")}</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y text-slate-800">
-                                            {activeRfq.items.map((it, idx) => (
-                                                <tr key={it.id}>
-                                                    <td className="p-2 font-mono">{idx + 1}</td>
-                                                    <td className="p-2 font-semibold">{it.product_name}</td>
-                                                    <td className="p-2 text-slate-600">{it.specifications || '-'}</td>
-                                                    <td className="p-2 text-right font-bold">{it.quantity}</td>
-                                                    <td className="p-2">{it.unit}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+                                rightBoxTitle="RFQ DETAILS"
+                                rightBoxFields={[
+                                    { label: 'Reference / Tender No', value: activeRfq.rfq_number },
+                                    { label: 'Delivery Location', value: activeRfq.delivery_terms || 'Dar es Salaam Central Warehouse' },
+                                    { label: 'Quotation Validity', value: '30 days' },
+                                    { label: 'Currency', value: 'TZS' },
+                                ]}
 
-                            {/* Verification Block */}
-                            <div className="pt-4 border-t flex justify-between items-center text-xs text-slate-500">
-                                <div>
-                                    <p className="font-semibold text-slate-800">Tender Evaluation Committee</p>
-                                    <p>Authorized Procurement Department</p>
-                                </div>
-                                <div className="text-right font-mono text-[10px]">
-                                    <ShieldCheck className="w-4 h-4 text-emerald-600 inline mr-1" />
-                                    <span>HASH: {activeRfq.verification_hash ? activeRfq.verification_hash.substring(0, 20) + '...' : 'SECURE-VERIFIED'}</span>
-                                </div>
-                            </div>
+                                columns={[
+                                    { key: 'index', label: '#', align: 'center', width: '38px', render: (_, idx) => idx + 1 },
+                                    {
+                                        key: 'description',
+                                        label: 'Item / Description & Specification',
+                                        align: 'left',
+                                        render: (it) => (
+                                            <div>
+                                                <div className="font-semibold text-slate-900">{it.product_name}</div>
+                                                {it.specifications && (
+                                                    <div className="text-[10px] text-slate-600 italic mt-0.5">{it.specifications}</div>
+                                                )}
+                                            </div>
+                                        ),
+                                    },
+                                    { key: 'quantity', label: 'Qty', align: 'center', width: '60px', render: (it) => it.quantity },
+                                    { key: 'unit', label: 'Unit', align: 'center', width: '60px', render: (it) => it.unit || 'units' },
+                                    {
+                                        key: 'unit_price',
+                                        label: 'Unit Price (TZS)',
+                                        align: 'right',
+                                        width: '135px',
+                                        render: () => '________________',
+                                    },
+                                    {
+                                        key: 'amount',
+                                        label: 'Amount (TZS)',
+                                        align: 'right',
+                                        width: '135px',
+                                        render: () => '________________',
+                                    },
+                                ]}
+                                items={activeRfq.items || []}
+                                minRows={8}
 
-                            <DialogFooter className="pt-3 border-t">
+                                totals={[
+                                    { label: 'Subtotal', value: '________________' },
+                                    { label: 'VAT (if applicable)', value: '________________' },
+                                    { label: 'Delivery / Other Costs', value: '________________' },
+                                    { label: 'TOTAL QUOTED (TZS)', value: '________________', isGrandTotal: true },
+                                ]}
+
+                                lowerLeftTitle="Instructions to Supplier"
+                                lowerLeftContent={
+                                    <div className="text-[11px] text-slate-700 leading-relaxed space-y-1">
+                                        <p>Quote all prices in TZS and state whether VAT is included.</p>
+                                        <p>Submit your quotation on or before the closing date. Late quotations may not be considered.</p>
+                                    </div>
+                                }
+
+                                lowerRightTitle="Supplier Offer (to be completed)"
+                                lowerRightContent={
+                                    <div className="space-y-1.5 text-[11px]">
+                                        <div><span className="font-semibold">Delivery Period (days):</span> _______________________________</div>
+                                        <div><span className="font-semibold">Payment Terms Offered:</span> ______________________________</div>
+                                        <div><span className="font-semibold">Warranty (if any):</span> ___________________________________</div>
+                                        <div><span className="font-semibold">Contact Person:</span> ____________________________________</div>
+                                    </div>
+                                }
+
+                                signatures={[
+                                    {
+                                        label: 'Issued by',
+                                        value: 'Procurement Specialist',
+                                        extraLabel: 'Name',
+                                        extraValue: 'Procurement Management Unit',
+                                        dateLabel: 'Date',
+                                        dateValue: activeRfq.issue_date ? activeRfq.issue_date.split('T')[0] : '',
+                                    },
+                                    {
+                                        label: 'Supplier signature & stamp',
+                                        value: '',
+                                        extraLabel: 'Name',
+                                        extraValue: '',
+                                        dateLabel: 'Date',
+                                        dateValue: '',
+                                    },
+                                ]}
+
+                                footerSlogan="Thank you for your quotation."
+                                verificationHash={(activeRfq as any)?.verification_hash || undefined}
+                            />
+
+                            <DialogFooter className="pt-3 border-t print:hidden">
                                 <Button variant="outline" onClick={() => setIsPrintModalOpen(false)}>
                                     {t("Close")}
                                 </Button>
