@@ -1,5 +1,6 @@
-import React from 'react';
-import { getCompanySetting } from '@/utils/helpers';
+import React, { useState, useMemo } from 'react';
+import { getCompanySetting, getImagePath } from '@/utils/helpers';
+import ApplicationLogo from '@/components/application-logo';
 import DocumentVerificationBadge, { DocumentVerificationData } from '@/components/DocumentVerificationBadge';
 
 export type DocumentKind =
@@ -51,6 +52,8 @@ export interface CorporateDocumentTemplateProps {
     tertiaryNumberLabel?: string;
 
     // Company Header Override (defaults to system company settings)
+    companyLogo?: string;
+    showCompanyLogo?: boolean;
     companyName?: string;
     companyAddress?: string;
     companyCity?: string;
@@ -105,6 +108,8 @@ export default function CorporateDocumentTemplate({
     tertiaryNumber,
     tertiaryNumberLabel,
 
+    companyLogo,
+    showCompanyLogo = true,
     companyName,
     companyAddress,
     companyCity,
@@ -138,11 +143,50 @@ export default function CorporateDocumentTemplate({
 
     className = '',
 }: CorporateDocumentTemplateProps) {
+    const [logoFailed, setLogoFailed] = useState(false);
+
     // Resolve Company details from props or system settings
+    const rawLogoSetting =
+        companyLogo ||
+        getCompanySetting('company_logo') ||
+        getCompanySetting('logo_dark') ||
+        getCompanySetting('logo_light') ||
+        'mutamark_logo_dark.png';
+
+    const resolvedLogoSrc = useMemo(() => {
+        if (!rawLogoSetting) return '';
+        if (
+            rawLogoSetting.startsWith('http://') ||
+            rawLogoSetting.startsWith('https://') ||
+            rawLogoSetting.startsWith('data:')
+        ) {
+            return rawLogoSetting;
+        }
+        return getImagePath(rawLogoSetting);
+    }, [rawLogoSetting]);
+
     const displayCompanyName =
         companyName ||
         getCompanySetting('company_name') ||
         'MUTAMARK ENTERPRISES LIMITED';
+
+    // When logo already contains the MUTAMARK wordmark, trim 'MUTAMARK' to keep 'ENTERPRISES'
+    // so the visual identity reads cleanly as [Logo: MUTAMARK] + ENTERPRISES
+    const formattedCompanyName = useMemo(() => {
+        if (!showCompanyLogo || logoFailed) {
+            return displayCompanyName;
+        }
+
+        if (/MUTAMARK/i.test(displayCompanyName)) {
+            if (/ENTERPRISES/i.test(displayCompanyName)) {
+                return 'ENTERPRISES';
+            }
+            const trimmed = displayCompanyName.replace(/^MUTAMARK\s+/i, '').trim();
+            return trimmed || 'ENTERPRISES';
+        }
+
+        return displayCompanyName;
+    }, [displayCompanyName, showCompanyLogo, logoFailed]);
 
     const displayAddress =
         companyAddress ||
@@ -258,25 +302,50 @@ export default function CorporateDocumentTemplate({
             style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif' }}
         >
             {/* 1. TOP HEADER */}
-            <div className="flex justify-between items-start pb-2">
-                {/* Left: Company Particulars */}
-                <div className="w-[58%]">
-                    <h1 className="text-[20px] font-extrabold uppercase tracking-tight text-[#1e3a5f] leading-tight">
-                        {displayCompanyName}
-                    </h1>
-                    <p className="text-[11px] text-slate-600 mt-1 leading-snug">
-                        {displayAddress}, {displayCity}
-                    </p>
-                    <p className="text-[11px] text-slate-600 leading-snug">
-                        Phone: {displayPhone} | Email: {displayEmail}
-                    </p>
-                    <p className="text-[11px] text-slate-600 leading-snug">
-                        TIN: <span className="font-semibold text-slate-800">{displayTin}</span> | VRN: <span className="font-semibold text-slate-800">{displayVrn}</span>
-                    </p>
+            <div className="flex justify-between items-start pb-2 gap-4">
+                {/* Left: Company Brand & Legal Particulars */}
+                <div className="w-[60%]">
+                    {/* Brand Row: Logo + Company Name side by side */}
+                    {showCompanyLogo ? (
+                        <div className="flex items-center gap-2.5">
+                            {resolvedLogoSrc && !logoFailed ? (
+                                <img
+                                    src={resolvedLogoSrc}
+                                    alt={displayCompanyName}
+                                    className="h-8 max-h-[36px] max-w-[160px] w-auto object-contain print:max-h-[34px]"
+                                    onError={() => setLogoFailed(true)}
+                                />
+                            ) : (
+                                <div className="h-8 w-8 rounded border border-slate-200 bg-slate-50 flex items-center justify-center p-1 shadow-xs flex-shrink-0">
+                                    <ApplicationLogo className="h-full w-full text-[#1e3a5f]" />
+                                </div>
+                            )}
+                            <h1 className="text-[20px] font-extrabold uppercase tracking-wider text-[#1e3a5f] leading-none">
+                                {formattedCompanyName}
+                            </h1>
+                        </div>
+                    ) : (
+                        <h1 className="text-[20px] font-extrabold uppercase tracking-tight text-[#1e3a5f] leading-tight">
+                            {displayCompanyName}
+                        </h1>
+                    )}
+
+                    {/* Company Particulars (aligned directly with the logo starting edge) */}
+                    <div className="mt-2 space-y-0.5 text-[11px] text-slate-600 leading-snug">
+                        <p>
+                            {displayAddress}, {displayCity}
+                        </p>
+                        <p>
+                            Phone: {displayPhone} | Email: {displayEmail}
+                        </p>
+                        <p>
+                            TIN: <span className="font-semibold text-slate-800">{displayTin}</span> | VRN: <span className="font-semibold text-slate-800">{displayVrn}</span>
+                        </p>
+                    </div>
                 </div>
 
                 {/* Right: Document Title & Identifiers */}
-                <div className="w-[42%] text-right">
+                <div className="w-[40%] text-right flex-shrink-0">
                     <h2 className="text-[20px] font-extrabold uppercase tracking-tight text-[#1e3a5f] leading-tight">
                         {resolvedTitle}
                     </h2>

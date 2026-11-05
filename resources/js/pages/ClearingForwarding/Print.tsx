@@ -69,12 +69,14 @@ export default function Print({ job, type }: PrintProps) {
                     ],
                     columns: [
                         { key: 'index', label: '#', align: 'center', width: '38px', render: (_, idx) => idx + 1 },
-                        { key: 'description', label: 'Statutory Authority / Purpose', align: 'left', render: (it) => (
-                            <div>
-                                <div className="font-semibold text-slate-900">{it.charge_name}</div>
-                                <div className="text-[10px] text-slate-500">{it.notes || 'Official statutory pass-through'}</div>
-                            </div>
-                        )},
+                        {
+                            key: 'description', label: 'Statutory Authority / Purpose', align: 'left', render: (it) => (
+                                <div>
+                                    <div className="font-semibold text-slate-900">{it.charge_name}</div>
+                                    <div className="text-[10px] text-slate-500">{it.notes || 'Official statutory pass-through'}</div>
+                                </div>
+                            )
+                        },
                         { key: 'category', label: 'Category', align: 'center', width: '130px', render: (it) => it.charge_category.replace('_', ' ').toUpperCase() },
                         { key: 'currency', label: 'Currency', align: 'center', width: '65px', render: () => 'TZS' },
                         { key: 'amount', label: 'Required Advance (TZS)', align: 'right', width: '145px', render: (it) => formatMoney(it.amount_tzs) },
@@ -138,12 +140,14 @@ export default function Print({ job, type }: PrintProps) {
                     ],
                     columns: [
                         { key: 'index', label: '#', align: 'center', width: '38px', render: (_, idx) => idx + 1 },
-                        { key: 'description', label: 'Commodity Description & Specifications', align: 'left', render: (it) => (
-                            <div>
-                                <div className="font-semibold text-slate-900">{it.commodity_description}</div>
-                                <div className="text-[10px] text-slate-500 font-mono">HS Code: {it.hs_code || '8517.62.00'} &bull; Marks: {it.marks_numbers || 'N/A'}</div>
-                            </div>
-                        )},
+                        {
+                            key: 'description', label: 'Commodity Description & Specifications', align: 'left', render: (it) => (
+                                <div>
+                                    <div className="font-semibold text-slate-900">{it.commodity_description}</div>
+                                    <div className="text-[10px] text-slate-500 font-mono">HS Code: {it.hs_code || '8517.62.00'} &bull; Marks: {it.marks_numbers || 'N/A'}</div>
+                                </div>
+                            )
+                        },
                         { key: 'pkg', label: 'Package Type', align: 'center', width: '100px', render: (it) => it.package_type },
                         { key: 'ordered', label: 'Manifest Qty', align: 'center', width: '90px', render: (it) => it.package_count },
                         { key: 'delivered', label: 'Delivered Qty', align: 'center', width: '95px', render: (it) => it.package_count },
@@ -198,12 +202,14 @@ export default function Print({ job, type }: PrintProps) {
                     ],
                     columns: [
                         { key: 'index', label: '#', align: 'center', width: '38px', render: (_, idx) => idx + 1 },
-                        { key: 'description', label: 'Itemized Expenditure / Authority Payee', align: 'left', render: (it) => (
-                            <div>
-                                <div className="font-semibold text-slate-900">{it.payee_name || it.charge_name}</div>
-                                <div className="text-[10px] text-slate-500 font-mono">Ref: {it.payment_reference || 'Official receipt on file'} &bull; {it.description || it.charge_category}</div>
-                            </div>
-                        )},
+                        {
+                            key: 'description', label: 'Itemized Expenditure / Authority Payee', align: 'left', render: (it) => (
+                                <div>
+                                    <div className="font-semibold text-slate-900">{it.payee_name || it.charge_name}</div>
+                                    <div className="text-[10px] text-slate-500 font-mono">Ref: {it.payment_reference || 'Official receipt on file'} &bull; {it.description || it.charge_category}</div>
+                                </div>
+                            )
+                        },
                         { key: 'category', label: 'Type', align: 'center', width: '120px', render: (it) => (it.charge_category || 'disbursement').replace('_', ' ').toUpperCase() },
                         { key: 'currency', label: 'Currency', align: 'center', width: '60px', render: () => 'TZS' },
                         { key: 'amount', label: 'Actual Incurred (TZS)', align: 'right', width: '145px', render: (it) => formatMoney(it.amount_tzs) },
