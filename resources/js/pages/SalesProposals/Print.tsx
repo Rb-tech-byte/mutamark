@@ -171,7 +171,6 @@ export default function Print() {
                         },
                     ]}
                     items={proposal.items || []}
-                    minRows={8}
 
                     totals={[
                         { label: 'Subtotal', value: Number(proposal.subtotal) },

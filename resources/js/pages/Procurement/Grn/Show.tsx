@@ -614,7 +614,6 @@ export default function Show() {
                             },
                         ]}
                         items={grn.items || []}
-                        minRows={11}
 
                         lowerLeftTitle="Inspection Findings"
                         lowerLeftContent={

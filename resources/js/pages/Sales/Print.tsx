@@ -211,7 +211,6 @@ export default function Print() {
                         },
                     ]}
                     items={invoice.items || []}
-                    minRows={8}
 
                     totals={[
                         { label: 'Subtotal', value: Number(invoice.subtotal) },

@@ -832,7 +832,6 @@ export default function DocumentTemplatesIndex({
                                             { key: 'amount', label: 'Est. Amount (TZS)', align: 'right', width: '135px', render: (it) => it.total_amount.toLocaleString() },
                                         ]}
                                         items={sampleItems}
-                                        minRows={8}
 
                                         totals={[
                                             { label: 'Estimated Subtotal', value: 4450000 },
@@ -911,7 +910,6 @@ export default function DocumentTemplatesIndex({
                                             { key: 'amount', label: 'Amount (TZS)', align: 'right', width: '135px', render: () => '________________' },
                                         ]}
                                         items={sampleItems}
-                                        minRows={8}
 
                                         totals={[
                                             { label: 'Subtotal', value: '________________' },
@@ -991,7 +989,6 @@ export default function DocumentTemplatesIndex({
                                             { key: 'amount', label: 'Amount (TZS)', align: 'right', width: '130px', render: (it) => it.total_amount.toLocaleString() },
                                         ]}
                                         items={sampleItems}
-                                        minRows={8}
 
                                         totals={[
                                             { label: 'Subtotal', value: 4450000 },
@@ -1072,7 +1069,6 @@ export default function DocumentTemplatesIndex({
                                             { key: 'remarks', label: 'Remarks', align: 'left', width: '130px', render: () => 'Delivered in Good Order' },
                                         ]}
                                         items={sampleItems}
-                                        minRows={11}
 
                                         lowerLeftTitle="Delivery Condition"
                                         lowerLeftContent={
@@ -1144,7 +1140,6 @@ export default function DocumentTemplatesIndex({
                                             { key: 'remarks', label: 'Condition / Remarks', align: 'left', width: '135px', render: () => 'Inspected & Passed' },
                                         ]}
                                         items={sampleItems}
-                                        minRows={11}
 
                                         lowerLeftTitle="Inspection Findings"
                                         lowerLeftContent={
@@ -1218,7 +1213,6 @@ export default function DocumentTemplatesIndex({
                                             { key: 'amount', label: 'Amount (TZS)', align: 'right', width: '130px', render: (it) => it.total_amount.toLocaleString() },
                                         ]}
                                         items={sampleItems}
-                                        minRows={8}
 
                                         totals={[
                                             { label: 'Subtotal', value: 4450000 },

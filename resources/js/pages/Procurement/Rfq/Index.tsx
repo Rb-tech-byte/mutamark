@@ -1621,7 +1621,6 @@ export default function RfqIndex({
                                     },
                                 ]}
                                 items={activeRfq.items || []}
-                                minRows={8}
 
                                 totals={[
                                     { label: 'Subtotal', value: '________________' },

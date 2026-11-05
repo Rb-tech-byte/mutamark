@@ -503,7 +503,6 @@ export default function SupplierPortal({
                                 },
                             ]}
                             items={selectedPo.items || []}
-                            minRows={8}
 
                             totals={[
                                 { label: 'Subtotal', value: Number(selectedPo.subtotal || selectedPo.total_amount) },

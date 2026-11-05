@@ -1352,7 +1352,6 @@ export default function PurchaseRequisitionsIndex({
                                     },
                                 ]}
                                 items={activeReq.items || []}
-                                minRows={8}
 
                                 totals={[
                                     { label: 'Estimated Subtotal', value: Number(activeReq.estimated_total_cost || 0) },

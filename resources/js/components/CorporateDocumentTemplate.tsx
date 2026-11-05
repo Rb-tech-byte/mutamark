@@ -72,6 +72,7 @@ export interface CorporateDocumentTemplateProps {
     columns: TableColumn[];
     items: any[];
     minRows?: number;
+    padEmptyRows?: boolean;
 
     // Section 3: Totals Block (optional, for financial/valued documents)
     totals?: TotalsRow[];
@@ -125,7 +126,8 @@ export default function CorporateDocumentTemplate({
 
     columns,
     items = [],
-    minRows = 8,
+    minRows,
+    padEmptyRows = false,
 
     totals,
     currency = 'TZS',
@@ -218,7 +220,7 @@ export default function CorporateDocumentTemplate({
         getCompanySetting('tax_number') ||
         '40019283-Z';
 
-    // Defaults per document type matching the PDF templates exactly
+    // Defaults per document type matching the corporate standard
     const typeConfig: Record<
         DocumentKind,
         {
@@ -228,7 +230,6 @@ export default function CorporateDocumentTemplate({
             secDateLabel?: string;
             tertiaryLabel?: string;
             slogan: string;
-            defaultMinRows: number;
         }
     > = {
         purchase_requisition: {
@@ -237,7 +238,6 @@ export default function CorporateDocumentTemplate({
             dateLabel: 'Date:',
             secDateLabel: 'Date Required:',
             slogan: 'Please attach supporting documents to this requisition.',
-            defaultMinRows: 8,
         },
         rfq: {
             title: 'REQUEST FOR QUOTATION',
@@ -245,7 +245,6 @@ export default function CorporateDocumentTemplate({
             dateLabel: 'Issue Date:',
             secDateLabel: 'Closing Date:',
             slogan: 'Thank you for your quotation.',
-            defaultMinRows: 8,
         },
         purchase_order: {
             title: 'PURCHASE ORDER',
@@ -253,7 +252,6 @@ export default function CorporateDocumentTemplate({
             dateLabel: 'Order Date:',
             secDateLabel: 'Delivery Date:',
             slogan: 'Please acknowledge receipt of this order.',
-            defaultMinRows: 8,
         },
         delivery_note: {
             title: 'DELIVERY NOTE',
@@ -262,7 +260,6 @@ export default function CorporateDocumentTemplate({
             secDateLabel: undefined,
             tertiaryLabel: 'PO / Order No:',
             slogan: 'Thank you for your business.',
-            defaultMinRows: 11,
         },
         goods_received_note: {
             title: 'GOODS RECEIVED NOTE',
@@ -271,7 +268,6 @@ export default function CorporateDocumentTemplate({
             secDateLabel: undefined,
             tertiaryLabel: 'PO No:',
             slogan: 'Distribution: Accounts / Store / Procurement',
-            defaultMinRows: 11,
         },
         invoice: {
             title: 'INVOICE',
@@ -279,7 +275,6 @@ export default function CorporateDocumentTemplate({
             dateLabel: 'Invoice Date:',
             secDateLabel: 'Due Date:',
             slogan: 'Thank you for your business.',
-            defaultMinRows: 8,
         },
     };
 
@@ -290,10 +285,10 @@ export default function CorporateDocumentTemplate({
     const resolvedSecDateLabel = secondaryDateLabel || currentConfig.secDateLabel;
     const resolvedTertiaryLabel = tertiaryNumberLabel || currentConfig.tertiaryLabel;
     const resolvedSlogan = footerSlogan || currentConfig.slogan;
-    const effectiveMinRows = minRows || currentConfig.defaultMinRows;
 
-    // Pad rows so table height and layout match the PDF look exactly
-    const paddedRowsCount = Math.max(0, effectiveMinRows - items.length);
+    // Rows dynamically match the actual item count (no artificial filler lines).
+    // If padEmptyRows is explicitly enabled and minRows is specified, pad remaining lines.
+    const paddedRowsCount = padEmptyRows && minRows ? Math.max(0, minRows - items.length) : 0;
     const emptyRows = Array.from({ length: paddedRowsCount });
 
     return (
@@ -393,7 +388,7 @@ export default function CorporateDocumentTemplate({
                                     {field.label}:
                                 </span>
                                 <span className="text-slate-900 font-medium break-words flex-1">
-                                    {field.value || '__________________________________'}
+                                    {field.value || '—'}
                                 </span>
                             </div>
                         ))}
@@ -414,7 +409,7 @@ export default function CorporateDocumentTemplate({
                                     {field.label}:
                                 </span>
                                 <span className="text-slate-900 font-medium break-words flex-1">
-                                    {field.value || '__________________________________'}
+                                    {field.value || '—'}
                                 </span>
                             </div>
                         ))}
@@ -445,6 +440,16 @@ export default function CorporateDocumentTemplate({
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
+                        {items.length === 0 && (
+                            <tr>
+                                <td
+                                    colSpan={columns.length}
+                                    className="py-4 px-2.5 text-center text-slate-400 italic text-[11px]"
+                                >
+                                    No items recorded.
+                                </td>
+                            </tr>
+                        )}
                         {items.map((item, index) => (
                             <tr key={index} className="hover:bg-slate-50/60 transition-colors">
                                 {columns.map((col) => (
@@ -468,21 +473,22 @@ export default function CorporateDocumentTemplate({
                             </tr>
                         ))}
 
-                        {/* Render blank padded rows so the layout maintains exact PDF height */}
-                        {emptyRows.map((_, padIdx) => (
-                            <tr key={`pad-${padIdx}`} className="h-[28px]">
-                                {columns.map((col, colIdx) => (
-                                    <td
-                                        key={`pad-col-${colIdx}`}
-                                        className={`py-1.5 px-2.5 border-r border-slate-200 last:border-r-0 text-slate-400 ${
-                                            colIdx === 0 ? 'text-center font-mono text-[10px]' : ''
-                                        }`}
-                                    >
-                                        {colIdx === 0 ? items.length + padIdx + 1 : ''}
-                                    </td>
-                                ))}
-                            </tr>
-                        ))}
+                        {/* Render blank padded rows only if explicitly requested */}
+                        {padEmptyRows &&
+                            emptyRows.map((_, padIdx) => (
+                                <tr key={`pad-${padIdx}`} className="h-[28px]">
+                                    {columns.map((col, colIdx) => (
+                                        <td
+                                            key={`pad-col-${colIdx}`}
+                                            className={`py-1.5 px-2.5 border-r border-slate-200 last:border-r-0 text-slate-400 ${
+                                                colIdx === 0 ? 'text-center font-mono text-[10px]' : ''
+                                            }`}
+                                        >
+                                            {colIdx === 0 ? items.length + padIdx + 1 : ''}
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
                     </tbody>
                 </table>
             </div>

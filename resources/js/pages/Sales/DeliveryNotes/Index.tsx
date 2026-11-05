@@ -1421,7 +1421,6 @@ export default function DeliveryNotesIndex({
                                     { key: 'remarks', label: 'Remarks', align: 'left', width: '130px', render: () => 'Delivered in Good Order' },
                                 ]}
                                 items={activeNote.items || []}
-                                minRows={11}
 
                                 lowerLeftTitle="Delivery Condition"
                                 lowerLeftContent={

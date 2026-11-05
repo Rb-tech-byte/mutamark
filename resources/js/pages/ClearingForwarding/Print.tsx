@@ -303,7 +303,6 @@ export default function Print({ job, type }: PrintProps) {
 
                     columns={config.columns}
                     items={config.items}
-                    minRows={8}
                     totals={config.totals}
 
                     lowerLeftTitle={config.lowerLeftTitle}
