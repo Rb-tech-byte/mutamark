@@ -12,17 +12,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-    ClipboardCheck, 
-    CheckCircle2, 
-    AlertTriangle, 
-    ShieldCheck, 
-    PackageCheck, 
-    ArrowLeft, 
-    Building2, 
-    Warehouse as WarehouseIcon, 
-    Truck, 
-    Calendar, 
+import {
+    ClipboardCheck,
+    CheckCircle2,
+    AlertTriangle,
+    ShieldCheck,
+    PackageCheck,
+    ArrowLeft,
+    Building2,
+    Warehouse as WarehouseIcon,
+    Truck,
+    Calendar,
     FileText,
     Receipt,
     UserCheck,
@@ -488,8 +488,8 @@ export default function Show() {
                     <form onSubmit={handleInspectSubmit} className="space-y-4 pt-2">
                         <div>
                             <Label htmlFor="inspection_status">{t('Inspection Result')} *</Label>
-                            <Select 
-                                value={inspectData.inspection_status} 
+                            <Select
+                                value={inspectData.inspection_status}
                                 onValueChange={(val) => setInspectData('inspection_status', val as any)}
                             >
                                 <SelectTrigger id="inspection_status" className="mt-1">

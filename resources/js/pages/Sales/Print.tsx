@@ -28,7 +28,7 @@ export default function Print() {
     });
 
     // Custom fields view mode hook
-    const customFields = useFormFields('getCustomFields', { ...invoice, module: 'General', sub_module: 'Sales Invoice', id: invoice.id, isPrint: true }, () => {}, {}, 'view', t);
+    const customFields = useFormFields('getCustomFields', { ...invoice, module: 'General', sub_module: 'Sales Invoice', id: invoice.id, isPrint: true }, () => { }, {}, 'view', t);
     const pageButtons = usePageButtons('zatcaQRCodeBtn', invoice);
 
     useEffect(() => {
