@@ -6,7 +6,13 @@ set -e
 # Domain: https://mutamark.wolinet.com/
 # ==============================================================================
 
-APP_DIR="${1:-/home/mutamark.wolinet.com/public_html}"
+if [ -n "$1" ]; then
+    APP_DIR="$1"
+elif [ -d "/home/mutamark.wolinet.com/public_html" ]; then
+    APP_DIR="/home/mutamark.wolinet.com/public_html"
+else
+    APP_DIR="$(pwd)"
+fi
 cd "$APP_DIR"
 
 echo "=========================================================="
@@ -24,8 +30,10 @@ echo "📦 [2/6] Optimizing composer autoload..."
 composer dump-autoload -o --no-interaction
 
 # 3. Database migrations & seeders
-echo "🗄️ [3/6] Running migrations and syncing niche enterprise users & modules..."
+echo "🗄️ [3/6] Running migrations and updating database tables with latest module data..."
 php artisan migrate --force
+php artisan db:seed --class=MutamarkClearingForwardingSeeder --force
+php artisan db:seed --class=MutamarkProcureToPaySeeder --force
 php artisan db:seed --class=MutamarkNicheUsersSeeder --force
 
 # 4. Clear and rebuild all application caches
