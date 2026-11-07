@@ -386,6 +386,11 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
                 href: route('clearing-forwarding.transport.index'),
                 permission: 'manage-cf-transport',
             },
+            {
+                title: t('C&F Reports & Analytics'),
+                href: route('clearing-forwarding.reports'),
+                permission: 'view-cf-reports',
+            },
         ],
     },
 

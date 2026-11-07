@@ -26,7 +26,13 @@ import {
     ExternalLink,
     Building2,
     Plus,
-    XCircle
+    XCircle,
+    Ship,
+    Anchor,
+    Navigation,
+    Calendar,
+    PackageCheck,
+    Eye
 } from 'lucide-react';
 
 interface Props {
@@ -36,6 +42,7 @@ interface Props {
     invoices: any[];
     delivery_notes: any[];
     tickets: any[];
+    clearing_jobs?: any[];
     available_customers: any[];
 }
 
@@ -46,15 +53,40 @@ export default function CustomerPortal({
     invoices,
     delivery_notes,
     tickets,
+    clearing_jobs = [],
     available_customers
 }: Props) {
     const { t } = useTranslation();
-    const [activeTab, setActiveTab] = useState<'statement' | 'proposals' | 'invoices' | 'deliveries' | 'tickets'>('statement');
+    const [activeTab, setActiveTab] = useState<'statement' | 'proposals' | 'invoices' | 'deliveries' | 'tickets' | 'clearing'>('statement');
     const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
     const [paymentModalOpen, setPaymentModalOpen] = useState(false);
     const [ticketModalOpen, setTicketModalOpen] = useState(false);
+    const [clearingModalOpen, setClearingModalOpen] = useState(false);
+    const [selectedJobForTracking, setSelectedJobForTracking] = useState<any | null>(null);
+    const [selectedJobForDelivery, setSelectedJobForDelivery] = useState<any | null>(null);
+    const [deliveryModalOpen, setDeliveryModalOpen] = useState(false);
     const [revisionProposalId, setRevisionProposalId] = useState<number | null>(null);
     const revisionForm = useForm({ reason: '' });
+
+    // Delivery Acknowledgment Form (SRS Section 4.7 / CUS-033)
+    const deliveryForm = useForm({
+        acknowledgement_type: 'confirmed' as 'confirmed' | 'discrepancy',
+        received_by_name: customer.name || '',
+        pod_document: null as File | null,
+        notes: '',
+    });
+
+    const submitDeliveryAcknowledgement = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedJobForDelivery) return;
+        deliveryForm.post(route('portal.customer.acknowledge-delivery', selectedJobForDelivery.id), {
+            onSuccess: () => {
+                setDeliveryModalOpen(false);
+                deliveryForm.reset();
+                setSelectedJobForDelivery(null);
+            },
+        });
+    };
 
     // Payment Form
     const paymentForm = useForm({
@@ -71,6 +103,38 @@ export default function CustomerPortal({
         issue_reported: '',
         contact_phone: customer.phone,
     });
+
+    // Clearing & Forwarding Request Form (SRS Section 4.2)
+    const clearingForm = useForm({
+        service_type: 'import',
+        transport_mode: 'sea',
+        customs_regime: 'home_use',
+        bl_awb_number: '',
+        vessel_flight_truck: '',
+        port_of_loading: '',
+        port_of_discharge: 'Dar es Salaam Port',
+        final_destination: 'Dar es Salaam',
+        commodity_description: '',
+        package_type: 'packages',
+        package_count: '1',
+        gross_weight_kg: '',
+        container_number: '',
+        customer_reference: '',
+        notes: '',
+        commercial_invoice: null as File | null,
+        packing_list: null as File | null,
+        bill_of_lading: null as File | null,
+    });
+
+    const submitClearingRequest = (e: React.FormEvent) => {
+        e.preventDefault();
+        clearingForm.post(route('portal.customer.clearing-request'), {
+            onSuccess: () => {
+                setClearingModalOpen(false);
+                clearingForm.reset();
+            },
+        });
+    };
 
     const handleOpenPayment = (inv: any) => {
         setSelectedInvoice(inv);
@@ -145,7 +209,12 @@ export default function CustomerPortal({
                             </Select>
                         )}
 
-                        <Button onClick={() => setTicketModalOpen(true)} className="flex items-center gap-1.5 h-9">
+                        <Button onClick={() => setClearingModalOpen(true)} className="flex items-center gap-1.5 h-9 bg-indigo-700 hover:bg-indigo-800 text-white">
+                            <Ship className="h-4 w-4" />
+                            {t('Request Cargo Clearance')}
+                        </Button>
+
+                        <Button onClick={() => setTicketModalOpen(true)} variant="outline" className="flex items-center gap-1.5 h-9">
                             <Wrench className="h-4 w-4" />
                             {t('Submit Support Request')}
                         </Button>
@@ -243,6 +312,18 @@ export default function CustomerPortal({
                         >
                             <Wrench className="h-4 w-4" />
                             {t('Support & Service Tickets')} ({tickets.length})
+                        </button>
+
+                        <button
+                            onClick={() => setActiveTab('clearing')}
+                            className={`pb-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                                activeTab === 'clearing'
+                                    ? 'border-primary text-primary font-semibold'
+                                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            <Ship className="h-4 w-4 text-indigo-600" />
+                            {t('Cargo & Customs Clearing')} ({clearing_jobs.length})
                         </button>
                     </nav>
                 </div>
@@ -460,7 +541,512 @@ export default function CustomerPortal({
                         </CardContent>
                     </Card>
                 )}
+
+                {/* TAB 5: Cargo & Customs Clearing (C&F) */}
+                {activeTab === 'clearing' && (
+                    <div className="space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-indigo-50/60 dark:bg-indigo-950/30 p-4 rounded-xl border border-indigo-100 dark:border-indigo-900">
+                            <div>
+                                <h3 className="font-bold text-sm text-indigo-950 dark:text-indigo-200 flex items-center gap-2">
+                                    <Ship className="w-4 h-4 text-indigo-600" />
+                                    {t('Cargo Shipments & Customs Clearance Portal')}
+                                </h3>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                    {t('Real-time tracking for port arrivals, customs assessment, container free days, and inland transit deliveries.')}
+                                </p>
+                            </div>
+                            <Button
+                                size="sm"
+                                onClick={() => setClearingModalOpen(true)}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 self-start sm:self-center"
+                            >
+                                <Plus className="w-4 h-4" />
+                                {t('Request New Cargo Clearance')}
+                            </Button>
+                        </div>
+
+                        <Card className="shadow-sm">
+                            <CardHeader className="pb-3 border-b">
+                                <CardTitle className="text-sm font-semibold">{t('Active Consignments & Shipment Register')}</CardTitle>
+                                <CardDescription className="text-xs">{t('All clearing jobs managed under your enterprise account')}</CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="bg-muted/40 text-xs">
+                                            <TableHead>{t('Job Ref / BL')}</TableHead>
+                                            <TableHead>{t('Commodity & Packages')}</TableHead>
+                                            <TableHead>{t('Routing & Carrier')}</TableHead>
+                                            <TableHead>{t('Customs & Release')}</TableHead>
+                                            <TableHead>{t('Demurrage Status')}</TableHead>
+                                            <TableHead className="text-right">{t('Actions')}</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {clearing_jobs.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground text-xs">
+                                                    {t('No cargo clearing jobs currently recorded. Click "Request New Cargo Clearance" to submit your shipping instruction.')}
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : (
+                                            clearing_jobs.map((job: any) => {
+                                                const container = job.containers?.[0];
+                                                const decl = job.declarations?.[0];
+                                                return (
+                                                    <TableRow key={job.id} className="text-xs">
+                                                        <TableCell>
+                                                            <div className="font-mono font-bold text-indigo-700 dark:text-indigo-400">{job.job_number}</div>
+                                                            <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                                                                BL/AWB: {job.shipment?.bl_awb_number || 'Pending'}
+                                                            </div>
+                                                            <Badge variant="outline" className="text-[9px] uppercase mt-1">
+                                                                {job.customs_regime} &bull; {job.service_type}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="font-semibold text-slate-900 dark:text-slate-100 line-clamp-1">
+                                                                {job.cargo_lines?.[0]?.commodity_description || 'General Cargo'}
+                                                            </div>
+                                                            <div className="text-[11px] text-muted-foreground">
+                                                                {job.cargo_lines?.[0]?.package_count || 1} {job.cargo_lines?.[0]?.package_type || 'packages'} &bull; {Number(job.cargo_lines?.[0]?.gross_weight_kg || 0).toLocaleString()} KG
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="font-medium text-slate-800 dark:text-slate-200">
+                                                                {job.shipment?.port_of_discharge || 'Dar Port'} &rarr; {job.shipment?.final_destination || 'Dar es Salaam'}
+                                                            </div>
+                                                            <div className="text-[11px] text-muted-foreground">
+                                                                {job.shipment?.vessel_flight_truck || job.shipment?.shipping_line_airline || 'Ocean Vessel'}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div>
+                                                                <Badge className={`text-[10px] capitalize ${
+                                                                    ['cargo_released', 'delivered', 'completed'].includes(job.status)
+                                                                        ? 'bg-emerald-600 text-white'
+                                                                        : ['declaration_submitted', 'assessed', 'in_transit'].includes(job.status)
+                                                                        ? 'bg-blue-600 text-white'
+                                                                        : 'bg-amber-500 text-white'
+                                                                }`}>
+                                                                    {job.status.replace('_', ' ')}
+                                                                </Badge>
+                                                            </div>
+                                                            {decl?.payment_control_number && (
+                                                                <div className="text-[10px] text-muted-foreground mt-1 font-mono">
+                                                                    GePG: {decl.payment_control_number}
+                                                                </div>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {container ? (
+                                                                <div>
+                                                                    <span className="font-mono font-semibold text-[11px]">{container.container_number}</span>
+                                                                    <div className="text-[10px] text-emerald-700 font-medium">
+                                                                        {container.free_days} free days {container.empty_return_deadline ? `(Due ${container.empty_return_deadline})` : ''}
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-muted-foreground text-[11px]">Breakbulk / LCL</span>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            <div className="flex items-center justify-end gap-1.5">
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    className="h-7 text-[11px] gap-1"
+                                                                    onClick={() => setSelectedJobForTracking(job)}
+                                                                >
+                                                                    <Navigation className="w-3 h-3 text-indigo-600" />
+                                                                    {t('Track')}
+                                                                </Button>
+                                                                <a
+                                                                    href={route('clearing-forwarding.jobs.print', { cfJob: job.id, type: 'funding_request' })}
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                >
+                                                                    <Button size="sm" variant="ghost" className="h-7 text-[11px] px-2 text-muted-foreground">
+                                                                        <Receipt className="w-3 h-3 mr-1" />
+                                                                        {t('Advance Slip')}
+                                                                    </Button>
+                                                                </a>
+                                                                {['customs_cleared', 'cargo_released', 'in_transit', 'delivered'].includes(job.status) && (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        className={`h-7 text-[11px] gap-1 ${job.status === 'delivered' ? 'text-emerald-700 border-emerald-300 bg-emerald-50/50' : 'text-blue-700 border-blue-300 hover:bg-blue-50'}`}
+                                                                        onClick={() => {
+                                                                            setSelectedJobForDelivery(job);
+                                                                            setDeliveryModalOpen(true);
+                                                                        }}
+                                                                    >
+                                                                        <PackageCheck className="w-3 h-3 text-emerald-600" />
+                                                                        {job.status === 'delivered' ? t('Receipt Confirmed') : t('Acknowledge Receipt')}
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
             </div>
+
+            {/* CLEARING & FORWARDING REQUEST DIALOG (SRS Section 4.2) */}
+            <Dialog open={clearingModalOpen} onOpenChange={setClearingModalOpen}>
+                <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Ship className="w-5 h-5 text-indigo-600" />
+                            {t('Submit Clearing & Forwarding Instruction')}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {t('Provide shipment particulars and upload commercial documentation for customs clearance.')}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={submitClearingRequest} className="space-y-3 pt-1">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <div>
+                                <Label className="text-xs font-semibold">{t('Service Type *')}</Label>
+                                <select
+                                    value={clearingForm.data.service_type}
+                                    onChange={(e) => clearingForm.setData('service_type', e.target.value as any)}
+                                    className="w-full h-8 text-xs border rounded-md px-2 bg-background mt-1"
+                                >
+                                    <option value="import">{t('Import Clearing')}</option>
+                                    <option value="export">{t('Export Forwarding')}</option>
+                                    <option value="transit">{t('Transit Cargo')}</option>
+                                    <option value="domestic">{t('Domestic Freight')}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <Label className="text-xs font-semibold">{t('Transport Mode *')}</Label>
+                                <select
+                                    value={clearingForm.data.transport_mode}
+                                    onChange={(e) => clearingForm.setData('transport_mode', e.target.value as any)}
+                                    className="w-full h-8 text-xs border rounded-md px-2 bg-background mt-1"
+                                >
+                                    <option value="sea">{t('Ocean Freight (Sea)')}</option>
+                                    <option value="air">{t('Air Cargo (Air)')}</option>
+                                    <option value="road">{t('Cross-Border (Road)')}</option>
+                                    <option value="rail">{t('Rail Transport')}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <Label className="text-xs font-semibold">{t('Customs Regime *')}</Label>
+                                <select
+                                    value={clearingForm.data.customs_regime}
+                                    onChange={(e) => clearingForm.setData('customs_regime', e.target.value as any)}
+                                    className="w-full h-8 text-xs border rounded-md px-2 bg-background mt-1"
+                                >
+                                    <option value="home_use">IM4 - Home Consumption</option>
+                                    <option value="transit">TR8 - Transit Corridor</option>
+                                    <option value="warehousing">WH7 - Bonded Warehouse</option>
+                                    <option value="temporary_import">TI5 - Temporary Import</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div>
+                                <Label className="text-xs font-semibold">{t('BL / AWB Number *')}</Label>
+                                <Input
+                                    required
+                                    placeholder="e.g. MSKU98172601 or 086-12345678"
+                                    value={clearingForm.data.bl_awb_number}
+                                    onChange={(e) => clearingForm.setData('bl_awb_number', e.target.value)}
+                                    className="h-8 text-xs mt-1"
+                                />
+                            </div>
+                            <div>
+                                <Label className="text-xs font-semibold">{t('Vessel / Flight / Carrier')}</Label>
+                                <Input
+                                    placeholder="e.g. MAERSK SHEKOU / ET 804"
+                                    value={clearingForm.data.vessel_flight_truck}
+                                    onChange={(e) => clearingForm.setData('vessel_flight_truck', e.target.value)}
+                                    className="h-8 text-xs mt-1"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div>
+                                <Label className="text-xs font-semibold">{t('Port of Discharge *')}</Label>
+                                <Input
+                                    required
+                                    placeholder="e.g. Dar es Salaam Port (TICTS)"
+                                    value={clearingForm.data.port_of_discharge}
+                                    onChange={(e) => clearingForm.setData('port_of_discharge', e.target.value)}
+                                    className="h-8 text-xs mt-1"
+                                />
+                            </div>
+                            <div>
+                                <Label className="text-xs font-semibold">{t('Final Delivery Destination *')}</Label>
+                                <Input
+                                    required
+                                    placeholder="e.g. Customer Warehouse, Chang'ombe"
+                                    value={clearingForm.data.final_destination}
+                                    onChange={(e) => clearingForm.setData('final_destination', e.target.value)}
+                                    className="h-8 text-xs mt-1"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <Label className="text-xs font-semibold">{t('Commodity Description *')}</Label>
+                            <Input
+                                required
+                                placeholder="e.g. Commercial Telecommunications Equipment & Accessories"
+                                value={clearingForm.data.commodity_description}
+                                onChange={(e) => clearingForm.setData('commodity_description', e.target.value)}
+                                className="h-8 text-xs mt-1"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <div>
+                                <Label className="text-xs font-semibold">{t('Package Count *')}</Label>
+                                <Input
+                                    type="number"
+                                    required
+                                    value={clearingForm.data.package_count}
+                                    onChange={(e) => clearingForm.setData('package_count', e.target.value)}
+                                    className="h-8 text-xs mt-1"
+                                />
+                            </div>
+                            <div>
+                                <Label className="text-xs font-semibold">{t('Gross Weight (KG)')}</Label>
+                                <Input
+                                    type="number"
+                                    placeholder="e.g. 18500"
+                                    value={clearingForm.data.gross_weight_kg}
+                                    onChange={(e) => clearingForm.setData('gross_weight_kg', e.target.value)}
+                                    className="h-8 text-xs mt-1"
+                                />
+                            </div>
+                            <div>
+                                <Label className="text-xs font-semibold">{t('Container No (if FCL)')}</Label>
+                                <Input
+                                    placeholder="MSKU1234567"
+                                    value={clearingForm.data.container_number}
+                                    onChange={(e) => clearingForm.setData('container_number', e.target.value)}
+                                    className="h-8 text-xs mt-1 uppercase"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="border-t pt-2 space-y-2">
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                                {t('Upload Mandatory Shipping Documents')}
+                            </span>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                                <div className="p-2 border rounded-lg bg-muted/30">
+                                    <Label className="text-[11px] font-medium">{t('Bill of Lading / AWB')}</Label>
+                                    <input
+                                        type="file"
+                                        className="text-[10px] mt-1 w-full"
+                                        onChange={(e) => clearingForm.setData('bill_of_lading', e.target.files?.[0] || null)}
+                                    />
+                                </div>
+                                <div className="p-2 border rounded-lg bg-muted/30">
+                                    <Label className="text-[11px] font-medium">{t('Commercial Invoice')}</Label>
+                                    <input
+                                        type="file"
+                                        className="text-[10px] mt-1 w-full"
+                                        onChange={(e) => clearingForm.setData('commercial_invoice', e.target.files?.[0] || null)}
+                                    />
+                                </div>
+                                <div className="p-2 border rounded-lg bg-muted/30">
+                                    <Label className="text-[11px] font-medium">{t('Packing List')}</Label>
+                                    <input
+                                        type="file"
+                                        className="text-[10px] mt-1 w-full"
+                                        onChange={(e) => clearingForm.setData('packing_list', e.target.files?.[0] || null)}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <DialogFooter className="pt-2">
+                            <Button type="button" variant="outline" onClick={() => setClearingModalOpen(false)}>
+                                {t('Cancel')}
+                            </Button>
+                            <Button type="submit" disabled={clearingForm.processing} className="bg-indigo-700 hover:bg-indigo-800 text-white">
+                                {t('Submit Clearing Instruction')}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* LIVE TRACKING TIMELINE DIALOG */}
+            <Dialog open={selectedJobForTracking !== null} onOpenChange={(open) => { if (!open) setSelectedJobForTracking(null); }}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-base">
+                            <Navigation className="w-4 h-4 text-indigo-600" />
+                            {t('Shipment Tracking Timeline')} — {selectedJobForTracking?.job_number}
+                        </DialogTitle>
+                        <DialogDescription className="text-xs">
+                            BL/AWB: {selectedJobForTracking?.shipment?.bl_awb_number || 'Pending'} &bull; Status: <span className="capitalize font-semibold text-slate-800 dark:text-slate-200">{selectedJobForTracking?.status?.replace('_', ' ')}</span>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-2 max-h-[400px] overflow-y-auto space-y-3">
+                        {selectedJobForTracking?.tracking_events && selectedJobForTracking.tracking_events.length > 0 ? (
+                            <div className="relative border-l-2 border-indigo-200 dark:border-indigo-800 ml-3 space-y-4 pl-4 text-xs">
+                                {selectedJobForTracking.tracking_events.map((ev: any, idx: number) => (
+                                    <div key={ev.id || idx} className="relative">
+                                        <div className="absolute -left-[23px] top-1 w-3 h-3 rounded-full bg-indigo-600 ring-4 ring-white dark:ring-slate-900" />
+                                        <div className="font-semibold text-slate-900 dark:text-slate-100">{ev.location_name}</div>
+                                        <div className="text-[11px] text-muted-foreground mt-0.5">{ev.remarks}</div>
+                                        <div className="text-[10px] text-indigo-700 dark:text-indigo-400 font-mono mt-1">
+                                            {new Date(ev.event_time).toLocaleString()}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-xs text-muted-foreground text-center py-4">
+                                {t('No tracking events logged yet. Updates will appear as your consignment progresses.')}
+                            </p>
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setSelectedJobForTracking(null)}>
+                            {t('Close')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* DELIVERY ACKNOWLEDGEMENT & DISCREPANCY DIALOG (SRS Section 4.7 / CUS-033) */}
+            <Dialog open={deliveryModalOpen} onOpenChange={setDeliveryModalOpen}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle className="text-base flex items-center gap-2">
+                            <PackageCheck className="w-4 h-4 text-emerald-600" />
+                            {t('Acknowledge Cargo Delivery / Report Discrepancy')}
+                        </DialogTitle>
+                        <DialogDescription className="text-xs">
+                            {t('Confirm that your cargo has arrived at the destination in sound condition, or report missing/damaged items.')}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {selectedJobForDelivery && (
+                        <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900 border text-xs space-y-1">
+                            <div className="flex justify-between font-semibold">
+                                <span>{selectedJobForDelivery.job_number}</span>
+                                <Badge variant="outline" className="text-[10px]">{selectedJobForDelivery.status}</Badge>
+                            </div>
+                            <div className="text-muted-foreground">
+                                Destination: {selectedJobForDelivery.shipment?.final_destination || 'N/A'}
+                            </div>
+                        </div>
+                    )}
+
+                    <form onSubmit={submitDeliveryAcknowledgement} className="space-y-3 pt-1">
+                        <div>
+                            <Label className="text-xs">{t('Acknowledgment Type')} *</Label>
+                            <div className="grid grid-cols-2 gap-2 mt-1">
+                                <button
+                                    type="button"
+                                    onClick={() => deliveryForm.setData('acknowledgement_type', 'confirmed')}
+                                    className={`p-2.5 rounded-lg border text-left text-xs transition-colors flex items-center gap-2 ${
+                                        deliveryForm.data.acknowledgement_type === 'confirmed'
+                                            ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 font-medium text-emerald-900 dark:text-emerald-300'
+                                            : 'border-slate-200 hover:bg-slate-50'
+                                    }`}
+                                >
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                    <div>
+                                        <div className="font-semibold">{t('Confirm Receipt')}</div>
+                                        <div className="text-[10px] text-muted-foreground">{t('Cargo received soundly')}</div>
+                                    </div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => deliveryForm.setData('acknowledgement_type', 'discrepancy')}
+                                    className={`p-2.5 rounded-lg border text-left text-xs transition-colors flex items-center gap-2 ${
+                                        deliveryForm.data.acknowledgement_type === 'discrepancy'
+                                            ? 'border-rose-500 bg-rose-50/50 dark:bg-rose-950/20 font-medium text-rose-900 dark:text-rose-300'
+                                            : 'border-slate-200 hover:bg-slate-50'
+                                    }`}
+                                >
+                                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                                    <div>
+                                        <div className="font-semibold">{t('Report Discrepancy')}</div>
+                                        <div className="text-[10px] text-muted-foreground">{t('Damage or shortage')}</div>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <Label className="text-xs">{t('Received By (Full Name / Title)')} *</Label>
+                            <Input
+                                className="h-8 text-xs mt-1"
+                                required
+                                placeholder="e.g. John Doe (Warehouse Receiver)"
+                                value={deliveryForm.data.received_by_name}
+                                onChange={(e) => deliveryForm.setData('received_by_name', e.target.value)}
+                            />
+                        </div>
+
+                        <div>
+                            <Label className="text-xs">{t('Remarks / Discrepancy Details')}</Label>
+                            <Textarea
+                                className="text-xs mt-1"
+                                rows={2}
+                                placeholder={
+                                    deliveryForm.data.acknowledgement_type === 'confirmed'
+                                        ? "e.g. Cargo received in 100% good condition. Seals intact."
+                                        : "Describe any package damages, missing seals, or quantity shortages..."
+                                }
+                                value={deliveryForm.data.notes}
+                                onChange={(e) => deliveryForm.setData('notes', e.target.value)}
+                            />
+                        </div>
+
+                        <div>
+                            <Label className="text-xs">{t('Signed Delivery Note / POD (Optional)')}</Label>
+                            <Input
+                                type="file"
+                                className="h-8 text-xs mt-1"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                onChange={(e) => deliveryForm.setData('pod_document', e.target.files?.[0] || null)}
+                            />
+                        </div>
+
+                        <DialogFooter className="pt-2">
+                            <Button type="button" variant="outline" size="sm" onClick={() => setDeliveryModalOpen(false)}>
+                                {t('Cancel')}
+                            </Button>
+                            <Button
+                                type="submit"
+                                size="sm"
+                                disabled={deliveryForm.processing}
+                                className={
+                                    deliveryForm.data.acknowledgement_type === 'confirmed'
+                                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                        : 'bg-rose-600 hover:bg-rose-700 text-white'
+                                }
+                            >
+                                {deliveryForm.data.acknowledgement_type === 'confirmed'
+                                    ? t('Confirm Cargo Receipt')
+                                    : t('Submit Discrepancy Notice')}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
 
             {/* PAYMENT DIALOG */}
             <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>

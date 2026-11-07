@@ -20,6 +20,13 @@ use Illuminate\Validation\Rule;
 use App\Services\CompanyAccess;
 use Workdo\Account\Models\Customer;
 use Workdo\Account\Models\Vendor;
+use App\Models\ClearingForwarding\CFJob;
+use App\Models\ClearingForwarding\CFShipment;
+use App\Models\ClearingForwarding\CFCargoLine;
+use App\Models\ClearingForwarding\CFContainer;
+use App\Models\ClearingForwarding\CFDocumentChecklist;
+use App\Models\ClearingForwarding\CFTrackingEvent;
+use App\Models\ClearingForwarding\CFJobCosting;
 
 class PortalController extends Controller
 {
@@ -94,6 +101,21 @@ class PortalController extends Controller
             ->limit(20)
             ->get();
 
+        // Customer's Clearing & Forwarding Jobs (SRS Section 4 Customer Portal)
+        $clearingJobs = CFJob::where('customer_id', $customerUser->id)
+            ->with([
+                'shipment',
+                'containers',
+                'cargoLines',
+                'declarations',
+                'trackingEvents' => fn($q) => $q->where('is_customer_visible', true)->orderBy('event_time', 'desc'),
+                'deliveries.proofOfDelivery',
+                'jobCosting',
+            ])
+            ->latest('id')
+            ->limit(20)
+            ->get();
+
         // Account Statement Summary
         $statementQuery = SalesInvoice::where('created_by', creatorId())->where('customer_id', $customerUser->id)->where('status', '!=', 'draft');
         $totalInvoiced = (clone $statementQuery)->sum('total_amount');
@@ -116,8 +138,125 @@ class PortalController extends Controller
             'invoices' => $invoices,
             'delivery_notes' => $deliveryNotes,
             'tickets' => $tickets,
+            'clearing_jobs' => $clearingJobs,
             'available_customers' => $allCustomers,
         ]);
+    }
+
+    /**
+     * Customer Submits a Clearing & Forwarding Instruction / Request (SRS Section 4.2)
+     */
+    public function customerSubmitClearingRequest(Request $request)
+    {
+        $customerUser = $this->customer($request);
+
+        $validated = $request->validate([
+            'service_type' => 'required|string|in:import,export,transit,domestic',
+            'transport_mode' => 'required|string|in:sea,air,road,rail',
+            'customs_regime' => 'required|string',
+            'bl_awb_number' => 'nullable|string|max:255',
+            'vessel_flight_truck' => 'nullable|string|max:255',
+            'port_of_loading' => 'nullable|string|max:255',
+            'port_of_discharge' => 'nullable|string|max:255',
+            'final_destination' => 'nullable|string|max:255',
+            'consignee_name' => 'nullable|string|max:255',
+            'consignor_name' => 'nullable|string|max:255',
+            'commodity_description' => 'required|string',
+            'package_type' => 'nullable|string',
+            'package_count' => 'nullable|numeric|min:1',
+            'gross_weight_kg' => 'nullable|numeric|min:0',
+            'container_number' => 'nullable|string|max:50',
+            'customer_reference' => 'nullable|string|max:255',
+            'notes' => 'nullable|string',
+            'commercial_invoice' => 'nullable|file|max:10240',
+            'packing_list' => 'nullable|file|max:10240',
+            'bill_of_lading' => 'nullable|file|max:10240',
+        ]);
+
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $customerUser, $request) {
+            $job = CFJob::create([
+                'job_number' => CFJob::generateJobNumber(),
+                'customer_id' => $customerUser->id,
+                'consignee_name' => $validated['consignee_name'] ?? $customerUser->name,
+                'consignor_name' => $validated['consignor_name'] ?? null,
+                'service_type' => $validated['service_type'],
+                'transport_mode' => $validated['transport_mode'],
+                'customs_regime' => $validated['customs_regime'],
+                'status' => 'documents_pending',
+                'priority' => 'normal',
+                'opened_at' => now(),
+                'customer_reference' => $validated['customer_reference'] ?? null,
+                'notes' => $validated['notes'] ?? null,
+                'created_by' => creatorId(),
+            ]);
+
+            CFShipment::create([
+                'cf_job_id' => $job->id,
+                'bl_awb_number' => $validated['bl_awb_number'] ?? null,
+                'vessel_flight_truck' => $validated['vessel_flight_truck'] ?? null,
+                'port_of_loading' => $validated['port_of_loading'] ?? null,
+                'port_of_discharge' => $validated['port_of_discharge'] ?? 'Dar es Salaam Port',
+                'final_destination' => $validated['final_destination'] ?? 'Dar es Salaam',
+            ]);
+
+            CFCargoLine::create([
+                'cf_job_id' => $job->id,
+                'commodity_description' => $validated['commodity_description'],
+                'package_type' => $validated['package_type'] ?? 'packages',
+                'package_count' => $validated['package_count'] ?? 1,
+                'gross_weight_kg' => $validated['gross_weight_kg'] ?? 0,
+            ]);
+
+            if (!empty($validated['container_number'])) {
+                CFContainer::create([
+                    'cf_job_id' => $job->id,
+                    'container_number' => strtoupper(trim($validated['container_number'])),
+                    'size_type' => '40HC',
+                    'free_days' => 14,
+                    'status' => 'at_terminal',
+                ]);
+            }
+
+            // Save standard documents
+            $standardDocs = [
+                ['type' => 'bill_of_lading', 'name' => 'Bill of Lading / Air Waybill', 'file' => 'bill_of_lading'],
+                ['type' => 'commercial_invoice', 'name' => 'Commercial Invoice (attested)', 'file' => 'commercial_invoice'],
+                ['type' => 'packing_list', 'name' => 'Detailed Packing List', 'file' => 'packing_list'],
+                ['type' => 'certificate_of_origin', 'name' => 'Certificate of Origin', 'file' => null],
+            ];
+
+            foreach ($standardDocs as $sd) {
+                $filePath = null;
+                if ($sd['file'] && $request->hasFile($sd['file'])) {
+                    $filePath = $request->file($sd['file'])->store('clearing/customer_uploads', 'public');
+                }
+                CFDocumentChecklist::create([
+                    'cf_job_id' => $job->id,
+                    'document_type' => $sd['type'],
+                    'document_name' => $sd['name'],
+                    'is_mandatory' => true,
+                    'file_path' => $filePath,
+                    'verification_status' => $filePath ? 'pending' : 'pending',
+                ]);
+            }
+
+            CFJobCosting::create([
+                'cf_job_id' => $job->id,
+                'currency' => 'TZS',
+            ]);
+
+            CFTrackingEvent::create([
+                'cf_job_id' => $job->id,
+                'milestone_code' => 'instruction_received',
+                'location_name' => 'Customer Portal',
+                'event_time' => now(),
+                'remarks' => "Customer instruction submitted online by {$customerUser->name}. Assigned Job Reference: {$job->job_number}.",
+                'is_customer_visible' => true,
+                'recorded_by' => $customerUser->id,
+            ]);
+
+            return redirect()->back()->with('success', "Clearing instruction {$job->job_number} submitted successfully. Our operations team will process your clearance.");
+        });
     }
 
     /**
@@ -324,5 +463,58 @@ class PortalController extends Controller
         $bid = RfqService::addVendorBid($rfq, $validated, Auth::id() ?: 1, $rfq->created_by);
 
         return redirect()->back()->with('success', "Tender bid {$bid->quotation_reference} successfully submitted for RFQ {$rfq->rfq_number}.");
+    }
+
+    /**
+     * Customer Acknowledges Delivery or Reports Discrepancy (SRS Section 4.7 / CUS-033)
+     */
+    public function customerAcknowledgeDelivery(Request $request, CFJob $cfJob)
+    {
+        $customerUser = $this->customer($request);
+        abort_unless($cfJob->customer_id === $customerUser->id, 403);
+
+        $validated = $request->validate([
+            'acknowledgement_type' => 'required|string|in:confirmed,discrepancy',
+            'received_by_name' => 'required|string|max:255',
+            'pod_document' => 'nullable|file|max:10240',
+            'notes' => 'nullable|string',
+        ]);
+
+        $podPath = null;
+        if ($request->hasFile('pod_document')) {
+            $podPath = $request->file('pod_document')->store('clearing/pod_uploads', 'public');
+        }
+
+        if ($validated['acknowledgement_type'] === 'confirmed') {
+            $cfJob->update([
+                'status' => 'delivered',
+            ]);
+
+            CFTrackingEvent::create([
+                'cf_job_id' => $cfJob->id,
+                'event_code' => 'DELIVERY_CONFIRMED',
+                'event_description' => "Cargo delivery confirmed and receipt acknowledged by {$validated['received_by_name']} via Customer Portal.",
+                'location' => $cfJob->shipment->final_destination ?? 'Consignee Premises',
+                'event_time' => now(),
+                'is_customer_visible' => true,
+                'notes' => $validated['notes'] ?? null,
+                'created_by' => Auth::id() ?: 1,
+            ]);
+
+            return back()->with('success', "Delivery confirmed successfully. Cargo receipt acknowledged for Job {$cfJob->job_number}.");
+        } else {
+            CFTrackingEvent::create([
+                'cf_job_id' => $cfJob->id,
+                'event_code' => 'DELIVERY_DISCREPANCY',
+                'event_description' => "Customer reported delivery discrepancy / issue: {$validated['notes']}. Reported by: {$validated['received_by_name']}.",
+                'location' => $cfJob->shipment->final_destination ?? 'Consignee Premises',
+                'event_time' => now(),
+                'is_customer_visible' => true,
+                'notes' => $validated['notes'] ?? null,
+                'created_by' => Auth::id() ?: 1,
+            ]);
+
+            return back()->with('warning', "Discrepancy notice recorded for Job {$cfJob->job_number}. Operations team has been alerted.");
+        }
     }
 }

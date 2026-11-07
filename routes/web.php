@@ -91,6 +91,13 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
         Route::get('containers', [\App\Http\Controllers\ClearingForwardingController::class, 'containers'])->name('containers.index');
         Route::get('declarations', [\App\Http\Controllers\ClearingForwardingController::class, 'declarations'])->name('declarations.index');
         Route::get('transport', [\App\Http\Controllers\ClearingForwardingController::class, 'transport'])->name('transport.index');
+        Route::get('jobs/{cfJob}/declarations/worksheet', [\App\Http\Controllers\ClearingForwardingController::class, 'generateWorksheet'])->name('jobs.declarations.worksheet');
+        Route::get('jobs/{cfJob}/declarations/export-csv', [\App\Http\Controllers\ClearingForwardingController::class, 'exportWorksheetCsv'])->name('jobs.declarations.export-csv');
+        Route::post('declarations/{declaration}/verify-assessment', [\App\Http\Controllers\ClearingForwardingController::class, 'verifyAssessment'])->name('declarations.verify-assessment');
+        Route::post('declarations/{declaration}/verify-release', [\App\Http\Controllers\ClearingForwardingController::class, 'verifyRelease'])->name('declarations.verify-release');
+        Route::post('jobs/{cfJob}/declarations/{declaration}/events', [\App\Http\Controllers\ClearingForwardingController::class, 'storeCustomsEvent'])->name('jobs.declarations.events.store');
+        Route::get('reports', [\App\Http\Controllers\ClearingForwardingController::class, 'reports'])->name('reports');
+        Route::get('reports/export-csv', [\App\Http\Controllers\ClearingForwardingController::class, 'exportReportsCsv'])->name('reports.export-csv');
         Route::get('jobs/{cfJob}/print/{type}', [\App\Http\Controllers\ClearingForwardingController::class, 'printDocument'])->name('jobs.print');
     });
 
@@ -391,6 +398,8 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     Route::post('portal/customer/proposals/{id}/reject', [PortalController::class, 'customerRejectProposal'])->name('portal.customer.reject-proposal');
     Route::post('portal/customer/invoices/{id}/payment', [PortalController::class, 'customerSubmitPayment'])->name('portal.customer.payment');
     Route::post('portal/customer/tickets', [PortalController::class, 'customerSubmitTicket'])->name('portal.customer.ticket');
+    Route::post('portal/customer/clearing-requests', [PortalController::class, 'customerSubmitClearingRequest'])->name('portal.customer.clearing-request');
+    Route::post('portal/customer/clearing-jobs/{cfJob}/acknowledge-delivery', [PortalController::class, 'customerAcknowledgeDelivery'])->name('portal.customer.acknowledge-delivery');
     Route::get('portal/supplier', [PortalController::class, 'supplierPortal'])->name('portal.supplier');
     Route::post('portal/supplier/rfqs/{id}/bid', [PortalController::class, 'supplierSubmitBid'])->name('portal.supplier.bid');
     Route::get('warranty-servicing', [WarrantyServicingController::class, 'index'])->name('warranty.index');

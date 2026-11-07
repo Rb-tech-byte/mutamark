@@ -8,7 +8,7 @@ import { CFJob } from './types';
 
 interface PrintProps {
     job: CFJob;
-    type: 'quotation' | 'funding_request' | 'delivery_note' | 'pod' | 'final_account';
+    type: 'quotation' | 'funding_request' | 'delivery_note' | 'pod' | 'final_account' | 'worksheet';
 }
 
 export default function Print({ job, type }: PrintProps) {
@@ -43,6 +43,85 @@ export default function Print({ job, type }: PrintProps) {
     // Render configuration based on document type
     const getDocumentConfig = () => {
         switch (type) {
+            case 'worksheet':
+                const decl = job.declarations?.[0];
+                const estCustomsVal = job.cargo_lines?.reduce((sum, it) => sum + (Number(it.customs_value) * 2650), 0) || 120000000;
+                const estDuty = estCustomsVal * 0.25;
+                const estVat = (estCustomsVal + estDuty) * 0.18;
+                const estTotalCharges = estDuty + estVat;
+
+                return {
+                    docType: 'invoice' as const,
+                    title: 'TANCIS CUSTOMS DECLARATION WORKSHEET',
+                    numLabel: 'WORKSHEET NO:',
+                    docNumber: `WS-${job.job_number}-v${decl?.worksheet_version || 1}`,
+                    dateLabel: 'Preparation Date:',
+                    date: decl?.worksheet_generated_at ? new Date(decl.worksheet_generated_at).toLocaleDateString() : new Date().toLocaleDateString(),
+                    secondaryDateLabel: 'Worksheet Version:',
+                    secondaryDate: `Version ${decl?.worksheet_version || 1} (Internal Preparation)`,
+                    leftBoxTitle: 'IMPORTER / CONSIGNEE & REGIME',
+                    leftBoxFields: [
+                        { label: 'Importer / Client', value: job.customer?.name },
+                        { label: 'Consignee Name', value: job.consignee_name || 'Designated Consignee' },
+                        { label: 'Customs Regime', value: `${job.customs_regime.toUpperCase()} (${job.service_type.toUpperCase()})` },
+                        { label: 'Customs Station', value: decl?.customs_office || job.shipment?.port_of_discharge || 'Dar es Salaam Port (TICTS)' },
+                    ],
+                    rightBoxTitle: 'SHIPMENT & TANCIS PARTICULARS',
+                    rightBoxFields: [
+                        { label: 'Job Reference', value: job.job_number },
+                        { label: 'BL / AWB No', value: job.shipment?.bl_awb_number || 'Pending' },
+                        { label: 'Carrier / Vessel', value: job.shipment?.vessel_flight_truck || job.shipment?.shipping_line_airline || 'Vessel' },
+                        { label: 'Origin -> Destination', value: `${job.shipment?.origin_country || 'Origin'} -> ${job.shipment?.port_of_discharge || 'Dar Port'}` },
+                    ],
+                    columns: [
+                        { key: 'index', label: '#', align: 'center', width: '38px', render: (_, idx) => idx + 1 },
+                        {
+                            key: 'description', label: 'Item Description & Package Specifications', align: 'left', render: (it) => (
+                                <div>
+                                    <div className="font-semibold text-slate-900">{it.commodity_description}</div>
+                                    <div className="text-[10px] text-slate-500 font-mono">Packages: {it.package_count} {it.package_type} &bull; Gross Wt: {it.gross_weight_kg} KG</div>
+                                </div>
+                            )
+                        },
+                        { key: 'hscode', label: 'HS Code', align: 'center', width: '110px', render: (it) => <span className="font-mono font-bold text-indigo-700">{it.hs_code || '8517.62.00'}</span> },
+                        { key: 'val_foreign', label: 'CIF Foreign', align: 'right', width: '100px', render: (it) => `${it.currency} ${formatMoney(it.customs_value)}` },
+                        { key: 'val_tzs', label: 'CIF Value (TZS)', align: 'right', width: '125px', render: (it) => formatMoney(Number(it.customs_value) * 2650) },
+                        { key: 'duty_rate', label: 'Est. Duty', align: 'center', width: '75px', render: () => '25%' },
+                        { key: 'est_total', label: 'Est. Duty+VAT (TZS)', align: 'right', width: '140px', render: (it) => formatMoney((Number(it.customs_value) * 2650 * 0.25) + ((Number(it.customs_value) * 2650 * 1.25) * 0.18)) },
+                    ] as TableColumn[],
+                    items: job.cargo_lines || [],
+                    totals: [
+                        { label: 'Total Customs Value CIF (TZS)', value: estCustomsVal },
+                        { label: 'Estimated Import Duty (25%)', value: estDuty },
+                        { label: 'Estimated VAT (18%)', value: estVat },
+                        { label: 'ESTIMATED CUSTOMS CHARGES (TZS)*', value: estTotalCharges, isGrandTotal: true },
+                    ] as TotalsRow[],
+                    lowerLeftTitle: 'TRA/TANCIS Operating Protocol',
+                    lowerLeftContent: (
+                        <div className="space-y-1.5 text-[10px] text-slate-700 leading-relaxed">
+                            <div className="font-bold text-amber-900 bg-amber-50 p-1.5 rounded border border-amber-200">
+                                NOTICE: MANUAL TRA/TANCIS PROCESSING – NO DIRECT API CONNECTION (SRS Addendum §17-18)
+                            </div>
+                            <p>This worksheet is an internal preparation sheet containing verified goods classification and CIF valuation data. The declarant will manually lodge this data in the official TANCIS web portal.</p>
+                            <p className="italic">*Preliminary estimated calculation only. Official liability is established upon receipt of official TRA Assessment Notice.</p>
+                        </div>
+                    ),
+                    lowerRightTitle: 'TANCIS Lodgement & Control Particulars',
+                    lowerRightContent: (
+                        <div className="space-y-1 text-[11px]">
+                            <div><span className="font-semibold">TANCIS Declaration Ref:</span> <span className="font-mono">{decl?.tancis_reference || 'To be entered upon lodgement'}</span></div>
+                            <div><span className="font-semibold">Official Assessment Ref:</span> <span className="font-mono">{decl?.assessment_number || 'Pending TRA assessment'}</span></div>
+                            <div><span className="font-semibold">GePG Control Number:</span> <span className="font-mono">{decl?.payment_control_number || 'Pending assessment'}</span></div>
+                            <div><span className="font-semibold">Manual Lodgement Status:</span> <span className="capitalize font-semibold text-indigo-800">{decl?.status?.replace('_', ' ') || 'Draft Preparation'}</span></div>
+                        </div>
+                    ),
+                    signatures: [
+                        { label: 'Prepared by (Customs Declarant)', value: decl?.declarant?.name || 'Authorized Declarant', extraLabel: 'TIN / Declarant ID', extraValue: 'TZ-DEC-48210', dateLabel: 'Date', dateValue: new Date().toLocaleDateString() },
+                        { label: 'Approved by (Customs Supervisor)', value: 'Compliance Manager', extraLabel: 'Internal Review', extraValue: 'Endorsed for TANCIS Entry', dateLabel: 'Date', dateValue: new Date().toLocaleDateString() },
+                    ] as SignatureSlot[],
+                    footerSlogan: 'Mutamark ERP - Internal Customs Declaration Preparation Worksheet',
+                };
+
             case 'funding_request':
                 return {
                     docType: 'invoice' as const,

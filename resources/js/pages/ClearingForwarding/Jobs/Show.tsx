@@ -37,7 +37,12 @@ import {
     Check,
     X,
     ExternalLink,
-    Send
+    Send,
+    AlertCircle,
+    Calculator,
+    PackageCheck,
+    Plus,
+    Download
 } from 'lucide-react';
 import { CFJob, CFDocumentChecklist, UserSummary } from '../types';
 
@@ -107,6 +112,8 @@ export default function Show({ job, users }: ShowProps) {
         signature_data: 'DIGITALLY_ENDORSED_ON_DEVICE',
     });
 
+    const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
+
     const declarationForm = useForm({
         customs_office: job.declarations?.[0]?.customs_office || 'Dar es Salaam Port (TICTS)',
         declaration_type: job.declarations?.[0]?.declaration_type || 'TANSAD',
@@ -115,10 +122,27 @@ export default function Show({ job, users }: ShowProps) {
         regime_code: job.declarations?.[0]?.regime_code || 'IM4',
         assessment_number: job.declarations?.[0]?.assessment_number || '',
         assessed_amount_tzs: job.declarations?.[0]?.assessed_amount_tzs || '',
+        import_duty_assessed_tzs: job.declarations?.[0]?.import_duty_assessed_tzs || '',
+        vat_assessed_tzs: job.declarations?.[0]?.vat_assessed_tzs || '',
+        rdl_assessed_tzs: job.declarations?.[0]?.rdl_assessed_tzs || '',
+        cpf_assessed_tzs: job.declarations?.[0]?.cpf_assessed_tzs || '',
         payment_control_number: job.declarations?.[0]?.payment_control_number || '',
         release_order_number: job.declarations?.[0]?.release_order_number || '',
         status: job.declarations?.[0]?.status || 'draft',
         customs_channel: job.declarations?.[0]?.customs_channel || 'green',
+        external_submission_time: job.declarations?.[0]?.external_submission_time ? String(job.declarations[0].external_submission_time).substring(0, 10) : '',
+        lodgement_evidence: null as File | null,
+        assessment_document: null as File | null,
+        release_order: null as File | null,
+    });
+
+    const eventForm = useForm({
+        event_type: 'query_raised',
+        officer_name: '',
+        location: 'Customs Examination Yard',
+        instructions: '',
+        findings: '',
+        outcome: '',
     });
 
     const reconcileForm = useForm({
@@ -613,63 +637,360 @@ export default function Show({ job, users }: ShowProps) {
 
                     {/* Tab 4: Customs & TANCIS */}
                     <TabsContent value="customs" className="space-y-4">
-                        <Card className="border-slate-200 shadow-sm">
-                            <CardHeader className="bg-slate-50 pb-2 border-b flex flex-row items-center justify-between">
-                                <div>
-                                    <CardTitle className="text-xs font-bold uppercase text-slate-700 flex items-center gap-1.5">
-                                        <ShieldCheck className="w-4 h-4 text-indigo-600" /> TANCIS Customs Declaration & Assessment
-                                    </CardTitle>
-                                    <CardDescription className="text-xs text-slate-500">
-                                        Official Tanzania Revenue Authority (TRA) clearance references and release details.
-                                    </CardDescription>
+                        {/* Permanent Mandatory Operating Indicator (SRS Addendum §17-18, INT-MAN-001) */}
+                        <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-800 rounded-xl flex items-start gap-3">
+                            <ShieldCheck className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                            <div className="text-xs text-amber-950 dark:text-amber-200">
+                                <div className="font-bold flex items-center gap-2 uppercase tracking-wide">
+                                    <span>OPERATING INDICATOR: MANUAL TRA/TANCIS PROCESSING – NO DIRECT API INTEGRATION</span>
+                                    <Badge className="bg-amber-200 text-amber-900 border-amber-300 text-[10px] font-mono">
+                                        SRS Addendum §17-18
+                                    </Badge>
                                 </div>
-                                <Button size="sm" variant="outline" onClick={() => setIsDeclarationDialogOpen(true)} className="text-xs gap-1">
-                                    Update Declaration
+                                <p className="mt-1 leading-relaxed text-amber-900/90 dark:text-amber-300">
+                                    Mutamark ERP operates as an internal customs declaration preparation, valuation, and tracking workspace. Declarants prepare worksheets internally, log in separately to the official TRA/TANCIS web portal to submit declarations, and subsequently record verified references, assessment notices, and release evidence into this electronic job file.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Top Action & Worksheet Bar */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-50 dark:bg-slate-900 border rounded-xl">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                    Worksheet Status:
+                                </span>
+                                <Badge variant="outline" className="text-xs font-mono bg-white dark:bg-slate-800">
+                                    Version v{job.declarations?.[0]?.worksheet_version || 1}
+                                </Badge>
+                                <span className="text-[11px] text-muted-foreground">
+                                    (Generated: {job.declarations?.[0]?.worksheet_generated_at ? new Date(job.declarations[0].worksheet_generated_at).toLocaleDateString() : 'Draft'})
+                                </span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <a
+                                    href={route('clearing-forwarding.jobs.declarations.worksheet', job.id)}
+                                    className="inline-flex"
+                                >
+                                    <Button size="sm" variant="outline" className="text-xs gap-1.5 h-8 bg-white dark:bg-slate-800">
+                                        <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                                        Generate New Worksheet Version
+                                    </Button>
+                                </a>
+
+                                <a
+                                    href={route('clearing-forwarding.jobs.print', { cfJob: job.id, type: 'worksheet' })}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex"
+                                >
+                                    <Button size="sm" variant="outline" className="text-xs gap-1.5 h-8 bg-white dark:bg-slate-800">
+                                        <Printer className="w-3.5 h-3.5 text-slate-600" />
+                                        Print TANCIS Worksheet
+                                    </Button>
+                                </a>
+
+                                <a
+                                    href={route('clearing-forwarding.jobs.declarations.export-csv', job.id)}
+                                    download
+                                    className="inline-flex"
+                                >
+                                    <Button size="sm" variant="outline" className="text-xs gap-1.5 h-8 bg-white dark:bg-slate-800">
+                                        <Download className="w-3.5 h-3.5 text-emerald-600" />
+                                        Export CSV / Excel
+                                    </Button>
+                                </a>
+
+                                <Button
+                                    size="sm"
+                                    onClick={() => setIsDeclarationDialogOpen(true)}
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs gap-1.5 h-8"
+                                >
+                                    <ShieldCheck className="w-3.5 h-3.5" />
+                                    Update TANCIS Lodgement & Assessment
                                 </Button>
-                            </CardHeader>
-                            <CardContent className="p-5">
-                                {job.declarations && job.declarations.length > 0 ? (
-                                    (() => {
-                                        const decl = job.declarations[0];
+
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setIsEventDialogOpen(true)}
+                                    className="text-xs gap-1.5 h-8"
+                                >
+                                    <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                                    Record Customs Query / Event
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Comparative Cards: Preliminary Estimates vs Official Assessed (SRS INT-MAN-009) */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Card A: Preliminary Estimated Customs Charges */}
+                            <Card className="border-slate-200 shadow-sm border-t-4 border-t-amber-500">
+                                <CardHeader className="bg-slate-50/70 pb-2 border-b">
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="text-xs font-bold uppercase text-slate-800 flex items-center gap-1.5">
+                                            <Calculator className="w-4 h-4 text-amber-600" />
+                                            Preliminary Estimated Customs Charges
+                                        </CardTitle>
+                                        <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 text-[10px] font-semibold">
+                                            Estimate – Not official TRA assessment
+                                        </Badge>
+                                    </div>
+                                    <CardDescription className="text-[11px]">
+                                        Calculated based on verified invoice CIF value and HS code tariff schedule.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="p-4 space-y-3 text-xs">
+                                    {(() => {
+                                        const estCustomsVal = job.cargo_lines?.reduce((sum, it) => sum + (Number(it.customs_value) * 2650), 0) || 120000000;
+                                        const estDuty = estCustomsVal * 0.25;
+                                        const estVat = (estCustomsVal + estDuty) * 0.18;
+                                        const estRdl = estCustomsVal * 0.015;
+                                        const estCpf = 50000;
+                                        const estTotal = estDuty + estVat + estRdl + estCpf;
+
                                         return (
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-                                                <div className="p-3 bg-slate-50 rounded-lg border">
-                                                    <span className="text-slate-500 font-medium">Declaration Ref (TANSAD):</span>
-                                                    <div className="font-mono font-bold text-sm text-slate-900 mt-1">
-                                                        {decl.declaration_number || 'Pending'}
-                                                    </div>
-                                                    <div className="text-[10px] text-slate-400 mt-0.5">TANCIS: {decl.tancis_reference || '-'}</div>
+                                            <div className="space-y-2">
+                                                <div className="flex justify-between py-1 border-b border-dashed">
+                                                    <span className="text-muted-foreground">Customs CIF Value (TZS):</span>
+                                                    <span className="font-semibold font-mono">{formatMoney(estCustomsVal)}</span>
                                                 </div>
-
-                                                <div className="p-3 bg-slate-50 rounded-lg border">
-                                                    <span className="text-slate-500 font-medium">Customs Station & Regime:</span>
-                                                    <div className="font-semibold text-slate-800 text-sm mt-1">{decl.customs_office}</div>
-                                                    <div className="text-[10px] text-slate-500 mt-0.5">Regime: {decl.regime_code || 'IM4'}</div>
+                                                <div className="flex justify-between py-1 border-b border-dashed">
+                                                    <span className="text-muted-foreground">Import Duty (Est. 25%):</span>
+                                                    <span className="font-semibold font-mono">{formatMoney(estDuty)}</span>
                                                 </div>
-
-                                                <div className="p-3 bg-slate-50 rounded-lg border">
-                                                    <span className="text-slate-500 font-medium">Assessment & Duties:</span>
-                                                    <div className="font-bold text-sm text-indigo-900 mt-1">
-                                                        {formatMoney(decl.assessed_amount_tzs)}
-                                                    </div>
-                                                    <div className="text-[10px] text-slate-500 mt-0.5">Control: {decl.payment_control_number || '-'}</div>
+                                                <div className="flex justify-between py-1 border-b border-dashed">
+                                                    <span className="text-muted-foreground">Value Added Tax (VAT 18%):</span>
+                                                    <span className="font-semibold font-mono">{formatMoney(estVat)}</span>
                                                 </div>
-
-                                                <div className="p-3 bg-slate-50 rounded-lg border">
-                                                    <span className="text-slate-500 font-medium">Release Order:</span>
-                                                    <div className="font-semibold text-sm text-emerald-800 mt-1">
-                                                        {decl.release_order_number || 'Awaiting Release'}
-                                                    </div>
-                                                    <div className="text-[10px] text-slate-500 mt-0.5">Channel: {decl.customs_channel || 'Green'}</div>
+                                                <div className="flex justify-between py-1 border-b border-dashed">
+                                                    <span className="text-muted-foreground">Railway Development Levy (RDL 1.5%):</span>
+                                                    <span className="font-semibold font-mono">{formatMoney(estRdl)}</span>
+                                                </div>
+                                                <div className="flex justify-between py-1 border-b border-dashed">
+                                                    <span className="text-muted-foreground">Customs Processing Fee (CPF):</span>
+                                                    <span className="font-semibold font-mono">{formatMoney(estCpf)}</span>
+                                                </div>
+                                                <div className="flex justify-between pt-2 text-sm font-bold text-amber-900 dark:text-amber-300">
+                                                    <span>Total Estimated Statutory Outflow:</span>
+                                                    <span className="font-mono">{formatMoney(estTotal)}</span>
                                                 </div>
                                             </div>
                                         );
-                                    })()
-                                ) : (
-                                    <div className="text-center py-6 text-slate-500 text-xs">
-                                        No customs declaration logged yet. Click "Update Declaration" to record TANCIS reference.
+                                    })()}
+                                </CardContent>
+                            </Card>
+
+                            {/* Card B: Official Assessed Charges (TRA/TANCIS Assessment Notice) */}
+                            <Card className="border-slate-200 shadow-sm border-t-4 border-t-indigo-600">
+                                <CardHeader className="bg-slate-50/70 pb-2 border-b">
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="text-xs font-bold uppercase text-slate-800 flex items-center gap-1.5">
+                                            <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                                            Official TRA Assessed Charges (TANCIS)
+                                        </CardTitle>
+                                        <Badge className={`text-[10px] ${
+                                            job.declarations?.[0]?.is_assessment_verified
+                                                ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                                : 'bg-slate-100 text-slate-700'
+                                        }`}>
+                                            {job.declarations?.[0]?.is_assessment_verified ? 'Verified by Finance' : 'Verification Pending'}
+                                        </Badge>
                                     </div>
+                                    <CardDescription className="text-[11px]">
+                                        Captured from official TRA Assessment Notice and GePG payment control number.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="p-4 space-y-3 text-xs">
+                                    {job.declarations && job.declarations.length > 0 ? (
+                                        (() => {
+                                            const decl = job.declarations[0];
+                                            return (
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between py-1 border-b border-dashed">
+                                                        <span className="text-muted-foreground">TANCIS Declaration Reference:</span>
+                                                        <span className="font-mono font-bold text-indigo-700">{decl.tancis_reference || decl.declaration_number || 'Pending'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between py-1 border-b border-dashed">
+                                                        <span className="text-muted-foreground">Assessment Notice Number:</span>
+                                                        <span className="font-mono font-semibold">{decl.assessment_number || 'Pending Notice'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between py-1 border-b border-dashed">
+                                                        <span className="text-muted-foreground">GePG Payment Control Number:</span>
+                                                        <span className="font-mono font-bold text-slate-900 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                                                            {decl.payment_control_number || 'Pending GePG'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex justify-between py-1 border-b border-dashed">
+                                                        <span className="text-muted-foreground">Assessed Import Duty & VAT:</span>
+                                                        <span className="font-mono font-semibold">
+                                                            {decl.import_duty_assessed_tzs ? formatMoney(Number(decl.import_duty_assessed_tzs) + Number(decl.vat_assessed_tzs || 0)) : formatMoney(decl.assessed_amount_tzs)}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex justify-between pt-2 text-sm font-bold text-indigo-900 dark:text-indigo-300">
+                                                        <span>Total Amount Payable (TZS):</span>
+                                                        <span className="font-mono">{formatMoney(decl.assessed_amount_tzs)}</span>
+                                                    </div>
+
+                                                    <div className="pt-2 border-t flex items-center justify-between">
+                                                        <div className="text-[11px] text-muted-foreground">
+                                                            Source: <span className="font-medium text-slate-700">{decl.manual_entry_source || 'Manual entry from TANCIS'}</span>
+                                                        </div>
+                                                        {!decl.is_assessment_verified ? (
+                                                            <Button
+                                                                size="sm"
+                                                                className="h-7 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white"
+                                                                onClick={() => {
+                                                                    router.post(route('clearing-forwarding.declarations.verify-assessment', decl.id));
+                                                                }}
+                                                            >
+                                                                Verify Assessment (Finance Officer)
+                                                            </Button>
+                                                        ) : (
+                                                            <span className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
+                                                                <CheckCircle2 className="w-3.5 h-3.5" /> Assessment Verified
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()
+                                    ) : (
+                                        <p className="text-slate-500 py-3 text-center">
+                                            No customs declaration logged yet. Enter assessment particulars above.
+                                        </p>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Customs Release & Port Exit Authorization Card */}
+                        <Card className="border-slate-200 shadow-sm">
+                            <CardHeader className="bg-slate-50/70 pb-2 border-b flex flex-row items-center justify-between">
+                                <div>
+                                    <CardTitle className="text-xs font-bold uppercase text-slate-800 flex items-center gap-1.5">
+                                        <PackageCheck className="w-4 h-4 text-emerald-600" />
+                                        Official Customs Release Order & Gate-Out Verification
+                                    </CardTitle>
+                                    <CardDescription className="text-[11px]">
+                                        Cargo release requires verified official TRA Release Order reference and document upload before dispatch.
+                                    </CardDescription>
+                                </div>
+                                {job.declarations?.[0] && !job.declarations[0].is_release_verified && job.declarations[0].release_order_number && (
+                                    <Button
+                                        size="sm"
+                                        className="h-8 text-xs bg-emerald-700 hover:bg-emerald-800 text-white"
+                                        onClick={() => {
+                                            const declId = job.declarations?.[0]?.id;
+                                            if (declId) {
+                                                router.post(route('clearing-forwarding.declarations.verify-release', declId));
+                                            }
+                                        }}
+                                    >
+                                        Verify Customs Release Order
+                                    </Button>
                                 )}
+                            </CardHeader>
+                            <CardContent className="p-4">
+                                {job.declarations && job.declarations[0] ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+                                        <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border">
+                                            <span className="text-muted-foreground font-medium">Release Order Ref:</span>
+                                            <div className="font-mono font-bold text-sm text-slate-900 dark:text-slate-100 mt-1">
+                                                {job.declarations[0].release_order_number || 'Awaiting Release'}
+                                            </div>
+                                        </div>
+                                        <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border">
+                                            <span className="text-muted-foreground font-medium">Customs Channel:</span>
+                                            <div className="mt-1">
+                                                <Badge className={`uppercase text-[10px] font-bold ${
+                                                    job.declarations[0].customs_channel === 'green' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
+                                                    job.declarations[0].customs_channel === 'yellow' ? 'bg-amber-100 text-amber-800 border-amber-300' :
+                                                    job.declarations[0].customs_channel === 'red' ? 'bg-rose-100 text-rose-800 border-rose-300' :
+                                                    'bg-blue-100 text-blue-800 border-blue-300'
+                                                }`}>
+                                                    {job.declarations[0].customs_channel || 'Green Channel'}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                        <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border">
+                                            <span className="text-muted-foreground font-medium">Release Date:</span>
+                                            <div className="font-semibold text-sm mt-1">
+                                                {job.declarations[0].release_date ? new Date(job.declarations[0].release_date).toLocaleDateString() : 'Pending'}
+                                            </div>
+                                        </div>
+                                        <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border">
+                                            <span className="text-muted-foreground font-medium">Compliance Verification:</span>
+                                            <div className="mt-1 font-semibold text-emerald-700 flex items-center gap-1">
+                                                {job.declarations[0].is_release_verified ? (
+                                                    <>
+                                                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                                        <span>Authorized & Verified</span>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-amber-700">Pending Officer Verification</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-xs text-muted-foreground text-center py-2">
+                                        Customs release details will be unlocked once declaration is lodged.
+                                    </p>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Customs Queries, Examination & Scan Events Table (SRS INT-MAN-012, INT-MAN-013) */}
+                        <Card className="border-slate-200 shadow-sm">
+                            <CardHeader className="bg-slate-50 pb-2 border-b flex flex-row items-center justify-between">
+                                <CardTitle className="text-xs font-bold uppercase text-slate-700 flex items-center gap-1.5">
+                                    <Clock className="w-4 h-4 text-indigo-600" />
+                                    Customs Examination, Queries & Incident Trail
+                                </CardTitle>
+                                <Button size="sm" variant="outline" onClick={() => setIsEventDialogOpen(true)} className="text-xs gap-1">
+                                    <Plus className="w-3.5 h-3.5" /> Record Event
+                                </Button>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="bg-slate-50/50 text-xs">
+                                            <TableHead>Event Type</TableHead>
+                                            <TableHead>Customs Officer</TableHead>
+                                            <TableHead>Location</TableHead>
+                                            <TableHead>Instructions & Queries</TableHead>
+                                            <TableHead>Outcome / Findings</TableHead>
+                                            <TableHead>Timestamp</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {job.declarations?.[0]?.events && job.declarations[0].events.length > 0 ? (
+                                            job.declarations[0].events.map((ev) => (
+                                                <TableRow key={ev.id} className="text-xs">
+                                                    <TableCell>
+                                                        <Badge variant="outline" className="capitalize text-[10px] font-semibold">
+                                                            {ev.event_type.replace('_', ' ')}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="font-medium text-slate-800">{ev.officer_name || 'TRA Examining Officer'}</TableCell>
+                                                    <TableCell>{ev.location || 'TICTS Examination Yard'}</TableCell>
+                                                    <TableCell className="max-w-xs">{ev.instructions || 'Routine compliance check'}</TableCell>
+                                                    <TableCell className="text-emerald-700 font-semibold">{ev.findings || ev.outcome || 'Endorsed Satisfactory'}</TableCell>
+                                                    <TableCell className="text-[11px] text-muted-foreground font-mono">
+                                                        {new Date(ev.event_time).toLocaleString()}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={6} className="text-center py-6 text-slate-500 text-xs">
+                                                    No customs queries or inspection holds recorded. Consignment processing smoothly.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
                             </CardContent>
                         </Card>
                     </TabsContent>
@@ -1343,13 +1664,16 @@ export default function Show({ job, users }: ShowProps) {
                 </DialogContent>
             </Dialog>
 
-            {/* Dialog: Declaration */}
+            {/* Dialog: Declaration & TANCIS Evidence (SRS Section 18) */}
             <Dialog open={isDeclarationDialogOpen} onOpenChange={setIsDeclarationDialogOpen}>
-                <DialogContent>
+                <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle>Update Customs Declaration (TANCIS)</DialogTitle>
-                        <DialogDescription>
-                            Enter official assessment, control number, and release particulars.
+                        <DialogTitle className="flex items-center gap-2">
+                            <ShieldCheck className="w-5 h-5 text-indigo-600" />
+                            Update Customs Declaration & TANCIS Lodgement
+                        </DialogTitle>
+                        <DialogDescription className="text-xs">
+                            Record external TANCIS submission particulars, official assessment breakdown, and release documents.
                         </DialogDescription>
                     </DialogHeader>
                     <form
@@ -1381,26 +1705,83 @@ export default function Show({ job, users }: ShowProps) {
                                 />
                             </div>
                         </div>
+
                         <div className="grid grid-cols-2 gap-2">
                             <div>
-                                <Label className="text-xs font-semibold">Assessed Duty (TZS)</Label>
+                                <Label className="text-xs font-semibold">Customs Station</Label>
                                 <Input
-                                    type="number"
-                                    value={declarationForm.data.assessed_amount_tzs}
-                                    onChange={(e) => declarationForm.setData('assessed_amount_tzs', e.target.value)}
+                                    value={declarationForm.data.customs_office}
+                                    onChange={(e) => declarationForm.setData('customs_office', e.target.value)}
                                     className="text-xs mt-1"
                                 />
                             </div>
                             <div>
-                                <Label className="text-xs font-semibold">Control Number (GePG)</Label>
+                                <Label className="text-xs font-semibold">TANCIS Submission Date</Label>
                                 <Input
-                                    placeholder="991200881920"
-                                    value={declarationForm.data.payment_control_number}
-                                    onChange={(e) => declarationForm.setData('payment_control_number', e.target.value)}
+                                    type="date"
+                                    value={declarationForm.data.external_submission_time}
+                                    onChange={(e) => declarationForm.setData('external_submission_time', e.target.value)}
                                     className="text-xs mt-1"
                                 />
                             </div>
                         </div>
+
+                        <div className="p-2.5 bg-slate-50 dark:bg-slate-900 rounded-lg border space-y-2">
+                            <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                                Official Assessed Tax Breakdown (TZS)
+                            </Label>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <Label className="text-[11px]">Total Assessed Payable *</Label>
+                                    <Input
+                                        type="number"
+                                        placeholder="Total Payable"
+                                        value={declarationForm.data.assessed_amount_tzs}
+                                        onChange={(e) => declarationForm.setData('assessed_amount_tzs', e.target.value)}
+                                        className="text-xs mt-1 font-semibold"
+                                    />
+                                </div>
+                                <div>
+                                    <Label className="text-[11px]">GePG Control Number *</Label>
+                                    <Input
+                                        placeholder="991200881920"
+                                        value={declarationForm.data.payment_control_number}
+                                        onChange={(e) => declarationForm.setData('payment_control_number', e.target.value)}
+                                        className="text-xs mt-1 font-mono font-bold"
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 pt-1 text-[11px]">
+                                <div>
+                                    <Label className="text-[10px]">Import Duty (TZS)</Label>
+                                    <Input
+                                        type="number"
+                                        value={declarationForm.data.import_duty_assessed_tzs}
+                                        onChange={(e) => declarationForm.setData('import_duty_assessed_tzs', e.target.value)}
+                                        className="text-xs mt-0.5 h-8"
+                                    />
+                                </div>
+                                <div>
+                                    <Label className="text-[10px]">VAT (18% TZS)</Label>
+                                    <Input
+                                        type="number"
+                                        value={declarationForm.data.vat_assessed_tzs}
+                                        onChange={(e) => declarationForm.setData('vat_assessed_tzs', e.target.value)}
+                                        className="text-xs mt-0.5 h-8"
+                                    />
+                                </div>
+                                <div>
+                                    <Label className="text-[10px]">RDL & CPF (TZS)</Label>
+                                    <Input
+                                        type="number"
+                                        value={declarationForm.data.rdl_assessed_tzs}
+                                        onChange={(e) => declarationForm.setData('rdl_assessed_tzs', e.target.value)}
+                                        className="text-xs mt-0.5 h-8"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-2 gap-2">
                             <div>
                                 <Label className="text-xs font-semibold">Release Order No</Label>
@@ -1412,23 +1793,148 @@ export default function Show({ job, users }: ShowProps) {
                                 />
                             </div>
                             <div>
-                                <Label className="text-xs font-semibold">Declaration Status</Label>
+                                <Label className="text-xs font-semibold">Declaration Status (SRS §19)</Label>
                                 <select
                                     value={declarationForm.data.status}
                                     onChange={(e) => declarationForm.setData('status', e.target.value as any)}
-                                    className="w-full h-9 text-xs border border-slate-300 rounded-md px-2 bg-white mt-1"
+                                    className="w-full h-9 text-xs border border-slate-300 rounded-md px-2 bg-background mt-1"
                                 >
-                                    <option value="draft">Draft</option>
-                                    <option value="submitted">Submitted</option>
-                                    <option value="assessed">Assessed</option>
-                                    <option value="paid">Duties Paid</option>
-                                    <option value="released">Released at Port</option>
+                                    <option value="draft">Draft Preparation</option>
+                                    <option value="worksheet_generated">Worksheet Generated</option>
+                                    <option value="tancis_submitted_pending_evidence">Submitted in TANCIS (Evidence Pending)</option>
+                                    <option value="lodgement_evidence_recorded">Lodgement Evidence Recorded</option>
+                                    <option value="queried">Queried by Customs</option>
+                                    <option value="amended">Declaration Amended</option>
+                                    <option value="assessed">Official Assessment Recorded</option>
+                                    <option value="payment_pending">Payment Pending</option>
+                                    <option value="paid">Duties Paid / Settled</option>
+                                    <option value="customs_released">Customs Released</option>
                                 </select>
                             </div>
                         </div>
-                        <DialogFooter>
+
+                        <div className="border-t pt-2 space-y-2 text-xs">
+                            <span className="font-semibold text-slate-800 dark:text-slate-200 block">
+                                Evidence Document Uploads (PDF / Scans)
+                            </span>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <Label className="text-[11px]">Lodgement Evidence</Label>
+                                    <input
+                                        type="file"
+                                        className="text-[10px] mt-1 w-full"
+                                        onChange={(e) => declarationForm.setData('lodgement_evidence', e.target.files?.[0] || null)}
+                                    />
+                                </div>
+                                <div>
+                                    <Label className="text-[11px]">Assessment Notice</Label>
+                                    <input
+                                        type="file"
+                                        className="text-[10px] mt-1 w-full"
+                                        onChange={(e) => declarationForm.setData('assessment_document', e.target.files?.[0] || null)}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <DialogFooter className="pt-2">
                             <Button type="button" variant="outline" onClick={() => setIsDeclarationDialogOpen(false)}>Cancel</Button>
-                            <Button type="submit" className="bg-[#1e3a5f] hover:bg-[#152a45] text-white">Save Declaration</Button>
+                            <Button type="submit" disabled={declarationForm.processing} className="bg-indigo-700 hover:bg-indigo-800 text-white">
+                                Save TANCIS Declaration
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Dialog: Customs Query / Incident Event (SRS INT-MAN-013) */}
+            <Dialog open={isEventDialogOpen} onOpenChange={setIsEventDialogOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <AlertCircle className="w-5 h-5 text-amber-600" />
+                            Record Customs Event / Query
+                        </DialogTitle>
+                        <DialogDescription className="text-xs">
+                            Log official customs examination, scan result, query notice, or compliance instructions.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            if (!job.declarations?.[0]) return;
+                            eventForm.post(route('clearing-forwarding.jobs.declarations.events.store', { cfJob: job.id, declaration: job.declarations[0].id }), {
+                                onSuccess: () => {
+                                    setIsEventDialogOpen(false);
+                                    eventForm.reset();
+                                },
+                            });
+                        }}
+                        className="space-y-3"
+                    >
+                        <div>
+                            <Label className="text-xs font-semibold">Event Type *</Label>
+                            <select
+                                value={eventForm.data.event_type}
+                                onChange={(e) => eventForm.setData('event_type', e.target.value as any)}
+                                className="w-full h-9 text-xs border border-slate-300 rounded-md px-2 bg-background mt-1"
+                            >
+                                <option value="query_raised">Customs Query Raised</option>
+                                <option value="query_answered">Query Response Submitted</option>
+                                <option value="physical_inspection">Physical Examination Conducted</option>
+                                <option value="scanning_scheduled">Container Scanning Scheduled</option>
+                                <option value="release_granted">Release Granted at Gate</option>
+                                <option value="customs_hold">Customs Administrative Hold</option>
+                            </select>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                            <div>
+                                <Label className="text-xs font-semibold">Examining Officer</Label>
+                                <Input
+                                    placeholder="Officer Name / ID"
+                                    value={eventForm.data.officer_name}
+                                    onChange={(e) => eventForm.setData('officer_name', e.target.value)}
+                                    className="text-xs mt-1"
+                                />
+                            </div>
+                            <div>
+                                <Label className="text-xs font-semibold">Location</Label>
+                                <Input
+                                    value={eventForm.data.location}
+                                    onChange={(e) => eventForm.setData('location', e.target.value)}
+                                    className="text-xs mt-1"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <Label className="text-xs font-semibold">Instructions / Queries</Label>
+                            <Textarea
+                                rows={2}
+                                placeholder="Describe query raised or verification instructions..."
+                                value={eventForm.data.instructions}
+                                onChange={(e) => eventForm.setData('instructions', e.target.value)}
+                                className="text-xs mt-1"
+                            />
+                        </div>
+
+                        <div>
+                            <Label className="text-xs font-semibold">Findings / Outcome</Label>
+                            <Textarea
+                                rows={2}
+                                placeholder="Inspection results or declarant response..."
+                                value={eventForm.data.findings}
+                                onChange={(e) => eventForm.setData('findings', e.target.value)}
+                                className="text-xs mt-1"
+                            />
+                        </div>
+
+                        <DialogFooter className="pt-2">
+                            <Button type="button" variant="outline" onClick={() => setIsEventDialogOpen(false)}>Cancel</Button>
+                            <Button type="submit" disabled={eventForm.processing} className="bg-amber-600 hover:bg-amber-700 text-white">
+                                Record Event
+                            </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>

@@ -74,6 +74,8 @@ export interface CFContainer {
     empty_return_deadline?: string | null;
     empty_returned_at?: string | null;
     empty_depot_name?: string | null;
+    demurrage_days?: number | null;
+    demurrage_amount_tzs?: number | null;
     status: 'at_terminal' | 'cleared_gate_out' | 'in_transit' | 'empty_returned' | 'demurrage_accruing';
     interchange_receipt_number?: string | null;
     job?: CFJob;
@@ -163,6 +165,26 @@ export interface CFCustomsEvent {
     recorder?: UserSummary | null;
 }
 
+export type DeclarationStatus =
+    | 'draft'
+    | 'ready_for_review'
+    | 'internally_approved'
+    | 'worksheet_generated'
+    | 'tancis_submitted_pending_evidence'
+    | 'lodgement_evidence_recorded'
+    | 'submitted'
+    | 'queried'
+    | 'amended'
+    | 'under_examination'
+    | 'assessed'
+    | 'payment_pending'
+    | 'paid'
+    | 'inspection_pending'
+    | 'inspection_completed'
+    | 'customs_released'
+    | 'released'
+    | 'cancelled';
+
 export interface CFDeclaration {
     id: number;
     cf_job_id: number;
@@ -176,15 +198,46 @@ export interface CFDeclaration {
     assessment_number?: string | null;
     assessment_date?: string | null;
     assessed_amount_tzs: number;
+    total_tax_tzs?: number;
     payment_control_number?: string | null;
     payment_date?: string | null;
     release_order_number?: string | null;
     release_date?: string | null;
-    status: 'draft' | 'submitted' | 'queried' | 'under_examination' | 'assessed' | 'paid' | 'released' | 'cancelled';
+    status: DeclarationStatus | string;
     customs_channel?: string | null;
     declarant?: UserSummary | null;
     events?: CFCustomsEvent[];
     job?: CFJob;
+
+    // TANCIS Manual Addendum & Evidence Tracking (Section 18 & 19)
+    worksheet_version?: number;
+    worksheet_generated_at?: string | null;
+    worksheet_generated_by?: number | null;
+    worksheet_generator?: UserSummary | null;
+    manual_entry_source?: string;
+    external_submission_time?: string | null;
+    lodgement_evidence_path?: string | null;
+    import_duty_assessed_tzs?: number;
+    vat_assessed_tzs?: number;
+    rdl_assessed_tzs?: number;
+    cpf_assessed_tzs?: number;
+    excise_assessed_tzs?: number;
+    other_taxes_assessed_tzs?: number;
+    penalties_tzs?: number;
+    assessment_document_path?: string | null;
+    is_assessment_verified?: boolean;
+    assessment_verified_by?: number | null;
+    assessment_verified_at?: string | null;
+    assessment_verifier?: UserSummary | null;
+    payment_receipt_path?: string | null;
+    is_payment_verified?: boolean;
+    payment_verified_by?: number | null;
+    payment_verified_at?: string | null;
+    release_order_path?: string | null;
+    is_release_verified?: boolean;
+    release_verified_by?: number | null;
+    release_verified_at?: string | null;
+    release_verifier?: UserSummary | null;
 }
 
 export interface CFChargeEstimate {
@@ -364,5 +417,6 @@ export interface CFJob {
     tracking_events?: CFTrackingEvent[];
     deliveries?: CFDelivery[];
     job_costing?: CFJobCosting;
+    jobCosting?: CFJobCosting;
 }
 

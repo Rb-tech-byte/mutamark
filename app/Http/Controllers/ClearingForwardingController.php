@@ -365,7 +365,183 @@ class ClearingForwardingController extends Controller
     }
 
     /**
-     * Save/Update Customs Declaration
+     * Generate / Print / Version Declaration Worksheet (INT-MAN-003, INT-MAN-005, AC-DEC-01)
+     * Note: Generating a worksheet SHALL NOT change external status to Submitted or Lodged.
+     */
+    public function generateWorksheet(CFJob $cfJob)
+    {
+        $declaration = $cfJob->declarations()->first();
+        if (!$declaration) {
+            $declaration = CFDeclaration::create([
+                'cf_job_id' => $cfJob->id,
+                'customs_office' => $cfJob->shipment->port_of_discharge ?? 'Dar es Salaam Port',
+                'declaration_type' => 'TANSAD',
+                'regime_code' => $cfJob->customs_regime,
+                'declarant_user_id' => Auth::id(),
+                'status' => 'worksheet_generated',
+                'worksheet_version' => 1,
+                'worksheet_generated_at' => now(),
+                'worksheet_generated_by' => Auth::id(),
+            ]);
+        } else {
+            $newVersion = ($declaration->worksheet_version ?? 0) + 1;
+            $updates = [
+                'worksheet_version' => $newVersion,
+                'worksheet_generated_at' => now(),
+                'worksheet_generated_by' => Auth::id(),
+            ];
+            // Only update internal status if still in draft/preparation
+            if (in_array($declaration->status, ['draft', 'ready_for_review'])) {
+                $updates['status'] = 'worksheet_generated';
+            }
+            $declaration->update($updates);
+        }
+
+        // Return printable worksheet layout
+        return redirect()->route('clearing-forwarding.jobs.print', ['cfJob' => $cfJob->id, 'type' => 'worksheet'])
+            ->with('success', "Declaration Worksheet v{$declaration->worksheet_version} generated. Status remains internal until manual TANCIS lodgement.");
+    }
+
+    /**
+     * Export Declaration Worksheet as CSV / Excel format (INT-MAN-003, AC-DEC-02)
+     */
+    public function exportWorksheetCsv(CFJob $cfJob)
+    {
+        $cfJob->load(['customer', 'shipment', 'cargoLines', 'declarations.items']);
+        $declaration = $cfJob->declarations()->first();
+        $version = $declaration->worksheet_version ?? 1;
+
+        $fileName = "TANCIS_Worksheet_{$cfJob->job_number}_v{$version}.csv";
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$fileName}\"",
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
+        ];
+
+        $callback = function () use ($cfJob, $declaration, $version) {
+            $handle = fopen('php://output', 'w');
+            fputs($handle, "\xEF\xBB\xBF"); // UTF-8 BOM for Excel compatibility
+
+            // Document Header
+            fputcsv($handle, ['MUTAMARK ERP - TANCIS CUSTOMS DECLARATION WORKSHEET']);
+            fputcsv($handle, ['OPERATING NOTICE', 'Prepared for manual data entry in TRA/TANCIS. Estimate - Not an official TRA assessment.']);
+            fputcsv($handle, ['Worksheet Version', "v{$version}"]);
+            fputcsv($handle, ['Generated At', $declaration->worksheet_generated_at ?? now()->toDateTimeString()]);
+            fputcsv($handle, []);
+
+            // Consignment & Declaration Header
+            fputcsv($handle, ['--- CONSIGNMENT HEADER ---']);
+            fputcsv($handle, ['Job Number', $cfJob->job_number]);
+            fputcsv($handle, ['Customer / Importer', $cfJob->customer->name ?? 'N/A']);
+            fputcsv($handle, ['Consignee', $cfJob->consignee_name ?? $cfJob->customer->name ?? 'N/A']);
+            fputcsv($handle, ['Consignor / Supplier', $cfJob->consignor_name ?? 'N/A']);
+            fputcsv($handle, ['Customs Office', $declaration->customs_office ?? $cfJob->shipment->port_of_discharge ?? 'Dar es Salaam Port']);
+            fputcsv($handle, ['Declaration Type / Regime', ($declaration->declaration_type ?? 'TANSAD') . ' / ' . ($declaration->regime_code ?? $cfJob->customs_regime)]);
+            fputcsv($handle, ['Transport Mode', strtoupper($cfJob->transport_mode ?? 'sea')]);
+            fputcsv($handle, ['BL / AWB Number', $cfJob->shipment->bl_awb_number ?? 'N/A']);
+            fputcsv($handle, ['Vessel / Flight / Vehicle', $cfJob->shipment->vessel_flight_truck ?? 'N/A']);
+            fputcsv($handle, ['Port of Loading', $cfJob->shipment->port_of_loading ?? 'N/A']);
+            fputcsv($handle, ['Port of Discharge', $cfJob->shipment->port_of_discharge ?? 'N/A']);
+            fputcsv($handle, []);
+
+            // Valuation
+            fputcsv($handle, ['--- CUSTOMS VALUATION (ESTIMATED) ---']);
+            fputcsv($handle, ['Valuation Currency', $declaration->currency ?? 'USD']);
+            fputcsv($handle, ['Exchange Rate (TZS)', number_format($declaration->exchange_rate ?? 2600, 2)]);
+            fputcsv($handle, ['FOB / Invoice Value', number_format($declaration->fob_value ?? 0, 2)]);
+            fputcsv($handle, ['Freight', number_format($declaration->freight_value ?? 0, 2)]);
+            fputcsv($handle, ['Insurance', number_format($declaration->insurance_value ?? 0, 2)]);
+            fputcsv($handle, ['Total CIF Value (USD)', number_format($declaration->cif_value ?? 0, 2)]);
+            fputcsv($handle, ['Customs Value (TZS)', number_format($declaration->customs_value_tzs ?? 0, 2)]);
+            fputcsv($handle, []);
+
+            // Goods Lines
+            fputcsv($handle, ['--- HS TARIFF GOODS LINES ---']);
+            fputcsv($handle, [
+                'Line #',
+                'HS Tariff Code',
+                'Goods Description',
+                'Country of Origin',
+                'Quantity',
+                'Unit of Measure',
+                'Unit Price',
+                'Customs Value (TZS)',
+                'Import Duty Rate (%)',
+                'Estimated Duty (TZS)',
+                'VAT Rate (%)',
+                'Estimated VAT (TZS)',
+                'Total Estimated Tax (TZS)'
+            ]);
+
+            $items = $declaration->items ?? [];
+            if ($items && count($items) > 0) {
+                foreach ($items as $idx => $item) {
+                    $dutyRate = $item->duty_rate ?? 25;
+                    $vatRate = $item->vat_rate ?? 18;
+                    $customsVal = $item->customs_value_tzs ?? 0;
+                    $dutyAmt = $item->duty_amount ?? ($customsVal * ($dutyRate / 100));
+                    $vatAmt = $item->vat_amount ?? (($customsVal + $dutyAmt) * ($vatRate / 100));
+                    $totTax = $dutyAmt + $vatAmt;
+
+                    fputcsv($handle, [
+                        $idx + 1,
+                        $item->hs_code ?? 'N/A',
+                        $item->description ?? 'N/A',
+                        $item->country_of_origin ?? 'N/A',
+                        $item->quantity ?? 1,
+                        $item->uom ?? 'PCS',
+                        number_format($item->unit_price ?? 0, 2),
+                        number_format($customsVal, 2),
+                        $dutyRate . '%',
+                        number_format($dutyAmt, 2),
+                        $vatRate . '%',
+                        number_format($vatAmt, 2),
+                        number_format($totTax, 2),
+                    ]);
+                }
+            } else {
+                foreach ($cfJob->cargoLines as $idx => $cargo) {
+                    fputcsv($handle, [
+                        $idx + 1,
+                        $cargo->hs_code ?? '8471.30.00',
+                        $cargo->commodity_description,
+                        'TZ',
+                        $cargo->package_count ?? 1,
+                        $cargo->package_type ?? 'PKGS',
+                        '0.00',
+                        number_format($declaration->customs_value_tzs ?? 0, 2),
+                        '25%',
+                        number_format($declaration->import_duty_tzs ?? 0, 2),
+                        '18%',
+                        number_format($declaration->vat_tzs ?? 0, 2),
+                        number_format(($declaration->import_duty_tzs ?? 0) + ($declaration->vat_tzs ?? 0), 2),
+                    ]);
+                }
+            }
+
+            fputcsv($handle, []);
+            fputcsv($handle, ['--- ESTIMATED TAX SUMMARY ---']);
+            fputcsv($handle, ['Estimated Import Duty (TZS)', number_format($declaration->import_duty_tzs ?? 0, 2)]);
+            fputcsv($handle, ['Estimated VAT (TZS)', number_format($declaration->vat_tzs ?? 0, 2)]);
+            fputcsv($handle, ['Estimated RDL (TZS)', number_format($declaration->rdl_tzs ?? 0, 2)]);
+            fputcsv($handle, ['Estimated CPF (TZS)', number_format($declaration->cpf_tzs ?? 0, 2)]);
+            fputcsv($handle, ['Total Estimated Taxes (TZS)', number_format($declaration->total_tax_tzs ?? 0, 2)]);
+            fputcsv($handle, []);
+            fputcsv($handle, ['Official TANCIS Declaration Reference', $declaration->tancis_reference ?? 'Pending Manual Lodgement']);
+            fputcsv($handle, ['Assessment Status', ($declaration->is_assessment_verified ?? false) ? 'Verified by Finance' : 'Unverified / Pending']);
+            fputcsv($handle, ['Release Status', ($declaration->is_release_verified ?? false) ? 'Customs Released' : 'Pending Official Release']);
+
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Save/Update Customs Declaration (INT-MAN-006, INT-MAN-009, INT-MAN-010)
      */
     public function storeDeclaration(Request $request, CFJob $cfJob)
     {
@@ -376,14 +552,46 @@ class ClearingForwardingController extends Controller
             'tancis_reference' => 'nullable|string',
             'regime_code' => 'nullable|string',
             'assessment_number' => 'nullable|string',
-            'assessed_amount_tzs' => 'nullable|numeric',
+            'assessment_date' => 'nullable|date',
+            'assessed_amount_tzs' => 'nullable|numeric|min:0',
+            'import_duty_assessed_tzs' => 'nullable|numeric|min:0',
+            'vat_assessed_tzs' => 'nullable|numeric|min:0',
+            'rdl_assessed_tzs' => 'nullable|numeric|min:0',
+            'cpf_assessed_tzs' => 'nullable|numeric|min:0',
+            'excise_assessed_tzs' => 'nullable|numeric|min:0',
+            'other_taxes_assessed_tzs' => 'nullable|numeric|min:0',
+            'penalties_tzs' => 'nullable|numeric|min:0',
             'payment_control_number' => 'nullable|string',
+            'payment_date' => 'nullable|date',
             'release_order_number' => 'nullable|string',
+            'release_date' => 'nullable|date',
             'status' => 'required|string',
             'customs_channel' => 'nullable|string',
+            'external_submission_time' => 'nullable|date',
+            'lodgement_evidence' => 'nullable|file|max:10240',
+            'assessment_document' => 'nullable|file|max:10240',
+            'payment_receipt' => 'nullable|file|max:10240',
+            'release_order' => 'nullable|file|max:10240',
         ]);
 
         $declaration = $cfJob->declarations()->first();
+
+        // Handle file uploads
+        if ($request->hasFile('lodgement_evidence')) {
+            $validated['lodgement_evidence_path'] = $request->file('lodgement_evidence')->store('clearing/evidence', 'public');
+        }
+        if ($request->hasFile('assessment_document')) {
+            $validated['assessment_document_path'] = $request->file('assessment_document')->store('clearing/assessments', 'public');
+        }
+        if ($request->hasFile('payment_receipt')) {
+            $validated['payment_receipt_path'] = $request->file('payment_receipt')->store('clearing/payments', 'public');
+        }
+        if ($request->hasFile('release_order')) {
+            $validated['release_order_path'] = $request->file('release_order')->store('clearing/releases', 'public');
+        }
+
+        $validated['manual_entry_source'] = 'Manual entry from TANCIS';
+
         if ($declaration) {
             $declaration->update($validated);
         } else {
@@ -393,15 +601,104 @@ class ClearingForwardingController extends Controller
         }
 
         // Auto update job status if declared / assessed / released
-        if ($validated['status'] === 'released') {
+        if ($validated['status'] === 'customs_released' || $validated['status'] === 'released') {
             $cfJob->update(['status' => 'cargo_released']);
         } elseif ($validated['status'] === 'assessed') {
             $cfJob->update(['status' => 'assessed']);
-        } elseif ($validated['status'] === 'submitted') {
+        } elseif (in_array($validated['status'], ['submitted', 'lodgement_evidence_recorded', 'tancis_submitted_pending_evidence'])) {
             $cfJob->update(['status' => 'declaration_submitted']);
         }
 
-        return back()->with('success', 'Customs declaration updated successfully.');
+        return back()->with('success', 'Customs declaration & TANCIS manual records updated successfully.');
+    }
+
+    /**
+     * Finance Officer Verifies Official Assessment Notice & GePG Control Number (INT-MAN-011, AC-DEC-06)
+     */
+    public function verifyAssessment(Request $request, CFDeclaration $declaration)
+    {
+        $declaration->update([
+            'is_assessment_verified' => true,
+            'assessment_verified_by' => Auth::id(),
+            'assessment_verified_at' => now(),
+            'status' => 'payment_pending',
+        ]);
+
+        return back()->with('success', 'Official TRA assessment verified by Finance. Payment processing authorized.');
+    }
+
+    /**
+     * Authorized Verification of Official Customs Release Order (INT-MAN-015, AC-DEC-09)
+     */
+    public function verifyRelease(Request $request, CFDeclaration $declaration)
+    {
+        $declaration->update([
+            'is_release_verified' => true,
+            'release_verified_by' => Auth::id(),
+            'release_verified_at' => now(),
+            'status' => 'customs_released',
+            'release_date' => $declaration->release_date ?? now(),
+        ]);
+
+        $declaration->job->update(['status' => 'cargo_released']);
+
+        // Log tracking milestone
+        CFTrackingEvent::create([
+            'cf_job_id' => $declaration->cf_job_id,
+            'milestone_code' => 'customs_released',
+            'location_name' => $declaration->customs_office ?? 'Customs Center',
+            'event_time' => now(),
+            'remarks' => "Official TRA Release Order {$declaration->release_order_number} verified. Cargo authorized for gate-out and haulage.",
+            'is_customer_visible' => true,
+            'recorded_by' => Auth::id(),
+        ]);
+
+        return back()->with('success', 'Official Customs Release verified. Cargo ready for gate-out and dispatch.');
+    }
+
+    /**
+     * Record Customs Query, Examination, or Scan Event (INT-MAN-013, USR-DEC-013, USR-DEC-014)
+     */
+    public function storeCustomsEvent(Request $request, CFJob $cfJob, CFDeclaration $declaration)
+    {
+        $validated = $request->validate([
+            'event_type' => 'required|string',
+            'officer_name' => 'nullable|string|max:255',
+            'location' => 'nullable|string|max:255',
+            'instructions' => 'nullable|string',
+            'findings' => 'nullable|string',
+            'outcome' => 'nullable|string',
+            'attachment' => 'nullable|file|max:10240',
+        ]);
+
+        $attachmentPath = null;
+        if ($request->hasFile('attachment')) {
+            $attachmentPath = $request->file('attachment')->store('clearing/customs_events', 'public');
+        }
+
+        $event = CFCustomsEvent::create([
+            'cf_declaration_id' => $declaration->id,
+            'cf_job_id' => $cfJob->id,
+            'event_type' => $validated['event_type'],
+            'officer_name' => $validated['officer_name'] ?? null,
+            'event_time' => now(),
+            'location' => $validated['location'] ?? null,
+            'instructions' => $validated['instructions'] ?? null,
+            'findings' => $validated['findings'] ?? null,
+            'outcome' => $validated['outcome'] ?? null,
+            'attachment_path' => $attachmentPath,
+            'recorded_by' => Auth::id(),
+        ]);
+
+        // If query was raised, update declaration status to queried
+        if ($validated['event_type'] === 'query_raised') {
+            $declaration->update(['status' => 'queried']);
+            $cfJob->update(['status' => 'customs_queried']);
+        } elseif ($validated['event_type'] === 'query_answered') {
+            $declaration->update(['status' => 'amended']);
+        }
+
+        return back()->with('success', 'Customs event recorded with full audit tracking.');
     }
 
     /**
@@ -676,6 +973,184 @@ class ClearingForwardingController extends Controller
             'job' => $cfJob,
             'type' => $type,
         ]);
+    }
+
+    /**
+     * Clearing & Forwarding Comprehensive Operations & Demurrage Reports (SRS Section 9 & 14)
+     */
+    public function reports(Request $request)
+    {
+        $query = CFJob::with(['customer', 'shipment', 'containers', 'declarations', 'jobCosting', 'disbursements']);
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('transport_mode')) {
+            $query->where('transport_mode', $request->transport_mode);
+        }
+        if ($request->filled('service_type')) {
+            $query->where('service_type', $request->service_type);
+        }
+        if ($request->filled('date_from')) {
+            $query->whereDate('opened_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('opened_at', '<=', $request->date_to);
+        }
+
+        $jobs = $query->latest('id')->get();
+
+        // Calculate aggregate metrics
+        $totalJobs = $jobs->count();
+        $clearedJobs = $jobs->whereIn('status', ['customs_cleared', 'cargo_released', 'in_transit', 'delivered', 'completed'])->count();
+        $totalCustomsDutyAssessed = $jobs->sum(function ($j) {
+            return $j->declarations->sum('assessed_amount_tzs') ?: $j->declarations->sum('total_tax_tzs');
+        });
+        $totalDemurrage = $jobs->sum(function ($j) {
+            return $j->containers->sum('demurrage_amount_tzs');
+        });
+        $totalAdvances = $jobs->sum(function ($j) {
+            return $j->jobCosting->customer_advance_received ?? 0;
+        });
+        $totalRevenue = $jobs->sum(function ($j) {
+            return $j->jobCosting->total_service_revenue ?? 0;
+        });
+        $totalDisbursed = $jobs->sum(function ($j) {
+            return $j->jobCosting->total_disbursements_and_direct_costs ?? 0;
+        });
+        $totalProfit = $jobs->sum(function ($j) {
+            return $j->jobCosting->gross_profit ?? 0;
+        });
+
+        // Stage breakdown
+        $stageCounts = [
+            'documents_pending' => $jobs->where('status', 'documents_pending')->count(),
+            'customs_processing' => $jobs->whereIn('status', ['documents_verified', 'declaration_drafted', 'declaration_submitted', 'customs_assessment', 'payment_pending'])->count(),
+            'customs_cleared' => $jobs->whereIn('status', ['customs_cleared', 'cargo_released'])->count(),
+            'in_transit' => $jobs->where('status', 'in_transit')->count(),
+            'delivered' => $jobs->whereIn('status', ['delivered', 'completed'])->count(),
+        ];
+
+        return Inertia::render('ClearingForwarding/Reports', [
+            'jobs' => $jobs,
+            'filters' => $request->only(['status', 'transport_mode', 'service_type', 'date_from', 'date_to']),
+            'metrics' => [
+                'total_jobs' => $totalJobs,
+                'cleared_jobs' => $clearedJobs,
+                'total_customs_duty_tzs' => $totalCustomsDutyAssessed,
+                'total_demurrage_tzs' => $totalDemurrage,
+                'total_advances_tzs' => $totalAdvances,
+                'total_revenue_tzs' => $totalRevenue,
+                'total_disbursed_tzs' => $totalDisbursed,
+                'total_profit_tzs' => $totalProfit,
+                'stage_counts' => $stageCounts,
+            ],
+        ]);
+    }
+
+    /**
+     * Export Filtered Reports Data to CSV / Excel (SRS Section 9)
+     */
+    public function exportReportsCsv(Request $request)
+    {
+        $query = CFJob::with(['customer', 'shipment', 'containers', 'declarations', 'jobCosting', 'disbursements']);
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('transport_mode')) {
+            $query->where('transport_mode', $request->transport_mode);
+        }
+        if ($request->filled('service_type')) {
+            $query->where('service_type', $request->service_type);
+        }
+        if ($request->filled('date_from')) {
+            $query->whereDate('opened_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('opened_at', '<=', $request->date_to);
+        }
+
+        $jobs = $query->latest('id')->get();
+        $dateStr = now()->format('Ymd_His');
+        $fileName = "CF_Operations_Report_{$dateStr}.csv";
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$fileName}\"",
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
+        ];
+
+        $callback = function () use ($jobs) {
+            $handle = fopen('php://output', 'w');
+            fputs($handle, "\xEF\xBB\xBF"); // UTF-8 BOM
+
+            fputcsv($handle, ['MUTAMARK ERP - CLEARING & FORWARDING OPERATIONS & FINANCIAL REPORT']);
+            fputcsv($handle, ['Exported At', now()->toDateTimeString()]);
+            fputcsv($handle, ['Total Jobs Exported', $jobs->count()]);
+            fputcsv($handle, []);
+
+            fputcsv($handle, [
+                'Job Number',
+                'Date Opened',
+                'Customer',
+                'Service Type',
+                'Transport Mode',
+                'Customs Regime',
+                'Status',
+                'BL / AWB No',
+                'Vessel / Truck',
+                'Port of Discharge',
+                'Final Destination',
+                'TANCIS Ref',
+                'Assessment (TZS)',
+                'GePG Control No',
+                'Finance Verified',
+                'Release Verified',
+                'Container Count',
+                'Demurrage (TZS)',
+                'Advance Received (TZS)',
+                'Disbursements (TZS)',
+                'Service Revenue (TZS)',
+                'Gross Profit (TZS)',
+            ]);
+
+            foreach ($jobs as $job) {
+                $decl = $job->declarations->first();
+                $costing = $job->jobCosting;
+
+                fputcsv($handle, [
+                    $job->job_number,
+                    $job->opened_at ? $job->opened_at->toDateString() : '',
+                    $job->customer->name ?? 'N/A',
+                    strtoupper($job->service_type),
+                    strtoupper($job->transport_mode),
+                    $job->customs_regime,
+                    $job->status,
+                    $job->shipment->bl_awb_number ?? '',
+                    $job->shipment->vessel_flight_truck ?? '',
+                    $job->shipment->port_of_discharge ?? '',
+                    $job->shipment->final_destination ?? '',
+                    $decl->tancis_reference ?? $decl->declaration_number ?? 'N/A',
+                    number_format($decl->assessed_amount_tzs ?? $decl->total_tax_tzs ?? 0, 2, '.', ''),
+                    $decl->payment_control_number ?? 'N/A',
+                    ($decl && $decl->is_assessment_verified) ? 'YES' : 'NO',
+                    ($decl && $decl->is_release_verified) ? 'YES' : 'NO',
+                    $job->containers->count(),
+                    number_format($job->containers->sum('demurrage_amount_tzs') ?: 0, 2, '.', ''),
+                    number_format($costing->customer_advance_received ?? 0, 2, '.', ''),
+                    number_format($costing->total_disbursements_and_direct_costs ?? 0, 2, '.', ''),
+                    number_format($costing->total_service_revenue ?? 0, 2, '.', ''),
+                    number_format($costing->gross_profit ?? 0, 2, '.', ''),
+                ]);
+            }
+
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }
 
