@@ -15,7 +15,16 @@ class WarrantyServicingController extends Controller implements \Illuminate\Rout
 {
     public static function middleware(): array
     {
-        return [new \Illuminate\Routing\Controllers\Middleware('can:manage-account')];
+        return [
+            function ($request, $next) {
+                if (!Auth::check()) return redirect()->route('login');
+                $user = Auth::user();
+                if ($user->type === 'company' || $user->type === 'superadmin' || $user->can('manage-account') || $user->can('manage-stock') || $user->can('manage-product-service-item') || $user->can('manage-sales-invoices')) {
+                    return $next($request);
+                }
+                return back()->with('error', __('Permission denied.'));
+            }
+        ];
     }
     protected function getCreatorId()
     {
@@ -36,21 +45,23 @@ class WarrantyServicingController extends Controller implements \Illuminate\Rout
         $creatorId = $this->getCreatorId();
 
         // Auto-expire warranties past end date
-        WarrantyRegistration::where('status', 'active')
+        WarrantyRegistration::where('created_by', $creatorId)
+            ->where('status', 'active')
             ->where('end_date', '<', now()->toDateString())
             ->update(['status' => 'expired']);
 
         // Key Metrics
-        $totalWarranties = WarrantyRegistration::count();
-        $activeWarranties = WarrantyRegistration::where('status', 'active')->count();
-        $expiredWarranties = WarrantyRegistration::where('status', 'expired')->count();
-        $openTickets = ServiceTicket::whereNotIn('status', ['delivered_to_customer', 'cancelled'])->count();
-        $vendorRepairs = ServiceTicket::where('vendor_repair', true)
+        $totalWarranties = WarrantyRegistration::where('created_by', $creatorId)->count();
+        $activeWarranties = WarrantyRegistration::where('created_by', $creatorId)->where('status', 'active')->count();
+        $expiredWarranties = WarrantyRegistration::where('created_by', $creatorId)->where('status', 'expired')->count();
+        $openTickets = ServiceTicket::where('created_by', $creatorId)->whereNotIn('status', ['delivered_to_customer', 'cancelled'])->count();
+        $vendorRepairs = ServiceTicket::where('created_by', $creatorId)->where('vendor_repair', true)
             ->whereNotIn('status', ['delivered_to_customer', 'cancelled'])->count();
-        $completedTickets = ServiceTicket::whereIn('status', ['repaired', 'delivered_to_customer'])->count();
+        $completedTickets = ServiceTicket::where('created_by', $creatorId)->whereIn('status', ['repaired', 'delivered_to_customer'])->count();
 
         // Datasets
         $warranties = WarrantyRegistration::with(['invoice', 'serviceTickets'])
+            ->where('created_by', $creatorId)
             ->orderBy('id', 'desc')
             ->limit(100)
             ->get()
@@ -61,12 +72,13 @@ class WarrantyServicingController extends Controller implements \Illuminate\Rout
             });
 
         $serviceTickets = ServiceTicket::with(['warranty', 'technician'])
+            ->where('created_by', $creatorId)
             ->orderBy('id', 'desc')
             ->limit(100)
             ->get();
 
-        $products = ProductServiceItem::select('id', 'name', 'sku')->orderBy('name')->get();
-        $technicians = User::select('id', 'name', 'email')->orderBy('name')->get();
+        $products = ProductServiceItem::where('created_by', $creatorId)->select('id', 'name', 'sku')->orderBy('name')->get();
+        $technicians = User::where('created_by', $creatorId)->select('id', 'name', 'email')->orderBy('name')->get();
 
         return Inertia::render('Warranty/Index', [
             'metrics' => [

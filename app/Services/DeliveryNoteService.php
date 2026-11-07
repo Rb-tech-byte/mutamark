@@ -178,14 +178,31 @@ class DeliveryNoteService
             $invoice = $dn->invoice_id ? SalesInvoice::where('created_by', creatorId())->lockForUpdate()->findOrFail($dn->invoice_id) : null;
             $dn = DeliveryNote::where('created_by', creatorId())->lockForUpdate()->findOrFail($dn->id);
             if (in_array($dn->status, ['dispatched', 'in_transit', 'delivered'])) return $dn->fresh(['items']);
-            abort_unless(in_array($dn->status, ['draft', 'scheduled']), 409, 'Only draft or scheduled deliveries may dispatch.');
+            if (!in_array($dn->status, ['draft', 'scheduled'])) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'status' => __('Only draft or scheduled deliveries may dispatch.')
+                ]);
+            }
             $order = $dn->sales_order_id ? SalesOrder::where('created_by', creatorId())->lockForUpdate()->findOrFail($dn->sales_order_id) : null;
             if ($invoice) {
-                abort_unless((int) $invoice->customer_id === (int) $dn->customer_id && (int) $invoice->warehouse_id === (int) $dn->warehouse_id, 422, 'Invoice customer and warehouse must match.');
+                if ((int) $invoice->customer_id !== (int) $dn->customer_id) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'customer_id' => __('Invoice customer and delivery note customer must match.')
+                    ]);
+                }
+                if ($invoice->warehouse_id && (int) $invoice->warehouse_id !== (int) $dn->warehouse_id) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'warehouse_id' => __('Invoice warehouse and delivery note warehouse must match.')
+                    ]);
+                }
                 foreach ($dn->items->groupBy('product_id') as $productId => $items) {
                     $previous = DB::table('delivery_note_items as i')->join('delivery_notes as n', 'n.id', '=', 'i.delivery_note_id')->where('n.invoice_id', $invoice->id)->where('n.id', '!=', $dn->id)->whereIn('n.status', ['dispatched','in_transit','delivered'])->where('i.product_id', $productId)->sum('i.quantity_shipped');
                     $billed = $invoice->items()->where('product_id', $productId)->sum('quantity');
-                    abort_if((float) $previous + (float) $items->sum('quantity_shipped') > (float) $billed, 422, 'Delivery exceeds invoice quantity.');
+                    if ((float) $previous + (float) $items->sum('quantity_shipped') > (float) $billed) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'quantity' => __('Delivery quantity exceeds total billed invoice quantity.')
+                        ]);
+                    }
                 }
             }
             // 1. Decrement inventory stock if not already deducted
@@ -208,7 +225,11 @@ class DeliveryNoteService
             if ($order) {
                 foreach ($dn->items as $item) {
                     $line = $order->items()->where('product_id', $item->product_id)->lockForUpdate()->firstOrFail();
-                    abort_if((float) $line->fulfilled_quantity + (float) $item->quantity_shipped > (float) $line->quantity, 422, 'Delivery exceeds remaining order quantity.');
+                    if ((float) $line->fulfilled_quantity + (float) $item->quantity_shipped > (float) $line->quantity) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'quantity' => __('Delivery exceeds remaining order quantity.')
+                        ]);
+                    }
                     $line->increment('fulfilled_quantity', $item->quantity_shipped);
                 }
                 $remaining = $order->items()->whereColumn('fulfilled_quantity', '<', 'quantity')->exists();

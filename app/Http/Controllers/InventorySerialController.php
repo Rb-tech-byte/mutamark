@@ -14,7 +14,7 @@ class InventorySerialController extends Controller
 {
     public function index(Request $request)
     {
-        if (!Auth::user()->can('manage-inventory-serials')) {
+        if (!Auth::user()->can('manage-inventory-serials') && !Auth::user()->can('manage-stock') && Auth::user()->type !== 'company' && Auth::user()->type !== 'superadmin') {
             return back()->with('error', __('Permission denied'));
         }
 
@@ -88,7 +88,7 @@ class InventorySerialController extends Controller
 
     public function store(Request $request)
     {
-        if (!Auth::user()->can('create-inventory-serials')) {
+        if (!Auth::user()->can('create-inventory-serials') && !Auth::user()->can('manage-inventory-serials') && !Auth::user()->can('manage-stock') && Auth::user()->type !== 'company' && Auth::user()->type !== 'superadmin') {
             return back()->with('error', __('Permission denied'));
         }
 
@@ -148,7 +148,7 @@ class InventorySerialController extends Controller
 
     public function update(Request $request, InventorySerialNumber $serial)
     {
-        if (!Auth::user()->can('edit-inventory-serials')) {
+        if (!Auth::user()->can('edit-inventory-serials') && !Auth::user()->can('manage-inventory-serials') && !Auth::user()->can('manage-stock') && Auth::user()->type !== 'company' && Auth::user()->type !== 'superadmin') {
             return back()->with('error', __('Permission denied'));
         }
 
@@ -192,7 +192,7 @@ class InventorySerialController extends Controller
 
     public function destroy(InventorySerialNumber $serial)
     {
-        if (!Auth::user()->can('delete-inventory-serials')) {
+        if (!Auth::user()->can('delete-inventory-serials') && !Auth::user()->can('manage-inventory-serials') && !Auth::user()->can('manage-stock') && Auth::user()->type !== 'company' && Auth::user()->type !== 'superadmin') {
             return back()->with('error', __('Permission denied'));
         }
 

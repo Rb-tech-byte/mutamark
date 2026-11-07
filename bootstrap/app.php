@@ -47,6 +47,16 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
+            if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface && in_array($e->getStatusCode(), [400, 409, 422])) {
+                $msg = $e->getMessage() ?: 'Unprocessable Request';
+                if ($request->header('X-Inertia')) {
+                    return back()->with('error', $msg)->withErrors(['error' => $msg]);
+                }
+                if ($request->expectsJson()) {
+                    return response()->json(['message' => $msg, 'error' => $msg], $e->getStatusCode());
+                }
+            }
+
             if ($e instanceof \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException) {
                 if ($request->isMethod('GET') && ($request->path() === '/' || $request->path() === '' || $request->is('mutadash*'))) {
                     if (class_exists(\Workdo\LandingPage\Http\Controllers\LandingPageController::class)) {

@@ -15,7 +15,19 @@ use Workdo\ProductService\Models\ProductServiceItem;
 
 class RfqController extends Controller implements \Illuminate\Routing\Controllers\HasMiddleware
 {
-    public static function middleware(): array { return [new \Illuminate\Routing\Controllers\Middleware('can:manage-purchase-invoices')]; }
+    public static function middleware(): array
+    {
+        return [
+            function ($request, $next) {
+                if (!Auth::check()) return redirect()->route('login');
+                $user = Auth::user();
+                if ($user->type === 'company' || $user->type === 'superadmin' || $user->can('manage-purchase-invoices') || $user->can('manage-stock')) {
+                    return $next($request);
+                }
+                return back()->with('error', __('Permission denied.'));
+            }
+        ];
+    }
     /**
      * Get authenticated creator/company ID safely.
      */
@@ -115,6 +127,22 @@ class RfqController extends Controller implements \Illuminate\Routing\Controller
      */
     public function store(Request $request)
     {
+        if ($request->requisition_id === 'none' || $request->requisition_id === '') {
+            $request->merge(['requisition_id' => null]);
+        }
+        if ($request->warehouse_id === 'none' || $request->warehouse_id === 'all' || $request->warehouse_id === '') {
+            $request->merge(['warehouse_id' => null]);
+        }
+        $rawItems = $request->input('items', []);
+        if (is_array($rawItems)) {
+            foreach ($rawItems as &$itm) {
+                if (isset($itm['product_id']) && ($itm['product_id'] === '' || $itm['product_id'] === 'none')) {
+                    $itm['product_id'] = null;
+                }
+            }
+            $request->merge(['items' => $rawItems]);
+        }
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'closing_date' => 'required|date',
@@ -148,6 +176,18 @@ class RfqController extends Controller implements \Illuminate\Routing\Controller
     public function update(Request $request, Rfq $rfq)
     {
         \App\Services\CompanyAccess::check($rfq);
+        if ($request->warehouse_id === 'none' || $request->warehouse_id === 'all' || $request->warehouse_id === '') {
+            $request->merge(['warehouse_id' => null]);
+        }
+        $rawItems = $request->input('items', []);
+        if (is_array($rawItems)) {
+            foreach ($rawItems as &$itm) {
+                if (isset($itm['product_id']) && ($itm['product_id'] === '' || $itm['product_id'] === 'none')) {
+                    $itm['product_id'] = null;
+                }
+            }
+            $request->merge(['items' => $rawItems]);
+        }
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'closing_date' => 'required|date',

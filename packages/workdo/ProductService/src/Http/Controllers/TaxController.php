@@ -15,15 +15,13 @@ class TaxController extends Controller
 {
     public function index()
     {
-        if(Auth::user()->can('manage-product-service-taxes')){
+        if(Auth::user()->can('manage-product-service-taxes') || Auth::user()->can('manage-product-service-item') || Auth::user()->type === 'company' || Auth::user()->type === 'superadmin'){
             $taxes = ProductServiceTax::select('id', 'tax_name', 'rate', 'created_at')
                 ->where(function($q) {
-                    if(Auth::user()->can('manage-any-product-service-taxes')) {
-                        $q->where('created_by', creatorId());
-                    } elseif(Auth::user()->can('manage-own-product-service-taxes')) {
+                    if(Auth::user()->can('manage-own-product-service-taxes') && !Auth::user()->can('manage-product-service-taxes') && !Auth::user()->can('manage-product-service-item')) {
                         $q->where('creator_id', Auth::id());
                     } else {
-                        $q->whereRaw('1 = 0');
+                        $q->where('created_by', creatorId());
                     }
                 })
                 ->latest()
@@ -38,7 +36,7 @@ class TaxController extends Controller
 
     public function store(Request $request)
     {
-        if(Auth::user()->can('create-product-service-taxes')){
+        if(Auth::user()->can('create-product-service-taxes') || Auth::user()->can('manage-product-service-taxes') || Auth::user()->can('manage-product-service-item') || Auth::user()->type === 'company'){
             $validated = $request->validate([
                 'tax_name' => 'required|string|max:255',
                 'rate' => 'required|numeric|min:0|max:100',
@@ -61,7 +59,7 @@ class TaxController extends Controller
 
     public function update(Request $request, ProductServiceTax $tax)
     {
-        if(Auth::user()->can('edit-product-service-taxes')){
+        if(Auth::user()->can('edit-product-service-taxes') || Auth::user()->can('manage-product-service-taxes') || Auth::user()->can('manage-product-service-item') || Auth::user()->type === 'company'){
             $validated = $request->validate([
                 'tax_name' => 'required|string|max:255',
                 'rate' => 'required|numeric|min:0|max:100',
@@ -81,7 +79,7 @@ class TaxController extends Controller
 
     public function destroy(ProductServiceTax $tax)
     {
-        if(Auth::user()->can('delete-product-service-taxes')){
+        if(Auth::user()->can('delete-product-service-taxes') || Auth::user()->can('manage-product-service-taxes') || Auth::user()->can('manage-product-service-item') || Auth::user()->type === 'company'){
             // Dispatch event for packages to handle their fields
             DestroyProductServiceTax::dispatch($tax);
 

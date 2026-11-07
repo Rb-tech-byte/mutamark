@@ -19,6 +19,10 @@ class MutamarkProcureToPaySeeder extends Seeder
      */
     public function run(): void
     {
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('purchase_requisitions', 'department_name')) {
+            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        }
+
         $creator = User::where('email', 'company@example.com')->first();
         if (!$creator) {
             $creator = User::first();

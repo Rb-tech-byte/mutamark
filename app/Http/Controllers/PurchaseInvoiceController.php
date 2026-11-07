@@ -403,8 +403,15 @@ class PurchaseInvoiceController extends Controller
     public function post(PurchaseInvoice $purchaseInvoice)
     {
         \App\Services\CompanyAccess::check($purchaseInvoice);
-        \App\Services\FinancialControlService::postInvoice($purchaseInvoice);
-        return request()->expectsJson() ? response()->json($purchaseInvoice->fresh()) : back()->with('success', __('Invoice posted successfully.'));
+        try {
+            \App\Services\FinancialControlService::postInvoice($purchaseInvoice);
+            return request()->expectsJson() ? response()->json($purchaseInvoice->fresh()) : back()->with('success', __('Invoice posted successfully.'));
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Purchase Invoice posting failed: ' . $e->getMessage());
+            return back()->with('error', __('Failed to post purchase invoice: :msg', ['msg' => $e->getMessage()]));
+        }
     }
 
     public function print(PurchaseInvoice $purchaseInvoice)

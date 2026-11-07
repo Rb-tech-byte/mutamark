@@ -36,10 +36,18 @@ class JournalService
 
     private function validateAccounts(array $accountCodes , $userID = null)
     {
+        $creator = $userID ?? creatorId();
         foreach ($accountCodes as $code) {
             $account = ChartOfAccount::where('account_code', $code)
-                ->where('created_by', $userID ?? creatorId())
+                ->where('created_by', $creator)
                 ->first();
+            if (!$account) {
+                // If standard accounts were not yet seeded for this company, seed them now
+                \Workdo\Account\Helpers\AccountUtility::defaultChartAccounts($creator);
+                $account = ChartOfAccount::where('account_code', $code)
+                    ->where('created_by', $creator)
+                    ->first();
+            }
             if (!$account) {
                 throw new \Exception("Account with code {$code} not found");
             }
@@ -286,10 +294,11 @@ class JournalService
             'created_by' => creatorId()
         ]);
 
+        $vendorName = $purchaseInvoice->vendor?->name ?? $purchaseInvoice->vendorDetails?->company_name ?? 'Vendor';
         JournalEntryItem::create([
             'journal_entry_id' => $journalEntry->id,
             'account_id' => $inventoryAccount->id,
-            'description' => 'Purchase from ' . $purchaseInvoice->vendor->name,
+            'description' => 'Purchase from ' . $vendorName,
             'debit_amount' => $purchaseInvoice->subtotal - $purchaseInvoice->discount_amount,
             'credit_amount' => 0,
             'creator_id' => Auth::id(),

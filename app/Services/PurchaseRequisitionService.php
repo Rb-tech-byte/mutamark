@@ -215,10 +215,77 @@ class PurchaseRequisitionService
     {
         CompanyAccess::check($pr);
         $rfq = \App\Models\Rfq::where('created_by', creatorId())->where('requisition_id', $pr->id)->where('status','awarded')->first();
-        abort_unless($rfq, 422, 'Create and award an RFQ before issuing a purchase order.');
-        $order = \App\Models\PurchaseOrder::where('created_by', creatorId())->findOrFail($rfq->awarded_po_id);
-        $pr->update(['status' => 'converted_to_po', 'converted_po_id' => $order->id]);
-        return ['requisition' => $pr->fresh(), 'purchase_order' => $order];
+        if ($rfq && $rfq->awarded_po_id) {
+            $order = \App\Models\PurchaseOrder::where('created_by', creatorId())->find($rfq->awarded_po_id);
+            if ($order) {
+                $pr->update(['status' => 'converted_to_po', 'converted_po_id' => $order->id]);
+                return ['requisition' => $pr->fresh(), 'purchase_order' => $order];
+            }
+        }
+
+        return DB::transaction(function () use ($pr, $userId) {
+            $vendorId = $pr->preferred_vendor_id;
+            if (!$vendorId) {
+                $firstVendor = \Workdo\Account\Models\Vendor::where('created_by', creatorId())->first();
+                $vendorId = $firstVendor ? $firstVendor->id : null;
+            }
+
+            $poNumber = DocumentNumberService::next('PO');
+            $subtotal = 0;
+            $itemsData = [];
+
+            foreach ($pr->items as $item) {
+                $qty = (float) $item->quantity;
+                $unitPrice = (float) ($item->estimated_unit_price ?? 0);
+                $lineTotal = round($qty * $unitPrice, 2);
+                $subtotal += $lineTotal;
+
+                $itemsData[] = [
+                    'product_id' => $item->product_id,
+                    'product_name' => $item->product_name ?? 'Procured Item',
+                    'sku' => $item->sku,
+                    'quantity_ordered' => $qty,
+                    'quantity_received' => 0,
+                    'unit_price' => $unitPrice,
+                    'tax_rate' => 0,
+                    'tax_amount' => 0,
+                    'total_amount' => $lineTotal,
+                    'unit' => $item->unit ?? 'Unit',
+                ];
+            }
+
+            $order = \App\Models\PurchaseOrder::create([
+                'po_number' => $poNumber,
+                'po_date' => now()->toDateString(),
+                'expected_delivery_date' => $pr->required_by_date ?? now()->addDays(7)->toDateString(),
+                'vendor_id' => $vendorId,
+                'warehouse_id' => $pr->warehouse_id,
+                'requisition_id' => $pr->id,
+                'subtotal' => $subtotal,
+                'tax_amount' => 0,
+                'discount_amount' => 0,
+                'total_amount' => $subtotal,
+                'currency' => 'TZS',
+                'status' => 'issued',
+                'delivery_terms' => 'Standard Delivery',
+                'payment_terms' => 'Net 30 Days',
+                'notes' => $pr->purpose ?? ('Generated from Requisition ' . $pr->requisition_number),
+                'creator_id' => $userId,
+                'created_by' => creatorId(),
+            ]);
+
+            foreach ($itemsData as $data) {
+                $data['purchase_order_id'] = $order->id;
+                \App\Models\PurchaseOrderItem::create($data);
+            }
+
+            $pr->update([
+                'status' => 'converted_to_po',
+                'converted_po_id' => $order->id,
+            ]);
+
+            return ['requisition' => $pr->fresh(), 'purchase_order' => $order];
+        });
     }
 
     /**

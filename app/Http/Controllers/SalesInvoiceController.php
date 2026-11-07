@@ -360,8 +360,15 @@ class SalesInvoiceController extends Controller
     public function post(SalesInvoice $salesInvoice)
     {
         \App\Services\CompanyAccess::check($salesInvoice);
-        \App\Services\FinancialControlService::postInvoice($salesInvoice);
-        return request()->expectsJson() ? response()->json($salesInvoice->fresh()) : back()->with('success', __('Invoice posted successfully.'));
+        try {
+            \App\Services\FinancialControlService::postInvoice($salesInvoice);
+            return request()->expectsJson() ? response()->json($salesInvoice->fresh()) : back()->with('success', __('Invoice posted successfully.'));
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Sales Invoice posting failed: ' . $e->getMessage());
+            return back()->with('error', __('Failed to post invoice: :msg', ['msg' => $e->getMessage()]));
+        }
     }
 
     public function getWarehouseProducts(Request $request)

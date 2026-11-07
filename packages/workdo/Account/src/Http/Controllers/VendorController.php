@@ -17,16 +17,14 @@ class VendorController extends Controller
 {
     public function index()
     {
-        if(Auth::user()->can('manage-vendors')){
+        if(Auth::user()->can('manage-vendors') || Auth::user()->type === 'company' || Auth::user()->type === 'superadmin'){
             $vendors = Vendor::query()
                 ->with('user:id,name,avatar,is_disable')
                 ->where(function($q) {
-                    if(Auth::user()->can('manage-any-vendors')) {
-                        $q->where('created_by', creatorId());
-                    } elseif(Auth::user()->can('manage-own-vendors')) {
+                    if(Auth::user()->can('manage-own-vendors') && !Auth::user()->can('manage-vendors')) {
                         $q->where('creator_id', Auth::id());
                     } else {
-                        $q->whereRaw('1 = 0');
+                        $q->where('created_by', creatorId());
                     }
                 })
                 ->when(request('company_name'), fn($q) => $q->where('company_name', 'like', '%' . request('company_name') . '%'))
@@ -67,8 +65,8 @@ class VendorController extends Controller
             $vendor->contact_person_mobile = $validated['contact_person_mobile'] ?? null;
             $vendor->tax_number = $validated['tax_number'] ?? null;
             $vendor->payment_terms = $validated['payment_terms'] ?? null;
-            $vendor->billing_address = $validated['billing_address'];
-            $vendor->shipping_address = $validated['same_as_billing'] ? $validated['billing_address'] : $validated['shipping_address'];
+            $vendor->billing_address = $validated['billing_address'] ?? null;
+            $vendor->shipping_address = (!empty($validated['same_as_billing'])) ? ($validated['billing_address'] ?? null) : ($validated['shipping_address'] ?? null);
             $vendor->same_as_billing = $validated['same_as_billing'] ?? false;
             $vendor->notes = $validated['notes'] ?? null;
             $vendor->creator_id = Auth::id();
@@ -100,8 +98,8 @@ class VendorController extends Controller
             $vendor->contact_person_mobile = $validated['contact_person_mobile'] ?? null;
             $vendor->tax_number = $validated['tax_number'] ?? null;
             $vendor->payment_terms = $validated['payment_terms'] ?? null;
-            $vendor->billing_address = $validated['billing_address'];
-            $vendor->shipping_address = $validated['same_as_billing'] ? $validated['billing_address'] : $validated['shipping_address'];
+            $vendor->billing_address = $validated['billing_address'] ?? null;
+            $vendor->shipping_address = (!empty($validated['same_as_billing'])) ? ($validated['billing_address'] ?? null) : ($validated['shipping_address'] ?? null);
             $vendor->same_as_billing = $validated['same_as_billing'] ?? false;
             $vendor->notes = $validated['notes'] ?? null;
             $vendor->save();

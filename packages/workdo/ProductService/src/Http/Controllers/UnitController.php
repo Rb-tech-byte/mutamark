@@ -15,15 +15,13 @@ class UnitController extends Controller
 {
     public function index()
     {
-        if(Auth::user()->can('manage-product-service-units')){
+        if(Auth::user()->can('manage-product-service-units') || Auth::user()->can('manage-product-service-item') || Auth::user()->type === 'company' || Auth::user()->type === 'superadmin'){
             $units = ProductServiceUnit::select('id', 'unit_name', 'created_at')
                 ->where(function($q) {
-                    if(Auth::user()->can('manage-any-product-service-units')) {
-                        $q->where('created_by', creatorId());
-                    } elseif(Auth::user()->can('manage-own-product-service-units')) {
+                    if(Auth::user()->can('manage-own-product-service-units') && !Auth::user()->can('manage-product-service-units') && !Auth::user()->can('manage-product-service-item')) {
                         $q->where('creator_id', Auth::id());
                     } else {
-                        $q->whereRaw('1 = 0');
+                        $q->where('created_by', creatorId());
                     }
                 })
                 ->latest()
@@ -38,7 +36,7 @@ class UnitController extends Controller
 
     public function store(Request $request)
     {
-        if(Auth::user()->can('create-product-service-units')){
+        if(Auth::user()->can('create-product-service-units') || Auth::user()->can('manage-product-service-units') || Auth::user()->can('manage-product-service-item') || Auth::user()->type === 'company'){
             $validated = $request->validate([
                 'unit_name' => 'required|string|max:255',
             ]);
@@ -59,7 +57,7 @@ class UnitController extends Controller
 
     public function update(Request $request, ProductServiceUnit $unit)
     {
-        if(Auth::user()->can('edit-product-service-units')){
+        if(Auth::user()->can('edit-product-service-units') || Auth::user()->can('manage-product-service-units') || Auth::user()->can('manage-product-service-item') || Auth::user()->type === 'company'){
             $validated = $request->validate([
                 'unit_name' => 'required|string|max:255',
             ]);
@@ -77,7 +75,7 @@ class UnitController extends Controller
 
     public function destroy(ProductServiceUnit $unit)
     {
-        if(Auth::user()->can('delete-product-service-units')){
+        if(Auth::user()->can('delete-product-service-units') || Auth::user()->can('manage-product-service-units') || Auth::user()->can('manage-product-service-item') || Auth::user()->type === 'company'){
 
             // Dispatch event for packages to handle their fields
             DestroyProductServiceUnit::dispatch($unit);

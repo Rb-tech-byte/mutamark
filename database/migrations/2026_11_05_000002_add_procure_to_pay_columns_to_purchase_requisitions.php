@@ -86,3 +86,4 @@ return new class extends Migration
         // Safe no-op to prevent column drops on live data
     }
 };
+

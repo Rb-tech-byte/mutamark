@@ -58,21 +58,12 @@ export default function Create() {
 
     const validateDetailsTab = () => {
         return data.name.trim() !== '' &&
-               data.sku.trim() !== '' &&
-               data.tax_ids.length > 0 &&
-               data.category_id !== '';
+               data.sku.trim() !== '';
     };
 
     const validatePricingTab = () => {
-        const baseValidation = data.sale_price.trim() !== '' &&
-               data.purchase_price.trim() !== '' &&
-               data.unit !== '';
-
-        if (data.type === 'service') {
-            return baseValidation;
-        }
-
-        return baseValidation && data.quantity.trim() !== '';
+        return data.sale_price.trim() !== '' &&
+               data.purchase_price.trim() !== '';
     };
 
     const nextTab = () => {
