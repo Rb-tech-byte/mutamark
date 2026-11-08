@@ -52,6 +52,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     };
 
     const sidebarProps = getCompleteSidebarProps();
+    const homeHref = auth.user?.type === 'client' 
+      ? route('portal.customer') 
+      : (auth.user?.type === 'vendor' ? route('portal.supplier') : route('dashboard'));
 
     return (
     <Sidebar
@@ -66,7 +69,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href={route('dashboard')} className="flex items-center justify-center">
+              <Link href={homeHref} className="flex items-center justify-center">
                 {/* Logo for expanded sidebar */}
                 <div className="group-data-[collapsible=icon]:hidden flex items-center">
                   {(() => {

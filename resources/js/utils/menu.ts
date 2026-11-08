@@ -3,22 +3,35 @@ import { usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { getSuperAdminMenu } from './menus/superadmin-menu';
 import { getCompanyMenu } from './menus/company-menu';
+import { getCustomerMenu } from './menus/customer-menu';
+import { getSupplierMenu } from './menus/supplier-menu';
 
 // Pre-index package menu glob at module level
 const allPackageModules = import.meta.glob('../../../packages/workdo/*/src/Resources/js/menus/*.ts', { eager: true });
 
 // Get role-based core menu items
-const getCoreMenuItems = (userRoles: string[], t: (key: string) => string): NavItem[] => {
-    if (Array.isArray(userRoles) && userRoles.includes('superadmin')) {
+const getCoreMenuItems = (userRoles: string[], userType: string, t: (key: string) => string): NavItem[] => {
+    if (userType === 'superadmin' || (Array.isArray(userRoles) && userRoles.includes('superadmin'))) {
         return getSuperAdminMenu(t) || [];
+    }
+    if (userType === 'client' || (Array.isArray(userRoles) && userRoles.includes('client'))) {
+        return getCustomerMenu(t) || [];
+    }
+    if (userType === 'vendor' || (Array.isArray(userRoles) && userRoles.includes('vendor'))) {
+        return getSupplierMenu(t) || [];
     }
     return getCompanyMenu(t) || [];
 };
 
 // Auto-load package menus based on activated packages
-const getPackageMenuItems = (userRoles: string[], activatedPackages: string[], t: (key: string) => string): NavItem[] => {
+const getPackageMenuItems = (userRoles: string[], userType: string, activatedPackages: string[], t: (key: string) => string): NavItem[] => {
+    // Portals (client and vendor) do not load internal backend package menus
+    if (userType === 'client' || userType === 'vendor' || (Array.isArray(userRoles) && (userRoles.includes('client') || userRoles.includes('vendor')))) {
+        return [];
+    }
+
     const menuItems: NavItem[] = [];
-    const isSuperAdmin = Array.isArray(userRoles) && userRoles.includes('superadmin');
+    const isSuperAdmin = userType === 'superadmin' || (Array.isArray(userRoles) && userRoles.includes('superadmin'));
     const menuType = isSuperAdmin ? 'superadmin-menu' : 'company-menu';
 
     if (!Array.isArray(activatedPackages)) {
@@ -223,16 +236,16 @@ export const allMenuItems = (): NavItem[] => {
     const activatedPackages: string[] = Array.isArray(auth?.user?.activatedPackages) ? auth.user.activatedPackages : [];
     const userId = auth?.user?.id || 'guest';
     const currentLang = i18n?.language || 'en';
-    // Mutamark single-company ERP: system owner has full access to every menu
-    const isOwner = auth?.user?.type === 'company' || auth?.user?.type === 'superadmin' || userRoles.includes('company');
+    const userType = auth?.user?.type || 'guest';
+    const isOwner = userType === 'company' || userType === 'superadmin' || userRoles.includes('company');
 
-    const cacheKey = `${userId}_${currentLang}_${isOwner ? 'owner' : 'user'}_${userRoles.join(',')}_${activatedPackages.join(',')}_${userPermissions.length}`;
+    const cacheKey = `${userId}_${userType}_${currentLang}_${isOwner ? 'owner' : 'user'}_${userRoles.join(',')}_${activatedPackages.join(',')}_${userPermissions.length}`;
     if (cachedMenuKey === cacheKey && Array.isArray(cachedMenuResult) && cachedMenuResult.length > 0) {
         return cachedMenuResult;
     }
 
-    const coreMenuItems = filterByActiveModule(getCoreMenuItems(userRoles, t), new Set(activatedPackages));
-    const packageMenuItems = getPackageMenuItems(userRoles, activatedPackages, t);
+    const coreMenuItems = filterByActiveModule(getCoreMenuItems(userRoles, userType, t), new Set(activatedPackages));
+    const packageMenuItems = getPackageMenuItems(userRoles, userType, activatedPackages, t);
     const customMenuItems = getCustomMenuItems(userRoles, t);
     
     // Separate custom menus into parents and children

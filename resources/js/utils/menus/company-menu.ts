@@ -71,7 +71,7 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
         title: t('Approval Workflows'),
         href: route('approvals.index'),
         icon: CheckCircle2,
-        permission: 'manage-account',
+        permission: 'manage-approvals',
         name: 'approvals',
         order: 30,
     },
@@ -84,6 +84,7 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
         icon: UserCheck,
         name: 'crm',
         module: 'Lead',
+        permission: 'manage-crm-dashboard',
         order: 40,
         children: [
             {
@@ -153,12 +154,12 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
             {
                 title: t('TRA Fiscal Receipts (VFD)'),
                 href: route('tra-fiscal.index'),
-                permission: 'manage-sales-invoices',
+                permission: 'manage-tra-fiscal',
             },
             {
                 title: t('Delivery Notes & Dispatch'),
                 href: route('sales.delivery-notes.index'),
-                permission: 'manage-sales-invoices',
+                permission: 'manage-delivery-notes',
             },
         ],
     },
@@ -271,7 +272,7 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
             {
                 title: t('3-Way Matching Audit'),
                 href: route('procurement.three-way-match.index'),
-                permission: 'manage-purchase-invoices',
+                permission: 'manage-three-way-matching',
             },
             {
                 title: t('Purchase Invoices / Bills'),
@@ -446,11 +447,13 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
         title: t('Warranty & Servicing'),
         icon: Wrench,
         name: 'warranty-servicing',
+        permission: 'manage-mobile-service-management',
         order: 130,
         children: [
             {
                 title: t('Warranty Dashboard & Tickets'),
                 href: route('warranty.index'),
+                permission: 'manage-mobile-service-management',
             },
             {
                 title: t('Device & Mobile Repairs'),
@@ -575,6 +578,7 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
         href: route('document-verifications.index'),
         icon: ShieldCheck,
         name: 'document-verifications',
+        permission: 'manage-document-verifications',
         order: 160,
     },
     {
@@ -667,15 +671,18 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
         title: t('Self-Service Portals'),
         icon: Globe,
         name: 'portals',
+        permission: 'manage-portals',
         order: 180,
         children: [
             {
                 title: t('Customer Portal'),
                 href: route('portal.customer'),
+                permission: 'manage-portals',
             },
             {
                 title: t('Supplier Portal'),
                 href: route('portal.supplier'),
+                permission: 'manage-portals',
             },
         ],
     },

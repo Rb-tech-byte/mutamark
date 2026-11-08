@@ -105,21 +105,114 @@ class MutamarkNicheUsersSeeder extends Seeder
             $companyRole->syncPermissions(Permission::pluck('name')->toArray());
         }
 
+        // Clean up base 'staff' role permissions to only baseline employee self-service
+        $staffRole = Role::firstOrCreate(['name' => 'staff', 'guard_name' => 'web']);
+        $baselineStaffPerms = [
+            'manage-dashboard',
+            'manage-profile', 'edit-profile', 'change-password-profile',
+            'manage-messenger', 'send-messages', 'view-messages',
+            'clock-in', 'clock-out',
+            'manage-own-attendances', 'view-attendances',
+            'manage-own-leave-applications', 'view-leave-applications', 'create-leave-applications',
+            'view-announcements', 'view-holidays',
+            'view-own-payrolls', 'download-payslip', 'view-payslip',
+        ];
+        $validBaselineStaffPerms = Permission::whereIn('name', $baselineStaffPerms)->pluck('name')->toArray();
+        $staffRole->syncPermissions($validBaselineStaffPerms);
+
+        // Ensure critical granular permissions exist in the database
+        $mandatoryPermissions = [
+            'manage-dashboard',
+            'manage-users', 'manage-roles', 'manage-settings',
+            'manage-account', 'manage-account-dashboard', 'manage-chart-of-accounts', 'view-chart-of-accounts',
+            'create-chart-of-accounts', 'edit-chart-of-accounts', 'delete-chart-of-accounts',
+            'manage-bank-accounts', 'view-bank-accounts', 'create-bank-accounts', 'edit-bank-accounts', 'delete-bank-accounts',
+            'manage-bank-transfers', 'view-bank-transfers', 'create-bank-transfers', 'edit-bank-transfers',
+            'manage-bank-transactions', 'reconcile-bank-transactions',
+            'manage-customer-payments', 'cleared-customer-payments',
+            'manage-vendor-payments', 'cleared-vendor-payments',
+            'manage-revenues', 'post-revenues', 'manage-expenses', 'post-expenses',
+            'manage-debit-notes', 'manage-credit-notes',
+            'manage-account-reports', 'manage-account-types',
+            'manage-sales-invoices', 'view-sales-invoices', 'create-sales-invoices', 'edit-sales-invoices', 'post-sales-invoices', 'print-sales-invoices',
+            'manage-sales-orders', 'view-sales-orders', 'create-sales-orders', 'edit-sales-orders',
+            'manage-sales-proposals', 'view-sales-proposals', 'create-sales-proposals', 'edit-sales-proposals', 'sent-sales-proposals',
+            'manage-proformas', 'view-proformas', 'create-proformas',
+            'manage-sales-return-invoices',
+            'manage-purchase-invoices', 'view-purchase-invoices', 'create-purchase-invoices', 'edit-purchase-invoices', 'post-purchase-invoices', 'print-purchase-invoices',
+            'manage-purchase-return-invoices',
+            'manage-tra-fiscal', 'manage-three-way-matching', 'manage-financial-audit-trail',
+            'manage-forex',
+            'manage-stock', 'create-stock',
+            'manage-product-service-item', 'view-product-service-item', 'create-product-service-item', 'edit-product-service-item', 'delete-product-service-item',
+            'manage-product-service-categories', 'create-product-service-categories', 'edit-product-service-categories',
+            'manage-product-service-units', 'create-product-service-units',
+            'manage-warehouses', 'view-warehouses', 'create-warehouses', 'edit-warehouses',
+            'manage-transfers', 'view-transfers', 'create-transfers', 'dispatch-transfers', 'receive-transfers',
+            'manage-stock-adjustments', 'view-stock-adjustments', 'create-stock-adjustments', 'post-stock-adjustments',
+            'manage-inventory-serials', 'view-inventory-serials', 'create-inventory-serials',
+            'manage-grn', 'manage-goods-received-notes', 'view-goods-received-notes', 'post-goods-received-notes', 'post-grn',
+            'manage-delivery-notes', 'view-delivery-notes', 'create-delivery-notes', 'dispatch-delivery-notes',
+            'manage-customers', 'view-customers', 'create-customers', 'edit-customers',
+            'manage-vendors', 'view-vendors', 'create-vendors', 'edit-vendors',
+            'manage-pos', 'view-pos', 'create-pos', 'manage-pos-orders', 'view-pos-orders',
+            'manage-pos-returns', 'manage-pos-barcodes', 'print-pos-barcodes', 'manage-pos-billing-counters', 'manage-pos-discounts', 'manage-pos-reports',
+            'manage-crm-dashboard', 'manage-leads', 'create-leads', 'edit-leads', 'view-leads',
+            'manage-deals', 'manage-pipelines', 'view-reports',
+            'manage-hrm', 'manage-hrm-dashboard',
+            'manage-employees', 'view-employees', 'create-employees', 'edit-employees',
+            'manage-branches', 'manage-departments', 'manage-designations',
+            'manage-attendances', 'view-attendances', 'create-attendances', 'edit-attendances',
+            'manage-leave-applications', 'view-leave-applications', 'create-leave-applications',
+            'manage-holidays', 'view-holidays',
+            'manage-payrolls', 'manage-any-payrolls', 'view-payrolls',
+            'manage-set-salary', 'view-set-salary',
+            'manage-awards', 'view-awards',
+            'manage-promotions', 'view-promotions',
+            'manage-company-policies',
+            'manage-announcements', 'view-announcements',
+            'manage-statutory-declarations',
+            'manage-document-verifications', 'manage-portals',
+            'manage-mobile-service-management', 'manage-mobile-device-brands', 'manage-mobile-service-policies', 'manage-mobile-service-contracts',
+            'manage-media', 'manage-approvals', 'manage-ai-agent',
+            'manage-profile', 'edit-profile',
+        ];
+
+        foreach ($mandatoryPermissions as $permName) {
+            Permission::firstOrCreate(
+                ['name' => $permName, 'guard_name' => 'web'],
+                ['module' => 'system', 'label' => ucwords(str_replace('-', ' ', $permName)), 'guard_name' => 'web']
+            );
+        }
+
+        // Re-grant company role all permissions including newly created ones
+        if ($companyRole) {
+            $companyRole->syncPermissions(Permission::pluck('name')->toArray());
+        }
+
         // Define Niche Roles for Company
         $nicheRolesConfig = [
             'finance_manager' => [
                 'label' => 'Head of Finance & Tax Compliance',
                 'permissions' => [
                     'manage-dashboard',
-                    'manage-account', 'manage-chart-of-account', 'manage-journal-entry',
-                    'manage-bank-account', 'manage-bank-transaction', 'manage-bank-transfer',
-                    'manage-customer-payment', 'manage-vendor-payment', 'manage-cleared-customer-payments',
-                    'manage-cleared-vendor-payments', 'manage-sales-invoices', 'view-sales-invoices',
-                    'create-sales-invoices', 'edit-sales-invoices', 'post-sales-invoices', 'print-sales-invoices',
-                    'manage-purchase-invoices', 'view-purchase-invoices', 'create-purchase-invoices',
-                    'edit-purchase-invoices', 'post-purchase-invoices', 'print-purchase-invoices',
+                    'manage-account', 'manage-account-dashboard',
+                    'manage-chart-of-accounts', 'view-chart-of-accounts', 'create-chart-of-accounts', 'edit-chart-of-accounts',
+                    'manage-bank-accounts', 'view-bank-accounts', 'create-bank-accounts', 'edit-bank-accounts',
+                    'manage-bank-transfers', 'view-bank-transfers', 'create-bank-transfers', 'edit-bank-transfers',
+                    'manage-bank-transactions', 'reconcile-bank-transactions',
+                    'manage-customer-payments', 'cleared-customer-payments',
+                    'manage-vendor-payments', 'cleared-vendor-payments',
+                    'manage-revenues', 'post-revenues', 'manage-expenses', 'post-expenses',
+                    'manage-debit-notes', 'manage-credit-notes',
+                    'manage-account-reports', 'manage-account-types',
+                    'manage-sales-invoices', 'view-sales-invoices', 'create-sales-invoices', 'edit-sales-invoices', 'post-sales-invoices', 'print-sales-invoices',
+                    'manage-proformas', 'view-proformas',
+                    'manage-purchase-invoices', 'view-purchase-invoices', 'create-purchase-invoices', 'edit-purchase-invoices', 'post-purchase-invoices', 'print-purchase-invoices',
+                    'manage-purchase-return-invoices', 'manage-vendors',
                     'manage-tra-fiscal', 'manage-three-way-matching', 'manage-financial-audit-trail',
-                    'manage-forex', 'manage-settings', 'manage-profile', 'edit-profile',
+                    'manage-forex', 'manage-document-verifications',
+                    'manage-profile', 'edit-profile',
                 ]
             ],
             'warehouse_manager' => [
@@ -134,8 +227,8 @@ class MutamarkNicheUsersSeeder extends Seeder
                     'manage-transfers', 'view-transfers', 'create-transfers', 'dispatch-transfers', 'receive-transfers',
                     'manage-stock-adjustments', 'view-stock-adjustments', 'create-stock-adjustments', 'post-stock-adjustments',
                     'manage-inventory-serials', 'view-inventory-serials', 'create-inventory-serials',
+                    'manage-grn', 'manage-goods-received-notes', 'view-goods-received-notes', 'post-goods-received-notes', 'post-grn',
                     'manage-delivery-notes', 'view-delivery-notes', 'create-delivery-notes', 'dispatch-delivery-notes',
-                    'manage-goods-received-notes', 'view-goods-received-notes', 'post-goods-received-notes',
                     'manage-profile', 'edit-profile',
                 ]
             ],
@@ -143,15 +236,17 @@ class MutamarkNicheUsersSeeder extends Seeder
                 'label' => 'Commercial Sales & CRM Executive',
                 'permissions' => [
                     'manage-dashboard',
-                    'manage-product-service-item', 'view-product-service-item', 'create-product-service-item',
-                    'manage-pos', 'view-pos', 'create-pos', 'manage-pos-orders', 'view-pos-orders',
-                    'manage-pos-returns', 'manage-pos-barcodes', 'manage-pos-billing-counters', 'manage-pos-discounts', 'manage-pos-reports',
+                    'manage-crm-dashboard', 'manage-leads', 'create-leads', 'edit-leads', 'view-leads',
+                    'manage-deals', 'manage-pipelines', 'view-reports',
                     'manage-sales-proposals', 'view-sales-proposals', 'create-sales-proposals', 'edit-sales-proposals', 'sent-sales-proposals',
                     'manage-sales-orders', 'view-sales-orders', 'create-sales-orders', 'edit-sales-orders',
-                    'manage-proformas', 'view-proformas', 'create-proformas', 'convert-proformas',
+                    'manage-proformas', 'view-proformas', 'create-proformas',
                     'manage-sales-invoices', 'view-sales-invoices', 'create-sales-invoices', 'print-sales-invoices',
+                    'manage-sales-return-invoices',
                     'manage-customers', 'view-customers', 'create-customers', 'edit-customers',
+                    'manage-pos', 'view-pos', 'create-pos', 'manage-pos-orders', 'view-pos-orders', 'manage-pos-reports',
                     'manage-delivery-notes', 'view-delivery-notes', 'create-delivery-notes',
+                    'manage-product-service-item', 'view-product-service-item',
                     'manage-profile', 'edit-profile',
                 ]
             ],
@@ -161,7 +256,8 @@ class MutamarkNicheUsersSeeder extends Seeder
                     'manage-dashboard',
                     'manage-pos', 'view-pos', 'create-pos',
                     'manage-pos-orders', 'view-pos-orders',
-                    'manage-pos-returns', 'manage-pos-barcodes', 'manage-pos-discounts', 'manage-pos-reports',
+                    'manage-pos-returns', 'manage-pos-barcodes', 'print-pos-barcodes',
+                    'manage-pos-billing-counters', 'manage-pos-discounts', 'manage-pos-reports',
                     'view-product-service-item',
                     'manage-profile', 'edit-profile',
                 ]
@@ -170,10 +266,20 @@ class MutamarkNicheUsersSeeder extends Seeder
                 'label' => 'HR & Statutory Payroll Specialist',
                 'permissions' => [
                     'manage-dashboard',
-                    'manage-hrm', 'manage-employees', 'view-employees', 'create-employees', 'edit-employees',
+                    'manage-hrm', 'manage-hrm-dashboard',
+                    'manage-employees', 'view-employees', 'create-employees', 'edit-employees',
                     'manage-branches', 'manage-departments', 'manage-designations',
-                    'manage-attendance', 'manage-leaves', 'manage-payrolls', 'manage-any-payrolls',
-                    'manage-statutory-declarations', 'manage-profile', 'edit-profile',
+                    'manage-attendances', 'view-attendances', 'create-attendances', 'edit-attendances',
+                    'manage-leave-applications', 'view-leave-applications', 'create-leave-applications',
+                    'manage-holidays', 'view-holidays',
+                    'manage-payrolls', 'manage-any-payrolls', 'view-payrolls',
+                    'manage-set-salary', 'view-set-salary',
+                    'manage-awards', 'view-awards',
+                    'manage-promotions', 'view-promotions',
+                    'manage-company-policies',
+                    'manage-announcements', 'view-announcements',
+                    'manage-statutory-declarations',
+                    'manage-profile', 'edit-profile',
                 ]
             ]
         ];
@@ -200,7 +306,6 @@ class MutamarkNicheUsersSeeder extends Seeder
                 'name' => 'Amina Salum Kibona',
                 'type' => 'employee',
                 'role' => 'finance_manager',
-                'secondary_role' => 'staff',
                 'mobile_no' => '+255 754 112 001',
             ],
             [
@@ -208,7 +313,6 @@ class MutamarkNicheUsersSeeder extends Seeder
                 'name' => 'Baraka Joseph Mwangi',
                 'type' => 'employee',
                 'role' => 'warehouse_manager',
-                'secondary_role' => 'staff',
                 'mobile_no' => '+255 768 445 002',
             ],
             [
@@ -216,7 +320,6 @@ class MutamarkNicheUsersSeeder extends Seeder
                 'name' => 'Zawadi Emmanuel Mushi',
                 'type' => 'employee',
                 'role' => 'sales_manager',
-                'secondary_role' => 'staff',
                 'mobile_no' => '+255 784 990 003',
             ],
             [
@@ -224,7 +327,6 @@ class MutamarkNicheUsersSeeder extends Seeder
                 'name' => 'Juma Bakari Mwalimu',
                 'type' => 'employee',
                 'role' => 'hr_manager',
-                'secondary_role' => 'staff',
                 'mobile_no' => '+255 777 332 004',
             ],
             [
@@ -232,7 +334,6 @@ class MutamarkNicheUsersSeeder extends Seeder
                 'name' => 'Daudi Hamisi Mfaume',
                 'type' => 'employee',
                 'role' => 'pos_cashier',
-                'secondary_role' => 'staff',
                 'mobile_no' => '+255 713 554 005',
             ],
             [
@@ -240,7 +341,6 @@ class MutamarkNicheUsersSeeder extends Seeder
                 'name' => 'Safari Holdings Ltd',
                 'type' => 'client',
                 'role' => 'client',
-                'secondary_role' => null,
                 'mobile_no' => '+255 754 112 233',
             ],
             [
@@ -248,7 +348,6 @@ class MutamarkNicheUsersSeeder extends Seeder
                 'name' => 'Dar Industrial Hardware Supplies Ltd',
                 'type' => 'vendor',
                 'role' => 'vendor',
-                'secondary_role' => null,
                 'mobile_no' => '+255 713 554 433',
             ],
         ];
