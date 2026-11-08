@@ -1,62 +1,59 @@
-<?php
+  <?php
 
-
-
-use App\Http\Controllers\MediaController;
-use App\Http\Controllers\PlanController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\RoleController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\WarehouseController;
-use App\Http\Controllers\SettingController;
-use App\Http\Controllers\TranslationController;
-use App\Http\Controllers\ModuleController;
+use App\Http\Controllers\AIAgentChatController;
+use App\Http\Controllers\AIAgentChatPageController;
+use App\Http\Controllers\ApprovalWorkflowController;
+use App\Http\Controllers\BackupController;
 use App\Http\Controllers\BankTransferPaymentController;
-use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\CouponController;
-use Illuminate\Foundation\Application;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\DeliveryNoteController;
+use App\Http\Controllers\DocumentTemplateController;
+use App\Http\Controllers\DocumentVerificationController;
 use App\Http\Controllers\EmailTemplateController;
-use App\Http\Controllers\NotificationTemplateController;
+use App\Http\Controllers\FinancialAuditTrailController;
+use App\Http\Controllers\FixedAssetController;
+use App\Http\Controllers\FleetManagementController;
+use App\Http\Controllers\GoodsReceivedNoteController;
 use App\Http\Controllers\HelpdeskCategoryController;
-use App\Http\Controllers\HelpdeskTicketController;
 use App\Http\Controllers\HelpdeskReplyController;
+use App\Http\Controllers\HelpdeskTicketController;
 use App\Http\Controllers\HomeController;
-use App\Http\Controllers\OrderController;
-use App\Http\Controllers\TransferController;
-use App\Http\Controllers\StockAdjustmentController;
+use App\Http\Controllers\InventorySerialController;
+use App\Http\Controllers\MediaController;
 use App\Http\Controllers\MessengerController;
+use App\Http\Controllers\MetaController;
+use App\Http\Controllers\ModuleController;
+use App\Http\Controllers\MultiCurrencyForexController;
+use App\Http\Controllers\NotificationTemplateController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\PaymentGatewayController;
+use App\Http\Controllers\PlanController;
+use App\Http\Controllers\PortalController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProjectTimesheetController;
 use App\Http\Controllers\PurchaseInvoiceController;
+use App\Http\Controllers\PurchaseRequisitionController;
 use App\Http\Controllers\PurchaseReturnController;
-use App\Http\Controllers\TraFiscalController;
+use App\Http\Controllers\RfqController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SalesInvoiceController;
+use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\SalesProposalController;
 use App\Http\Controllers\SalesReturnController;
-use App\Http\Controllers\MetaController;
-use App\Http\Controllers\AIAgentChatPageController;
-use App\Http\Controllers\AIAgentChatController;
-use App\Http\Controllers\DocumentVerificationController;
-use App\Http\Controllers\InventorySerialController;
-use App\Http\Controllers\GoodsReceivedNoteController;
+use App\Http\Controllers\SettingController;
+use App\Http\Controllers\StockAdjustmentController;
 use App\Http\Controllers\TanzaniaPayrollReportController;
-use App\Http\Controllers\FinancialAuditTrailController;
-use App\Http\Controllers\FleetManagementController;
-use App\Http\Controllers\ProjectTimesheetController;
-use App\Http\Controllers\FixedAssetController;
-use App\Http\Controllers\WarrantyServicingController;
-use App\Http\Controllers\PortalController;
-use App\Http\Controllers\BackupController;
-use App\Http\Controllers\SalesOrderController;
-use App\Http\Controllers\ApprovalWorkflowController;
-use App\Http\Controllers\PaymentGatewayController;
-use App\Http\Controllers\MultiCurrencyForexController;
-use App\Http\Controllers\DeliveryNoteController;
-use App\Http\Controllers\PurchaseRequisitionController;
-use App\Http\Controllers\RfqController;
 use App\Http\Controllers\ThreeWayMatchController;
-use App\Http\Controllers\DocumentTemplateController;
+use App\Http\Controllers\TraFiscalController;
+use App\Http\Controllers\TransferController;
+use App\Http\Controllers\TranslationController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\WarehouseController;
+use App\Http\Controllers\WarrantyServicingController;
+use Illuminate\Foundation\Application;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-
 
 Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     Route::resource('documents', \App\Http\Controllers\DocumentController::class)->only(['index', 'store', 'show', 'destroy']);
@@ -105,9 +102,9 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::post('procurement/purchase-orders/{purchaseOrder}/action', [GoodsReceivedNoteController::class, 'purchaseOrderAction'])->name('purchase-orders.action');
     Route::post('/profile/two-factor', [ProfileController::class, 'twoFactor'])->middleware('throttle:5,1')->name('profile.two-factor');
-    Route::post('portal/supplier/orders/{purchaseOrder}/accept', [PortalController::class,'supplierAcceptOrder'])->name('portal.supplier.accept-order');
-    Route::post('portal/supplier/orders/{purchaseOrder}/attachments', [PortalController::class,'supplierUpload'])->name('portal.supplier.upload');
-    Route::patch('portal/supplier/profile', [PortalController::class,'supplierUpdateProfile'])->name('portal.supplier.update-profile');
+    Route::post('portal/supplier/orders/{purchaseOrder}/accept', [PortalController::class, 'supplierAcceptOrder'])->name('portal.supplier.accept-order');
+    Route::post('portal/supplier/orders/{purchaseOrder}/attachments', [PortalController::class, 'supplierUpload'])->name('portal.supplier.upload');
+    Route::patch('portal/supplier/profile', [PortalController::class, 'supplierUpdateProfile'])->name('portal.supplier.update-profile');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
@@ -315,7 +312,7 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     Route::get('notification-templates/{notificationTemplate}/language/{lang}', [NotificationTemplateController::class, 'getLanguageContent'])->name('notification-templates.language-content');
     Route::put('notification-templates/{notificationTemplate}', [NotificationTemplateController::class, 'update'])->name('notification-templates.update');
 
-     // Proposal Routes
+    // Proposal Routes
     Route::resource('sales-proposals', SalesProposalController::class);
     Route::get('sales-proposals/{salesProposal}/print', [SalesProposalController::class, 'print'])->name('sales-proposals.print');
     Route::post('sales-proposals/{salesProposal}/sent', [SalesProposalController::class, 'sent'])->name('sales-proposals.sent');
@@ -377,10 +374,10 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     Route::delete('project/timesheets/{id}', [ProjectTimesheetController::class, 'destroy'])->name('project.timesheets.destroy');
 
     // Fixed Asset Management & Equipment Servicing (SRS Modules 20 & 21)
-        // Warranty & Servicing Management (SRS Module 21)
-        // Self-Service Portals (SRS Modules 27 & 28)
-        // Database Backups & Disaster Recovery (SRS Module 34)
-        // Sales Orders & Stock Allocation (SRS Â§3.9.1, Â§3.9.4)
+    // Warranty & Servicing Management (SRS Module 21)
+    // Self-Service Portals (SRS Modules 27 & 28)
+    // Database Backups & Disaster Recovery (SRS Module 34)
+    // Sales Orders & Stock Allocation (SRS Â§3.9.1, Â§3.9.4)
     Route::get('sales-orders', [SalesOrderController::class, 'index'])->name('sales-orders.index');
     Route::post('sales-orders', [SalesOrderController::class, 'store'])->name('sales-orders.store');
     Route::post('sales-orders/convert-proposal/{proposalId}', [SalesOrderController::class, 'convertProposalToOrder'])->name('sales-orders.convert-proposal');
@@ -453,7 +450,7 @@ Route::get('/storage-link', function () {
 Route::get('/translations/{locale}', [TranslationController::class, 'getTranslations'])->name('languages.translations');
 Route::post('/cookie-consent-log', [SettingController::class, 'logCookieConsent'])->name('cookie.consent.log');
 
-//for Instagramchat & Facebookchat
+// for Instagramchat & Facebookchat
 Route::any('/meta/callback', [MetaController::class, 'handleWebhook'])->name('meta.callback');
 
 // Document Verification Routes (Public Engine)
@@ -482,6 +479,6 @@ Route::get('packages/workdo/{module}/favicon.png', function ($module) {
     return response()->file(public_path('favicon.png'), ['Content-Type' => 'image/png']);
 });
 
-require __DIR__.'/installer.php';
-require __DIR__.'/updater.php';
-require __DIR__.'/auth.php';
+require __DIR__ . '/installer.php';
+require __DIR__ . '/updater.php';
+require __DIR__ . '/auth.php';

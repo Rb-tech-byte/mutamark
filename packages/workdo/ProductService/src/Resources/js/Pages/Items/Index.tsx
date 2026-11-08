@@ -44,6 +44,14 @@ export default function Index() {
     const [viewMode, setViewMode] = useState<'list' | 'grid'>(urlParams.get('view') as 'list' | 'grid' || 'grid');
     const [showFilters, setShowFilters] = useState(false);
 
+    // Permission checks: System admin and company owner have full CUD privileges
+    const isCompanyOrAdmin = auth.user?.type === 'company' || auth.user?.type === 'superadmin' || auth.user?.roles?.includes('company') || auth.user?.roles?.includes('superadmin');
+    const canView = isCompanyOrAdmin || auth.user?.permissions?.includes('view-product-service-item') || auth.user?.permissions?.includes('manage-product-service-item');
+    const canEdit = isCompanyOrAdmin || auth.user?.permissions?.includes('edit-product-service-item') || auth.user?.permissions?.includes('manage-product-service-item');
+    const canDelete = isCompanyOrAdmin || auth.user?.permissions?.includes('delete-product-service-item') || auth.user?.permissions?.includes('manage-product-service-item');
+    const canCreate = isCompanyOrAdmin || auth.user?.permissions?.includes('create-product-service-item') || auth.user?.permissions?.includes('manage-product-service-item');
+    const canManageStock = isCompanyOrAdmin || auth.user?.permissions?.includes('manage-stock') || auth.user?.permissions?.includes('manage-product-service-item');
+
     const googleDriveButtons = usePageButtons('googleDriveBtn', { module: 'Products', settingKey: 'GoogleDrive Products' });
     const oneDriveButtons = usePageButtons('oneDriveBtn', { module: 'Products', settingKey: 'OneDrive Products' });
     const hubspotButtons = usePageButtons('hubspotBtn', { module: 'Products', settingKey: 'HubSpot Products' });
@@ -178,13 +186,13 @@ export default function Index() {
                 );
             }
         },
-        ...(auth.user?.permissions?.some((p: string) => ['view-product-service-item', 'edit-product-service-item', 'delete-product-service-item'].includes(p)) ? [{
+        ...((canView || canEdit || canDelete) ? [{
             key: 'actions',
             header: t('Actions'),
             render: (_: any, item: Item) => (
                 <div className="flex gap-1">
                     <TooltipProvider>
-                        {auth.user?.permissions?.includes('view-product-service-item') && (
+                        {canView && (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>
                                     <Button variant="ghost" size="sm" onClick={() => router.visit(route('product-service.items.show', item.id))} className="h-8 w-8 p-0 text-green-600 hover:text-green-700">
@@ -196,7 +204,7 @@ export default function Index() {
                                 </TooltipContent>
                             </Tooltip>
                         )}
-                        {auth.user?.permissions?.includes('edit-product-service-item') && (
+                        {canEdit && (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>
                                     <Button variant="ghost" size="sm" onClick={() => router.visit(route('product-service.items.edit', item.id))} className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700">
@@ -208,7 +216,7 @@ export default function Index() {
                                 </TooltipContent>
                             </Tooltip>
                         )}
-                        {auth.user?.permissions?.includes('delete-product-service-item') && (
+                        {canDelete && (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>
                                     <Button
@@ -256,13 +264,13 @@ export default function Index() {
                         {hubspotButtons.map((button) => (
                             <div key={button.id}>{button.component}</div>
                         ))}
-                        {auth.user?.permissions?.includes('manage-stock') && (
+                        {canManageStock && (
                             <Button variant="outline" size="sm" onClick={() => router.visit(route('product-service.stock.index'))} className="gap-1.5 border-gray-300 hover:bg-gray-100">
                                 <Package className="h-4 w-4 text-gray-600" />
                                 <span className="hidden sm:inline font-medium">{t('Manage Stock')}</span>
                             </Button>
                         )}
-                        {auth.user?.permissions?.includes('create-product-service-item') && (
+                        {canCreate && (
                             <Button size="sm" onClick={() => router.visit(route('product-service.items.create'))} className="gap-1.5 shadow-sm font-semibold bg-primary hover:bg-primary/90 text-white">
                                 <Plus className="h-4 w-4" />
                                 <span>{t('Add Product / Item')}</span>
@@ -374,7 +382,7 @@ export default function Index() {
                                             description={t('Get started by creating your first item.')}
                                             hasFilters={!!(filters.name || filters.type || filters.category_id)}
                                             onClearFilters={clearFilters}
-                                            createPermission="create-product-service-item"
+                                            createPermission={canCreate ? undefined : "create-product-service-item"}
                                             onCreateClick={() => router.visit(route('product-service.items.create'))}
                                             createButtonText={t('Create Item')}
                                             className="h-auto"
@@ -394,7 +402,6 @@ export default function Index() {
                                             part:    'bg-amber-500/90 text-white',
                                         };
                                         const badgeClass = typeBadge[item.type ?? ''] ?? 'bg-slate-500/90 text-white';
-                                        const canView = auth.user?.permissions?.includes('view-product-service-item');
 
                                         return (
                                             <Card key={item.id} className="group border border-gray-200 flex flex-col overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
@@ -494,7 +501,7 @@ export default function Index() {
                                                     {/* Actions */}
                                                     <div className="flex items-center justify-end gap-0.5 pt-1.5 border-t border-gray-100">
                                                         <TooltipProvider>
-                                                            {auth.user?.permissions?.includes('view-product-service-item') && (
+                                                            {canView && (
                                                                 <Tooltip delayDuration={300}>
                                                                     <TooltipTrigger asChild>
                                                                         <Button variant="ghost" size="sm" onClick={() => router.visit(route('product-service.items.show', item.id))} className="h-7 w-7 p-0 text-green-600 hover:text-green-700">
@@ -504,7 +511,7 @@ export default function Index() {
                                                                     <TooltipContent><p>{t('View')}</p></TooltipContent>
                                                                 </Tooltip>
                                                             )}
-                                                            {auth.user?.permissions?.includes('edit-product-service-item') && (
+                                                            {canEdit && (
                                                                 <Tooltip delayDuration={300}>
                                                                     <TooltipTrigger asChild>
                                                                         <Button variant="ghost" size="sm" onClick={() => router.visit(route('product-service.items.edit', item.id))} className="h-7 w-7 p-0 text-blue-600 hover:text-blue-700">
@@ -514,7 +521,7 @@ export default function Index() {
                                                                     <TooltipContent><p>{t('Edit')}</p></TooltipContent>
                                                                 </Tooltip>
                                                             )}
-                                                            {auth.user?.permissions?.includes('delete-product-service-item') && (
+                                                            {canDelete && (
                                                                 <Tooltip delayDuration={300}>
                                                                     <TooltipTrigger asChild>
                                                                         <Button variant="ghost" size="sm" onClick={() => openDeleteDialog(item.id)} className="h-7 w-7 p-0 text-destructive hover:text-destructive">

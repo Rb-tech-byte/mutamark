@@ -94,6 +94,11 @@ class MutamarkNicheUsersSeeder extends Seeder
             }
         }
 
+        // Ensure ProductService permissions are seeded
+        if (class_exists(\Workdo\ProductService\Database\Seeders\PermissionTableSeeder::class)) {
+            (new \Workdo\ProductService\Database\Seeders\PermissionTableSeeder())->run();
+        }
+
         // Grant company role all existing permissions
         $companyRole = Role::where('name', 'company')->first();
         if ($companyRole) {

@@ -1,10 +1,11 @@
-import { Head, usePage } from "@inertiajs/react";
+import { Head, usePage, router } from "@inertiajs/react";
 import { useTranslation } from 'react-i18next';
 import { usePageButtons } from '@/hooks/usePageButtons';
 import AuthenticatedLayout from "@/layouts/authenticated-layout";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Package, Image } from "lucide-react";
+import { Package, Image, Edit } from "lucide-react";
 import { formatCurrency, getImagePath } from "@/utils/helpers";
 import { ImageSlider } from "@/components/ui/image-slider";
 import { useFormFields } from '@/hooks/useFormFields';
@@ -59,6 +60,16 @@ export default function Show() {
                 { label: t('Item Details') }
             ]}
             pageTitle={t('Item Details')}
+            pageActions={
+                <Button
+                    size="sm"
+                    onClick={() => router.visit(route('product-service.items.edit', item.id))}
+                    className="gap-1.5 shadow-sm font-semibold bg-primary hover:bg-primary/90 text-white"
+                >
+                    <Edit className="h-4 w-4" />
+                    <span>{t('Edit Item')}</span>
+                </Button>
+            }
         >
             <Head title={t('Item Details')} />
 

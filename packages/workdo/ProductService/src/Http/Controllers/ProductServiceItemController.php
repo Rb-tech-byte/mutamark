@@ -132,7 +132,7 @@ class ProductServiceItemController extends Controller
     {
         \App\Services\CompanyAccess::requirePermission('view-product-service-item');
         \App\Services\CompanyAccess::check($item);
-        if(Auth::user()->can('view-product-service-item')){
+        if(Auth::user()->can('view-product-service-item') || Auth::user()->can('manage-product-service-item') || Auth::user()->type === 'company' || Auth::user()->type === 'superadmin'){
             $item->load(['category', 'unitRelation', 'warehouseStocks.warehouse:id,name']);
 
             // Load taxes if tax_ids exist
@@ -167,7 +167,7 @@ class ProductServiceItemController extends Controller
     public function edit(ProductServiceItem $item)
     {
         \App\Services\CompanyAccess::check($item);
-        if(Auth::user()->can('edit-product-service-item')){
+        if(Auth::user()->can('edit-product-service-item') || Auth::user()->can('manage-product-service-item') || Auth::user()->type === 'company' || Auth::user()->type === 'superadmin'){
             $taxes = ProductServiceTax::where('created_by', creatorId())->get(['id', 'tax_name', 'rate']);
             $categories = ProductServiceCategory::where('created_by', creatorId())->get(['id', 'name']);
             $units = ProductServiceUnit::where('created_by', creatorId())->get(['id', 'unit_name']);
@@ -196,7 +196,7 @@ class ProductServiceItemController extends Controller
 
         \App\Services\CompanyAccess::requirePermission('edit-product-service-item');
         \App\Services\CompanyAccess::check($item);
-        if(Auth::user()->can('edit-product-service-item')){
+        if(Auth::user()->can('edit-product-service-item') || Auth::user()->can('manage-product-service-item') || Auth::user()->type === 'company' || Auth::user()->type === 'superadmin'){
             $validated = $request->validated();
 
             if (isset($validated['quantity'])) {
@@ -249,7 +249,7 @@ class ProductServiceItemController extends Controller
     {
         \App\Services\CompanyAccess::requirePermission('delete-product-service-item');
         \App\Services\CompanyAccess::check($item);
-        if(Auth::user()->can('delete-product-service-item')){
+        if(Auth::user()->can('delete-product-service-item') || Auth::user()->can('manage-product-service-item') || Auth::user()->type === 'company' || Auth::user()->type === 'superadmin'){
             if ($item->image) {
                 delete_file($item->image);
             }
