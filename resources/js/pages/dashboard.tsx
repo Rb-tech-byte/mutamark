@@ -310,7 +310,7 @@ export default function Dashboard(props: DashboardProps) {
                             {isSales && (
                                 <>
                                     <Button asChild size="sm" variant="default" className="gap-1.5 shadow-sm">
-                                        <Link href={route('sales-orders.create')}>
+                                        <Link href={route('sales-orders.index')}>
                                             <Plus className="h-4 w-4" /> {t('New Sales Order')}
                                         </Link>
                                     </Button>

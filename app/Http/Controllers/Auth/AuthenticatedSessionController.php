@@ -57,6 +57,19 @@ class AuthenticatedSessionController extends Controller
             }
         }
 
+        $user = Auth::user();
+        if ($user) {
+            if ($user->type === 'client' || $user->hasRole('client')) {
+                return redirect()->route('portal.customer');
+            }
+            if ($user->type === 'vendor' || $user->hasRole('vendor')) {
+                return redirect()->route('portal.supplier');
+            }
+            if (($user->hasRole('Clearing & Forwarding Manager') || $user->hasRole('Customs Declarant') || $user->hasRole('Transport Coordinator')) && $user->type !== 'company') {
+                return redirect()->route('clearing-forwarding.dashboard');
+            }
+        }
+
         return redirect()->route('dashboard');
 
         // old code
@@ -101,8 +114,12 @@ class AuthenticatedSessionController extends Controller
 
     private function getLocationData(string $ip): array
     {
+        if (in_array($ip, ['127.0.0.1', '::1']) || !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+            return ['query' => $ip, 'country' => 'Localhost', 'city' => 'Local Development'];
+        }
+
         try {
-            $response = Http::timeout(5)->get("http://ip-api.com/json/{$ip}");
+            $response = Http::timeout(2)->get("http://ip-api.com/json/{$ip}");
             if ($response->successful()) {
                 $data = $response->json();
                 return [
