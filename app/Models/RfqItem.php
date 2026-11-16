@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Schema;
 use Workdo\ProductService\Models\ProductServiceItem;
 
 class RfqItem extends Model
@@ -36,14 +37,27 @@ class RfqItem extends Model
         'total_target_price',
     ];
 
+    protected static ?bool $hasQuantityColumn = null;
+    protected static ?bool $hasQuantityRequiredColumn = null;
+
     public static function boot()
     {
         parent::boot();
         static::saving(function ($model) {
-            if (isset($model->quantity)) {
+            if (static::$hasQuantityColumn === null) {
+                static::$hasQuantityColumn = Schema::hasColumn($model->getTable(), 'quantity');
+                static::$hasQuantityRequiredColumn = Schema::hasColumn($model->getTable(), 'quantity_required');
+            }
+
+            if (isset($model->quantity) && static::$hasQuantityRequiredColumn) {
                 $model->quantity_required = $model->quantity;
             } elseif (isset($model->quantity_required)) {
-                $model->quantity = $model->quantity_required;
+                if (static::$hasQuantityColumn) {
+                    $model->quantity = $model->quantity_required;
+                }
+                if (!static::$hasQuantityRequiredColumn) {
+                    unset($model->quantity_required);
+                }
             }
         });
     }
