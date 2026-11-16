@@ -1,61 +1,77 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
-# ==============================================================================
-# Mutamark ERP - One-Click Production Deployment Script
-# Domain: https://mutamark.wolinet.com/
-# ==============================================================================
+APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BRANCH="${DEPLOY_BRANCH:-main}"
+APP_URL="${APP_URL:-https://mutamark.wolinet.com}"
+SEED_FLAG=false
 
-APP_DIR="${1:-/home/mutamark.wolinet.com/public_html}"
+for arg in "$@"; do
+  case "$arg" in
+    --seed) SEED_FLAG=true ;;
+  esac
+done
+
+log() {
+  echo ""
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+}
+
 cd "$APP_DIR"
+log "Starting deployment in $APP_DIR (branch=$BRANCH, url=$APP_URL)"
 
-echo "=========================================================="
-echo "🚀 Starting Mutamark ERP Deployment at $(date '+%Y-%m-%d %H:%M:%S')"
-echo "=========================================================="
+# Detect CyberPanel vHost owner from parent directory (e.g., /home/mutamark.wolinet.com)
+VHOST_OWNER="$(stat -c '%U' "$(dirname "$APP_DIR")" 2>/dev/null || echo '')"
 
-# 1. Fetch & force-sync cleanly from origin/main
-echo "📥 [1/6] Syncing latest commits from GitHub origin/main..."
-git fetch origin main
-git checkout -f main
-git reset --hard origin/main
+php artisan down --retry=60 >/dev/null 2>&1 || true
+log "Maintenance mode enabled."
 
-# 2. Composer dump-autoload & dependencies
-echo "📦 [2/6] Optimizing composer autoload..."
-composer dump-autoload -o --no-interaction
+log "Fetching and syncing git origin/$BRANCH..."
+git fetch origin "$BRANCH"
+git reset --hard "origin/$BRANCH"
 
-# 3. Database migrations & seeders
-echo "🗄️ [3/6] Running migrations and syncing niche enterprise users & modules..."
+log "Clearing stale bootstrap cache..."
+rm -f bootstrap/cache/*.php
+
+log "Installing Composer dependencies (--no-dev --optimize-autoloader)..."
+COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --no-interaction
+
+log "Skipping npm build (prebuilt public/build/* active)."
+
+log "Running database migrations..."
 php artisan migrate --force
-php artisan db:seed --class=MutamarkNicheUsersSeeder --force
 
-# 4. Clear and rebuild all application caches
-echo "⚡ [4/6] Purging and rebuilding production caches..."
+if [ "$SEED_FLAG" = true ]; then
+  log "Running idempotent database seeders..."
+  php artisan db:seed --class=CFCustomsRulesSeeder --force
+fi
+
+log "Linking public/storage and verifying runtime directories..."
+php artisan storage:link >/dev/null 2>&1 || true
+mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache
+
+log "Optimizing Laravel caches..."
 php artisan optimize:clear
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
+php artisan queue:restart >/dev/null 2>&1 || true
 
-# 5. Reset storage links & public asset symlinks
-echo "🔗 [5/6] Verifying storage and asset links..."
-php artisan storage:link --force 2>/dev/null || true
-mkdir -p "$APP_DIR/storage/framework/cache/data"
-mkdir -p "$APP_DIR/storage/framework/views"
-mkdir -p "$APP_DIR/storage/framework/sessions"
-chmod -R 775 "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" 2>/dev/null || true
+log "Bringing application online..."
+php artisan up >/dev/null 2>&1 || true
 
-# 6. Flush OpenLiteSpeed / PHP opcode cache & restart worker
-echo "🔄 [6/6] Reloading OpenLiteSpeed and PHP workers..."
-mkdir -p "$APP_DIR/tmp"
-touch "$APP_DIR/tmp/restart.txt"
-
-# Kill any stale stuck lsphp worker processes to reload opcode cache immediately
-pkill -9 -f lsphp 2>/dev/null || true
-
-# Graceful restart of OpenLiteSpeed if running with systemctl
-if command -v systemctl &> /dev/null; then
-    systemctl restart lsws 2>/dev/null || true
+if [ -n "$VHOST_OWNER" ] && [ "$VHOST_OWNER" != "root" ]; then
+  log "Restoring CyberPanel/vHost ownership ($VHOST_OWNER:$VHOST_OWNER, docRoot group nobody)..."
+  chown -R "${VHOST_OWNER}:${VHOST_OWNER}" "$APP_DIR"
+  chgrp nobody "$APP_DIR/public" "$APP_DIR" 2>/dev/null || true
+  chmod -R 775 storage bootstrap/cache
 fi
 
-echo "=========================================================="
-echo "✅ Mutamark ERP Deployment Complete at $(date '+%Y-%m-%d %H:%M:%S')!"
-echo "=========================================================="
+log "Reloading OpenLiteSpeed so .htaccess & PHP caches refresh cleanly..."
+systemctl reload lsws >/dev/null 2>&1 || /usr/local/lsws/bin/lswsctrl reload >/dev/null 2>&1 || true
+
+log "Running HTTP health check on $APP_URL/..."
+HTTP_CODE="$(curl -s -o /dev/null -w '%{http_code}' -L "$APP_URL/" || echo '000')"
+echo "HTTP Status from $APP_URL/: $HTTP_CODE"
+
+log "Deployment completed cleanly for $APP_URL."
