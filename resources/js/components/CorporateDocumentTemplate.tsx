@@ -581,26 +581,14 @@ export default function CorporateDocumentTemplate({
             )}
 
             {/* 6. SIGNATURE AND STAMP ROWS */}
-            {isDigitalSigEnabled && (
-                <div className="print:hidden mb-3 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
-                    <div className="flex items-center gap-2 text-slate-700">
-                        <span className={`inline-block h-2 w-2 rounded-full ${isDigitallySigned ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                        <span>
-                            {isDigitallySigned
-                                ? (isAutoSign ? 'Auto-Signed for Print & PDF Download' : 'Document Signed & Ready for Print / Download')
-                                : 'Digital Signature Ready (Sign before printing or downloading)'}
-                        </span>
-                    </div>
+            {isDigitalSigEnabled && !isAutoSign && !isDigitallySigned && (
+                <div className="print:hidden mb-3 flex justify-end">
                     <button
                         type="button"
-                        onClick={() => setIsDigitallySigned((prev) => !prev)}
-                        className={`rounded px-2.5 py-1 font-medium transition-colors ${
-                            isDigitallySigned
-                                ? 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
-                                : 'bg-emerald-600 text-white hover:bg-emerald-700'
-                        }`}
+                        onClick={() => setIsDigitallySigned(true)}
+                        className="rounded bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-700"
                     >
-                        {isDigitallySigned ? 'Remove Signature' : 'Sign Document Now'}
+                        Sign Document
                     </button>
                 </div>
             )}

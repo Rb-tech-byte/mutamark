@@ -152,10 +152,10 @@ export default function DigitalSignatureSettings({ userSettings = {}, auth }: Di
         <div>
           <CardTitle className="flex items-center gap-2 text-lg">
             <PenTool className="h-5 w-5" />
-            {t('Digital Signature & Auto-Sign')}
+            {t('Digital Signature & Stamp')}
           </CardTitle>
           <CardDescription>
-            {t('Store your official company signature in storage/app/public/signatures to auto-sign printed & downloaded documents, or allow on-demand signing before printing.')}
+            {t('Configure your official company signature and stamp for printed and downloaded documents.')}
           </CardDescription>
         </div>
         {canEdit && (
