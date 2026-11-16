@@ -186,6 +186,10 @@ export default function Dashboard(props: DashboardProps) {
         hrm,
     } = props;
 
+    const activeModules = new Set<string>(
+        Array.isArray(auth?.user?.activatedPackages) ? auth.user.activatedPackages : []
+    );
+
     const isCompany = active_role === 'company' || auth.user?.type === 'company';
     const isFinance = active_role === 'finance_manager';
     const isWarehouse = active_role === 'warehouse_manager';
@@ -267,7 +271,7 @@ export default function Dashboard(props: DashboardProps) {
                                 </>
                             )}
 
-                            {isFinance && (
+                            {isFinance && activeModules.has('Account') && (
                                 <>
                                     <Button asChild size="sm" variant="default" className="gap-1.5 shadow-sm">
                                         <Link href={route('sales-invoices.create')}>
@@ -299,11 +303,13 @@ export default function Dashboard(props: DashboardProps) {
                                             <Truck className="h-4 w-4" /> {t('New Transfer')}
                                         </Link>
                                     </Button>
-                                    <Button asChild size="sm" variant="outline" className="gap-1.5">
-                                        <Link href={route('product-service.stock.index')}>
-                                            <Boxes className="h-4 w-4" /> {t('Stock Valuation')}
-                                        </Link>
-                                    </Button>
+                                    {activeModules.has('ProductService') && (
+                                        <Button asChild size="sm" variant="outline" className="gap-1.5">
+                                            <Link href={route('product-service.stock.index')}>
+                                                <Boxes className="h-4 w-4" /> {t('Stock Valuation')}
+                                            </Link>
+                                        </Button>
+                                    )}
                                 </>
                             )}
 
@@ -319,15 +325,17 @@ export default function Dashboard(props: DashboardProps) {
                                             <FileText className="h-4 w-4" /> {t('Create Proposal')}
                                         </Link>
                                     </Button>
-                                    <Button asChild size="sm" variant="outline" className="gap-1.5">
-                                        <Link href={route('pos.create')}>
-                                            <Store className="h-4 w-4" /> {t('POS Register')}
-                                        </Link>
-                                    </Button>
+                                    {activeModules.has('Pos') && (
+                                        <Button asChild size="sm" variant="outline" className="gap-1.5">
+                                            <Link href={route('pos.create')}>
+                                                <Store className="h-4 w-4" /> {t('POS Register')}
+                                            </Link>
+                                        </Button>
+                                    )}
                                 </>
                             )}
 
-                            {isHr && (
+                            {isHr && activeModules.has('Hrm') && (
                                 <>
                                     <Button asChild size="sm" variant="default" className="gap-1.5 shadow-sm">
                                         <Link href={route('hrm.employees.create')}>
@@ -347,7 +355,7 @@ export default function Dashboard(props: DashboardProps) {
                                 </>
                             )}
 
-                            {isPos && (
+                            {isPos && activeModules.has('Pos') && (
                                 <Button asChild size="lg" variant="default" className="gap-2 shadow-md bg-emerald-600 hover:bg-emerald-700">
                                     <Link href={route('pos.create')}>
                                         <Store className="h-5 w-5" /> {t('Launch POS Terminal')}
@@ -874,7 +882,7 @@ export default function Dashboard(props: DashboardProps) {
                 {/* ========================================================= */}
                 {/* 7. POS CASHIER DESK DASHBOARD                             */}
                 {/* ========================================================= */}
-                {isPos && sales && (
+                {isPos && sales && activeModules.has('Pos') && (
                     <div className="space-y-6">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                             <Card className="border-l-4 border-l-emerald-500 shadow-sm">

@@ -423,4 +423,52 @@ class PosController extends Controller
             'pos_number' => Pos::generateSaleNumber()
         ]);
     }
+
+    public function quickStoreCustomer(Request $request)
+    {
+        if (!Auth::user()->can('create-pos')) {
+            return response()->json(['message' => __('Permission denied')], 403);
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'nullable|email|max:255|unique:users,email',
+            'mobile_no' => 'nullable|string|max:30',
+        ]);
+
+        $email = !empty($validated['email'])
+            ? $validated['email']
+            : 'customer_' . uniqid() . '@pos.local';
+
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $email,
+            'mobile_no' => $validated['mobile_no'] ?? null,
+            'password' => \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(16)),
+            'type' => 'client',
+            'lang' => 'en',
+            'is_enable_login' => 0,
+            'email_verified_at' => now(),
+            'creator_id' => Auth::id(),
+            'created_by' => creatorId(),
+        ]);
+
+        $clientRole = \Spatie\Permission\Models\Role::where('name', 'client')
+            ->where('created_by', creatorId())
+            ->first()
+            ?? \Spatie\Permission\Models\Role::where('name', 'client')->first();
+
+        if ($clientRole) {
+            $user->assignRole($clientRole);
+        }
+
+        return response()->json([
+            'customer' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ],
+            'message' => __('Customer created successfully.'),
+        ], 201);
+    }
 }

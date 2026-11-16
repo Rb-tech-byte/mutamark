@@ -171,7 +171,11 @@ class StockAdjustmentController extends Controller
 
         $value = round((float) $stockAdjustment->items->sum('variance_value'),2);
         if (abs($value) > 0.01) {
-            $inventory = \Workdo\Account\Models\ChartOfAccount::where('created_by',creatorId())->where('account_code','1200')->firstOrFail();
+            $inventory = \Workdo\Account\Models\ChartOfAccount::where('created_by', creatorId())->where('account_code', '1200')->first();
+            if (!$inventory) {
+                \Workdo\Account\Helpers\AccountUtility::defaultdata(creatorId());
+                $inventory = \Workdo\Account\Models\ChartOfAccount::where('created_by', creatorId())->where('account_code', '1200')->firstOrFail();
+            }
             $adjustmentAccount = company_setting('inventory_adjustment_account_id');
             abort_unless($adjustmentAccount,422,'Configure the inventory adjustment GL account in accounting controls.');
             $amount = abs($value);

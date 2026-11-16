@@ -269,14 +269,15 @@ class PosReturnController extends \Illuminate\Routing\Controller
     public function destroy(PosReturn $posReturn)
     {
         if(Auth::user()->can('delete-pos-returns') && $posReturn->created_by == creatorId()){
-            if ($posReturn->status !== 'draft') {
-                return back()->with('error', __('Only draft returns can be deleted.'));
+            if (!in_array($posReturn->status, ['draft', 'cancelled'])) {
+                return back()->with('error', __('Only draft or cancelled returns can be deleted.'));
             }
             
             DestroyPosReturn::dispatch($posReturn);
-            $posReturn->update(['status' => 'cancelled']);
+            $posReturn->items()->delete();
+            $posReturn->delete();
 
-            return back()->with('success', __('The POS return has been cancelled.'));
+            return back()->with('success', __('The POS return has been deleted.'));
         } else {
             return back()->with('error', __('Permission denied'));
         }

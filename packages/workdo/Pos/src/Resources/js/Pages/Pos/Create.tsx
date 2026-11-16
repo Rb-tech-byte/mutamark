@@ -9,7 +9,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ShoppingCart, Search, CreditCard, Plus, Minus, Trash2, X, Home, Printer, FileText, Image, Package, Barcode } from 'lucide-react';
+import { ShoppingCart, Search, CreditCard, Plus, Minus, Trash2, X, Home, Printer, FileText, Image, Package, Barcode, UserPlus, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import {
+    cacheWarehouseProducts,
+    getCachedWarehouseProducts,
+    generateClientTxId,
+    getOfflineQueue,
+    saveOfflineQueue,
+    enqueueOfflineTransaction,
+    OfflineQueuedTransaction,
+} from './offlinePosStore';
 import { getImagePath, formatCurrency,formatDate } from '@/utils/helpers';
 import { useFavicon } from '@/hooks/use-favicon';
 import { BrandProvider } from '@/contexts/brand-context';
@@ -129,7 +138,62 @@ function CreateContent({ customers = [], warehouses = [], categories = [], count
     const isSuperAdmin = auth?.user?.roles?.includes('superadmin');
     const globalSettings = isSuperAdmin ? adminAllSetting : companyAllSetting;
 
+    const [customerList, setCustomerList] = useState<Customer[]>(customers);
     const [selectedCustomer, setSelectedCustomer] = useState('');
+    const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
+    const [newCustomerName, setNewCustomerName] = useState('');
+    const [newCustomerEmail, setNewCustomerEmail] = useState('');
+    const [newCustomerPhone, setNewCustomerPhone] = useState('');
+    const [savingCustomer, setSavingCustomer] = useState(false);
+    const [customerError, setCustomerError] = useState('');
+
+    useEffect(() => {
+        setCustomerList(customers);
+    }, [customers]);
+
+    const handleQuickAddCustomer = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newCustomerName.trim()) {
+            setCustomerError(t('Customer name is required.'));
+            return;
+        }
+        setSavingCustomer(true);
+        setCustomerError('');
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const response = await fetch(route('pos.customers.quick-store'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                body: JSON.stringify({
+                    name: newCustomerName.trim(),
+                    email: newCustomerEmail.trim() || null,
+                    mobile_no: newCustomerPhone.trim() || null,
+                }),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                const firstError = data?.errors ? Object.values(data.errors).flat()[0] : null;
+                setCustomerError((firstError as string) || data?.message || t('Failed to create customer.'));
+                return;
+            }
+            if (data.customer) {
+                setCustomerList(prev => [data.customer, ...prev]);
+                setSelectedCustomer(data.customer.id.toString());
+            }
+            setNewCustomerName('');
+            setNewCustomerEmail('');
+            setNewCustomerPhone('');
+            setShowAddCustomerModal(false);
+        } catch (err) {
+            setCustomerError(t('Failed to create customer.'));
+        } finally {
+            setSavingCustomer(false);
+        }
+    };
     const [selectedCounter, setSelectedCounter] = useState(() => {
         const saved = sessionStorage.getItem('pos_selected_counter');
         return saved || '';
@@ -145,6 +209,23 @@ function CreateContent({ customers = [], warehouses = [], categories = [], count
     const [cart, setCart] = useState<CartItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
+    const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
+    const [manualOffline, setManualOffline] = useState(false);
+    const [offlineQueue, setOfflineQueue] = useState<OfflineQueuedTransaction[]>(() => getOfflineQueue());
+    const [showSyncModal, setShowSyncModal] = useState(false);
+    const [syncingOffline, setSyncingOffline] = useState(false);
+    const effectiveOffline = !isOnline || manualOffline;
+
+    useEffect(() => {
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, []);
 
     // Compute per-product discount badge data (qty=1) — no API call needed
     const productDiscounts = useMemo(() => {
@@ -158,6 +239,11 @@ function CreateContent({ customers = [], warehouses = [], categories = [], count
 
     useEffect(() => {
         if (selectedWarehouse) {
+            if (effectiveOffline) {
+                const cached = getCachedWarehouseProducts(selectedWarehouse);
+                setProducts(cached);
+                return;
+            }
             setLoading(true);
             const params = new URLSearchParams({ warehouse_id: selectedWarehouse });
             if (selectedCategory && selectedCategory !== 'all') {
@@ -165,11 +251,19 @@ function CreateContent({ customers = [], warehouses = [], categories = [], count
             }
             fetch(`${route('pos.products')}?${params}`)
                 .then(response => response.json())
-                .then(data => setProducts(data))
-                .catch(error => console.error('Error:', error))
+                .then(data => {
+                    setProducts(data);
+                    if (!selectedCategory || selectedCategory === 'all') {
+                        cacheWarehouseProducts(selectedWarehouse, data);
+                    }
+                })
+                .catch(() => {
+                    const cached = getCachedWarehouseProducts(selectedWarehouse);
+                    if (cached.length > 0) setProducts(cached);
+                })
                 .finally(() => setLoading(false));
         }
-    }, [selectedWarehouse, selectedCategory]);
+    }, [selectedWarehouse, selectedCategory, effectiveOffline]);
 
     // Clear cart only when warehouse changes
     useEffect(() => {
@@ -297,10 +391,100 @@ function CreateContent({ customers = [], warehouses = [], categories = [], count
             });
     }, []);
 
+    const syncOfflineTransactions = async () => {
+        const pending = offlineQueue.filter((tx) => tx.status === 'pending' || tx.status === 'failed');
+        if (pending.length === 0 || effectiveOffline) return;
+        setSyncingOffline(true);
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const res = await fetch(route('pos.offline-sync'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                body: JSON.stringify({ transactions: pending }),
+            });
+            const data = await res.json();
+            if (res.ok && Array.isArray(data.results)) {
+                const updated = offlineQueue.map((tx) => {
+                    const match = data.results.find((r: any) => r.client_tx_id === tx.client_tx_id);
+                    if (!match) return tx;
+                    return {
+                        ...tx,
+                        status: match.status,
+                        sync_message: match.message,
+                        conflicts: match.conflicts || undefined,
+                    };
+                });
+                setOfflineQueue(updated);
+                saveOfflineQueue(updated);
+            }
+        } finally {
+            setSyncingOffline(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!effectiveOffline && offlineQueue.some((tx) => tx.status === 'pending')) {
+            syncOfflineTransactions();
+        }
+    }, [effectiveOffline]);
+
+    const saveSaleLocallyOffline = () => {
+        const clientTxId = generateClientTxId();
+        const total = getTotal();
+        const tx: OfflineQueuedTransaction = {
+            client_tx_id: clientTxId,
+            warehouse_id: Number(selectedWarehouse),
+            customer_id: selectedCustomer ? Number(selectedCustomer) : null,
+            billing_counter_id: selectedCounter ? Number(selectedCounter) : null,
+            pos_date: new Date().toISOString().split('T')[0],
+            payment_method: paymentMethod,
+            reference_number: referenceNumber || clientTxId,
+            paid_amount: parseFloat(paidAmount || '0'),
+            total,
+            items: cart.map(item => ({
+                id: item.id,
+                quantity: item.quantity,
+                price: item.price,
+                item_discount_value: item.item_discount_value || 0,
+                item_discount_amount: item.item_discount_amount || 0,
+            })),
+            created_at: new Date().toISOString(),
+            status: 'pending',
+        };
+        const nextQueue = enqueueOfflineTransaction(tx);
+        setOfflineQueue(nextQueue);
+        setProcessing(false);
+        setCompletedSale({
+            pos_number: clientTxId,
+            items: cart,
+            subtotal: getSubtotal(),
+            tax: getTaxAmount(),
+            discount: 0,
+            total,
+            customer: selectedCustomer ? customerList.find(c => c.id.toString() === selectedCustomer) : null,
+            warehouse: warehouses.find(w => w.id.toString() === selectedWarehouse),
+            payment_method: paymentMethod,
+            paid_amount: parseFloat(paidAmount || '0'),
+            reference_number: clientTxId,
+            change_amount: Math.max(0, parseFloat(paidAmount || '0') - total),
+        });
+        setShowPaymentModal(false);
+        setTimeout(() => setShowReceiptModal(true), 100);
+    };
+
     const handlePayment = () => {
         // Prevent multiple clicks
         if (processing) return;
         setProcessing(true);
+
+        if (effectiveOffline) {
+            saveSaleLocallyOffline();
+            return;
+        }
 
 
         // Get fresh POS number before processing
@@ -418,6 +602,28 @@ function CreateContent({ customers = [], warehouses = [], categories = [], count
                                     </Tooltip>
                                 </TooltipProvider>
 
+                                <Button
+                                    type="button"
+                                    variant={effectiveOffline ? 'destructive' : 'outline'}
+                                    size="sm"
+                                    className="h-10 gap-1.5 shrink-0"
+                                    onClick={() => setManualOffline((prev) => !prev)}
+                                >
+                                    {effectiveOffline ? <WifiOff className="h-4 w-4" /> : <Wifi className="h-4 w-4 text-emerald-600" />}
+                                    <span>{effectiveOffline ? t('Offline Mode') : t('Online')}</span>
+                                </Button>
+
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-10 gap-1.5 shrink-0"
+                                    onClick={() => setShowSyncModal(true)}
+                                >
+                                    <RefreshCw className={`h-4 w-4 ${syncingOffline ? 'animate-spin' : ''}`} />
+                                    <span>{t('Sync Queue')} ({offlineQueue.filter(q => q.status === 'pending' || q.status === 'conflict').length})</span>
+                                </Button>
+
                                 <div className="relative flex-1 lg:w-80">
                                     <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                                     <Input
@@ -428,18 +634,42 @@ function CreateContent({ customers = [], warehouses = [], categories = [], count
                                     />
                                 </div>
 
-                                <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                                    <SelectTrigger className="h-10 w-full lg:w-80">
-                                        <SelectValue placeholder={t('Walk-in Customer')} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {customers.map(customer => (
-                                            <SelectItem key={customer.id} value={customer.id.toString()}>
-                                                {customer.name} - {customer.email}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <div className="flex items-center gap-2 w-full lg:w-auto">
+                                    <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
+                                        <SelectTrigger className="h-10 w-full lg:w-72">
+                                            <SelectValue placeholder={t('Walk-in Customer')} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {customerList.map(customer => (
+                                                <SelectItem key={customer.id} value={customer.id.toString()}>
+                                                    {customer.name} - {customer.email}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="icon"
+                                                    className="h-10 w-10 shrink-0"
+                                                    onClick={() => {
+                                                        setCustomerError('');
+                                                        setShowAddCustomerModal(true);
+                                                    }}
+                                                    title={t('Add Customer')}
+                                                >
+                                                    <UserPlus className="h-4 w-4" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>{t('Add Customer')}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </div>
 
                                 <Select value={selectedWarehouse} onValueChange={(value) => {
                                     setSelectedWarehouse(value);
@@ -1074,6 +1304,127 @@ function CreateContent({ customers = [], warehouses = [], categories = [], count
                                 {processing ? t('Processing...') : t('Complete Sale')}
                             </Button>
                         </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={showAddCustomerModal} onOpenChange={setShowAddCustomerModal}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>{t('Add New Customer')}</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleQuickAddCustomer} className="space-y-4">
+                        {customerError && (
+                            <div className="p-2.5 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+                                {customerError}
+                            </div>
+                        )}
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium">{t('Customer Name')} *</label>
+                            <Input
+                                value={newCustomerName}
+                                onChange={(e) => setNewCustomerName(e.target.value)}
+                                placeholder={t('Enter customer name')}
+                                required
+                                autoFocus
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium">{t('Email')}</label>
+                            <Input
+                                type="email"
+                                value={newCustomerEmail}
+                                onChange={(e) => setNewCustomerEmail(e.target.value)}
+                                placeholder={t('Enter email (optional)')}
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium">{t('Phone Number')}</label>
+                            <Input
+                                value={newCustomerPhone}
+                                onChange={(e) => setNewCustomerPhone(e.target.value)}
+                                placeholder={t('Enter phone number (optional)')}
+                            />
+                        </div>
+                        <div className="flex justify-end gap-2 pt-2">
+                            <Button type="button" variant="outline" onClick={() => setShowAddCustomerModal(false)}>
+                                {t('Cancel')}
+                            </Button>
+                            <Button type="submit" disabled={savingCustomer}>
+                                {savingCustomer ? t('Saving...') : t('Save Customer')}
+                            </Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={showSyncModal} onOpenChange={setShowSyncModal}>
+                <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>{t('Offline POS Queue & Synchronization Logs')}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between gap-2">
+                            <span className="text-sm text-muted-foreground">
+                                {effectiveOffline ? t('Currently Offline — transactions are queued locally.') : t('Online — ready to synchronize queued transactions.')}
+                            </span>
+                            <div className="flex gap-2">
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                        const remaining = offlineQueue.filter((q) => q.status !== 'synced' && q.status !== 'duplicate');
+                                        setOfflineQueue(remaining);
+                                        saveOfflineQueue(remaining);
+                                    }}
+                                >
+                                    {t('Clear Synced')}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    disabled={effectiveOffline || syncingOffline || offlineQueue.filter(q => q.status === 'pending' || q.status === 'failed').length === 0}
+                                    onClick={syncOfflineTransactions}
+                                >
+                                    <RefreshCw className={`h-4 w-4 mr-1.5 ${syncingOffline ? 'animate-spin' : ''}`} />
+                                    {syncingOffline ? t('Syncing...') : t('Sync Now')}
+                                </Button>
+                            </div>
+                        </div>
+
+                        {offlineQueue.length === 0 ? (
+                            <p className="text-sm text-center text-muted-foreground py-6">{t('No offline transactions in queue.')}</p>
+                        ) : (
+                            <div className="space-y-2">
+                                {offlineQueue.map((tx) => (
+                                    <div key={tx.client_tx_id} className="p-3 border rounded-lg space-y-1 text-sm">
+                                        <div className="flex items-center justify-between">
+                                            <span className="font-mono font-semibold text-xs">{tx.client_tx_id}</span>
+                                            <Badge variant={tx.status === 'synced' ? 'secondary' : tx.status === 'conflict' || tx.status === 'failed' ? 'destructive' : 'default'}>
+                                                {tx.status.toUpperCase()}
+                                            </Badge>
+                                        </div>
+                                        <div className="flex justify-between text-xs text-muted-foreground">
+                                            <span>{tx.items.length} {t('item(s)')} • {tx.payment_method}</span>
+                                            <span className="font-semibold text-foreground">{formatCurrency(tx.total)}</span>
+                                        </div>
+                                        {tx.sync_message && (
+                                            <p className="text-xs text-muted-foreground">{tx.sync_message}</p>
+                                        )}
+                                        {tx.conflicts && tx.conflicts.length > 0 && (
+                                            <div className="mt-1 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 space-y-0.5">
+                                                {tx.conflicts.map((c, idx) => (
+                                                    <div key={idx}>
+                                                        {c.product_name}: requested {c.requested_qty}, server stock {c.available_stock}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </DialogContent>
             </Dialog>

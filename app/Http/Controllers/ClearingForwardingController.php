@@ -322,7 +322,17 @@ class ClearingForwardingController extends Controller
         $validated = $request->validate([
             'status' => 'required|string',
             'notes' => 'nullable|string',
+            'authorized_exception' => 'nullable|boolean',
         ]);
+
+        // Business Rule 8: Shipment cannot be closed/completed without Delivery/POD or authorized exception
+        if (in_array($validated['status'], ['closed', 'completed']) && !$request->boolean('authorized_exception')) {
+            $hasPod = CFProofOfDelivery::where('cf_job_id', $cfJob->id)->exists()
+                || CFDelivery::where('cf_job_id', $cfJob->id)->where('status', 'delivered')->exists();
+            if (!$hasPod) {
+                return back()->with('error', __('Shipment cannot be closed without Proof of Delivery (POD) or authorized exception approval.'));
+            }
+        }
 
         $cfJob->update(['status' => $validated['status']]);
 

@@ -30,6 +30,7 @@ interface ChartOfAccount {
 interface CreateExpenseProps {
     categories: Category[];
     bankAccounts: BankAccount[];
+    warehouses?: Array<{ id: number; name: string }>;
     chartOfAccounts: ChartOfAccount[];
     onSuccess: () => void;
 }
@@ -37,24 +38,30 @@ interface CreateExpenseProps {
 interface CreateExpenseFormData {
     expense_date: string;
     category_id: string;
+    warehouse_id: string;
     bank_account_id: string;
+    payment_method: string;
     chart_of_account_id: string;
     amount: string;
     description: string;
     reference_number: string;
+    attachment: File | null;
 }
 
-export default function Create({ categories, bankAccounts, chartOfAccounts, onSuccess }: CreateExpenseProps) {
+export default function Create({ categories, bankAccounts, warehouses = [], chartOfAccounts, onSuccess }: CreateExpenseProps) {
     const { t } = useTranslation();
 
     const { data, setData, post, processing, errors } = useForm<CreateExpenseFormData>({
         expense_date: new Date().toISOString().split('T')[0],
         category_id: '',
+        warehouse_id: '',
         bank_account_id: '',
+        payment_method: 'bank_transfer',
         chart_of_account_id: '',
         amount: '',
         description: '',
         reference_number: '',
+        attachment: null,
     });
 
     // Calendar sync fields
@@ -66,6 +73,7 @@ export default function Create({ categories, bankAccounts, chartOfAccounts, onSu
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
         post(route('account.expenses.store'), {
+            forceFormData: true,
             onSuccess: () => {
                 onSuccess();
             }
@@ -165,6 +173,52 @@ export default function Create({ categories, bankAccounts, chartOfAccounts, onSu
                                     placeholder={t('Enter Reference Number')}
                                 />
                                 <InputError message={errors.reference_number} />
+                            </div>
+
+                            <div>
+                                <Label htmlFor="warehouse_id">{t('Location / Warehouse')}</Label>
+                                <Select value={data.warehouse_id} onValueChange={(val) => setData('warehouse_id', val === 'none' ? '' : val)}>
+                                    <SelectTrigger id="warehouse_id">
+                                        <SelectValue placeholder={t('Select Location (Optional)')} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">{t('Head Office / General')}</SelectItem>
+                                        {warehouses.map((wh) => (
+                                            <SelectItem key={wh.id} value={wh.id.toString()}>
+                                                {wh.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <InputError message={errors.warehouse_id} />
+                            </div>
+
+                            <div>
+                                <Label htmlFor="payment_method">{t('Payment Method')}</Label>
+                                <Select value={data.payment_method} onValueChange={(val) => setData('payment_method', val)}>
+                                    <SelectTrigger id="payment_method">
+                                        <SelectValue placeholder={t('Select Payment Method')} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="bank_transfer">{t('Bank Transfer')}</SelectItem>
+                                        <SelectItem value="cash">{t('Cash')}</SelectItem>
+                                        <SelectItem value="mobile_money">{t('Mobile Money')}</SelectItem>
+                                        <SelectItem value="card">{t('Card')}</SelectItem>
+                                        <SelectItem value="cheque">{t('Cheque')}</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <InputError message={errors.payment_method} />
+                            </div>
+
+                            <div className="md:col-span-2">
+                                <Label htmlFor="attachment">{t('Supporting Attachment (Receipt / Voucher)')}</Label>
+                                <Input
+                                    id="attachment"
+                                    type="file"
+                                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xlsx"
+                                    onChange={(e) => setData('attachment', e.target.files?.[0] || null)}
+                                />
+                                <InputError message={errors.attachment} />
                             </div>
 
                         </div>

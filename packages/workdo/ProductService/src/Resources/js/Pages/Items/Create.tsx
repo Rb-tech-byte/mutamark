@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Head, useForm, usePage } from "@inertiajs/react";
+import { Download, Upload, FileSpreadsheet } from "lucide-react";
 import { useTranslation } from 'react-i18next';
 import { useFlashMessages } from '@/hooks/useFlashMessages';
 import { useFormFields } from '@/hooks/useFormFields';
@@ -22,6 +23,56 @@ export default function Create() {
     const { t } = useTranslation();
     const { taxes, categories, units, warehouses } = usePage<CreateItemPageProps>().props;
     const [activeTab, setActiveTab] = useState('details');
+    const [showBulkImport, setShowBulkImport] = useState(false);
+    const [fileTypeError, setFileTypeError] = useState<string>('');
+    const [detectedFileInfo, setDetectedFileInfo] = useState<string>('');
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const importForm = useForm<{ file: File | null; update_existing: boolean }>({
+        file: null,
+        update_existing: false,
+    });
+
+    const handleImportFileChange = (file: File | null) => {
+        setFileTypeError('');
+        setDetectedFileInfo('');
+        if (!file) {
+            importForm.setData('file', null);
+            return;
+        }
+        const ext = file.name.split('.').pop()?.toLowerCase() || '';
+        const allowedExts = ['csv', 'xlsx', 'xls'];
+        if (!allowedExts.includes(ext)) {
+            importForm.setData('file', null);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+            setFileTypeError(
+                t('Unsupported file type (.{{ext}}). Required file types: .csv, .xlsx, or .xls', { ext: ext || 'unknown' })
+            );
+            return;
+        }
+        const typeLabel = ext === 'csv' ? 'CSV (.csv)' : `Excel (.${ext})`;
+        const sizeKb = (file.size / 1024).toFixed(1);
+        setDetectedFileInfo(`${typeLabel} • ${sizeKb} KB`);
+        importForm.setData('file', file);
+    };
+
+    const submitImport = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!importForm.data.file || fileTypeError) return;
+        importForm.post(route('product-service.items.import'), {
+            forceFormData: true,
+            onSuccess: () => {
+                importForm.reset();
+                setDetectedFileInfo('');
+                setFileTypeError('');
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
+            },
+        });
+    };
 
     useFlashMessages();
 
@@ -29,6 +80,7 @@ export default function Create() {
         name: '',
         sku: '',
         tax_ids: [],
+        tax_type: 'exclusive',
         category_id: '',
         description: '',
         long_description: '',
@@ -114,8 +166,117 @@ export default function Create() {
                         <span>{t('Create Item')}</span>
                     </div>
                 }
+                pageActions={
+                    <div className="flex items-center gap-2">
+                        <Button asChild variant="outline" size="sm" className="gap-1.5">
+                            <a href={route('product-service.items.import.template', { format: 'xlsx' })} download>
+                                <Download className="h-4 w-4" />
+                                {t('Excel Template')}
+                            </a>
+                        </Button>
+                        <Button asChild variant="outline" size="sm" className="gap-1.5">
+                            <a href={route('product-service.items.import.template', { format: 'csv' })} download>
+                                <Download className="h-4 w-4" />
+                                {t('CSV Template')}
+                            </a>
+                        </Button>
+                        <Button
+                            type="button"
+                            variant={showBulkImport ? "secondary" : "default"}
+                            size="sm"
+                            className="gap-1.5"
+                            onClick={() => setShowBulkImport((prev) => !prev)}
+                        >
+                            <Upload className="h-4 w-4" />
+                            {t('Bulk Import')}
+                        </Button>
+                    </div>
+                }
             >
                 <Head title={t('Create Item')} />
+
+                {showBulkImport && (
+                    <Card className="mb-6 border-primary/30 bg-muted/20">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="flex items-center gap-2 text-base">
+                                <FileSpreadsheet className="h-5 w-5 text-primary" />
+                                {t('Bulk Import Multiple Products & Services (CSV / Excel)')}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <form onSubmit={submitImport} className="space-y-4">
+                                <div className="text-xs text-muted-foreground space-y-1">
+                                    <p>
+                                        {t('Download the Excel (.xlsx) or CSV (.csv) template, fill in multiple products/services, and upload it below. Accepted formats: .csv, .xlsx, .xls (max 10 MB).')}
+                                    </p>
+                                    <p>
+                                        <span className="font-medium text-foreground">{t('Columns')}:</span>{' '}
+                                        <code>name*</code>, <code>sku*</code>, <code>type</code> (product/service/part),{' '}
+                                        <code>sale_price*</code>, <code>purchase_price*</code>, <code>category</code>,{' '}
+                                        <code>unit</code>, <code>taxes</code>, <code>tax_type</code> (exclusive/inclusive), <code>warehouse</code>, <code>quantity</code>,{' '}
+                                        <code>description</code>, <code>long_description</code>
+                                    </p>
+                                </div>
+
+                                <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+                                    <div className="flex-1 space-y-1.5">
+                                        <Label htmlFor="bulk-import-file">{t('Spreadsheet File (.csv, .xlsx, .xls)')}</Label>
+                                        <Input
+                                            id="bulk-import-file"
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept=".csv,.xlsx,.xls,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                            onChange={(e) => handleImportFileChange(e.target.files?.[0] || null)}
+                                        />
+                                        {detectedFileInfo && !fileTypeError && (
+                                            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                                                {t('Detected')}: {detectedFileInfo}
+                                            </p>
+                                        )}
+                                        <InputError message={fileTypeError || importForm.errors.file} />
+                                    </div>
+
+                                    <div className="flex items-center gap-2 pb-2">
+                                        <input
+                                            id="update-existing-sku"
+                                            type="checkbox"
+                                            className="h-4 w-4 rounded border-gray-300"
+                                            checked={importForm.data.update_existing}
+                                            onChange={(e) => importForm.setData('update_existing', e.target.checked)}
+                                        />
+                                        <Label htmlFor="update-existing-sku" className="text-sm font-normal cursor-pointer">
+                                            {t('Update existing if SKU matches')}
+                                        </Label>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                        <Button asChild type="button" variant="outline" size="sm" className="gap-1.5">
+                                            <a href={route('product-service.items.import.template', { format: 'xlsx' })} download>
+                                                <Download className="h-4 w-4" />
+                                                {t('.xlsx')}
+                                            </a>
+                                        </Button>
+                                        <Button asChild type="button" variant="outline" size="sm" className="gap-1.5">
+                                            <a href={route('product-service.items.import.template', { format: 'csv' })} download>
+                                                <Download className="h-4 w-4" />
+                                                {t('.csv')}
+                                            </a>
+                                        </Button>
+                                        <Button
+                                            type="submit"
+                                            size="sm"
+                                            disabled={!importForm.data.file || !!fileTypeError || importForm.processing}
+                                            className="gap-1.5"
+                                        >
+                                            <Upload className="h-4 w-4" />
+                                            {importForm.processing ? t('Importing...') : t('Import Products')}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </form>
+                        </CardContent>
+                    </Card>
+                )}
 
                 <Card>
                     <CardContent>
@@ -156,7 +317,7 @@ export default function Create() {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                         <div>
                                             <Label htmlFor="sku">{t('SKU')}</Label>
                                             <div className="flex gap-2">
@@ -178,19 +339,6 @@ export default function Create() {
                                             <InputError message={errors.sku} />
                                         </div>
                                         <div>
-                                            <Label htmlFor="tax_ids" required>{t('Tax')}</Label>
-                                            <MultiSelectEnhanced
-                                                options={taxes.map(tax => ({
-                                                    value: tax.id.toString(),
-                                                    label: `${tax.tax_name} (${tax.rate}%)`
-                                                }))}
-                                                value={data.tax_ids}
-                                                onValueChange={(value) => setData('tax_ids', value)}
-                                                placeholder={t('Select Taxes')}
-                                            />
-                                            <InputError message={errors.tax_ids} />
-                                        </div>
-                                        <div>
                                             <Label htmlFor="category_id" required>{t('Category')}</Label>
                                             <Select value={data.category_id} onValueChange={(value) => setData('category_id', value)} required>
                                                 <SelectTrigger>
@@ -205,6 +353,32 @@ export default function Create() {
                                                 </SelectContent>
                                             </Select>
                                             <InputError message={errors.category_id} />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="tax_ids" required>{t('Tax')}</Label>
+                                            <MultiSelectEnhanced
+                                                options={taxes.map(tax => ({
+                                                    value: tax.id.toString(),
+                                                    label: `${tax.tax_name} (${tax.rate}%)`
+                                                }))}
+                                                value={data.tax_ids}
+                                                onValueChange={(value) => setData('tax_ids', value)}
+                                                placeholder={t('Select Taxes')}
+                                            />
+                                            <InputError message={errors.tax_ids} />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="tax_type" required>{t('Tax Type')}</Label>
+                                            <Select value={data.tax_type || 'exclusive'} onValueChange={(value) => setData('tax_type', value)}>
+                                                <SelectTrigger id="tax_type">
+                                                    <SelectValue placeholder={t('Select Tax Type')} />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="exclusive">{t('Tax Exclusive (Added on top of price)')}</SelectItem>
+                                                    <SelectItem value="inclusive">{t('Tax Inclusive (Included in price)')}</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <InputError message={errors.tax_type} />
                                         </div>
                                     </div>
 

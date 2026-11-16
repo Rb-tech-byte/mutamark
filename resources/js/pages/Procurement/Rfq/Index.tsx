@@ -788,145 +788,165 @@ export default function RfqIndex({
 
             {/* MODAL 1: Create New RFQ */}
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-6">
+                    <DialogHeader className="pb-3 border-b">
                         <DialogTitle className="flex items-center gap-2 text-xl font-bold">
                             <Scale className="w-5 h-5 text-indigo-600" />
                             {t("Create Request for Quotation (RFQ)")}
                         </DialogTitle>
                         <p className="text-sm text-muted-foreground">
-                            {t("Issue a competitive procurement tender manually or auto-populate from an approved requisition.")}
+                            {t("Follow the steps below to issue a new RFQ tender or auto-fill from an approved requisition.")}
                         </p>
                     </DialogHeader>
 
-                    <form onSubmit={handleCreateSubmit} className="space-y-4 pt-2">
-                        {/* Auto-Populate from Purchase Requisition */}
-                        <div className="bg-indigo-50/60 dark:bg-indigo-950/20 p-3.5 rounded-lg border border-indigo-200/60 dark:border-indigo-800/40">
-                            <Label className="text-xs font-semibold text-indigo-900 dark:text-indigo-300">
-                                {t("Import Line Items from Approved Purchase Requisition (Optional)")}
+                    <form onSubmit={handleCreateSubmit} className="space-y-5 pt-3">
+                        {Object.keys(createForm.errors).length > 0 && (
+                            <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-300 space-y-1">
+                                <p className="font-semibold">{t("Please fix the following errors:")}</p>
+                                <ul className="list-disc list-inside text-xs">
+                                    {Object.values(createForm.errors).map((err, i) => (
+                                        <li key={i}>{String(err)}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
+                        {/* Step 1: Auto-Populate from Purchase Requisition */}
+                        <div className="bg-indigo-50/60 dark:bg-indigo-950/20 p-4 rounded-lg border border-indigo-200/70 dark:border-indigo-800/40 space-y-2">
+                            <Label className="text-xs font-bold uppercase tracking-wide text-indigo-900 dark:text-indigo-300">
+                                {t("1. Source Purchase Requisition (Optional)")}
                             </Label>
                             <Select
                                 value={createForm.data.requisition_id}
                                 onValueChange={handleRequisitionChange}
                             >
-                                <SelectTrigger className="mt-1 bg-background">
+                                <SelectTrigger className="bg-background">
                                     <SelectValue placeholder={t("-- Select an approved requisition --")} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="none">{t("-- None / Manual Entry --")}</SelectItem>
                                     {approved_requisitions.map(pr => (
                                         <SelectItem key={pr.id} value={String(pr.id)}>
-                                            {pr.requisition_number} â€” {pr.purpose || 'Material Request'}
+                                            {pr.requisition_number} - {pr.purpose || 'Material Request'}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
                         </div>
 
-                        {/* Title & Warehouse */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <Label htmlFor="rfq_title" className="text-xs font-semibold">
-                                    {t("Tender Title / Description *")}
-                                </Label>
-                                <Input
-                                    id="rfq_title"
-                                    required
-                                    placeholder={t("e.g. Supply of Industrial Conveyor Belts")}
-                                    value={createForm.data.title}
-                                    onChange={e => createForm.setData('title', e.target.value)}
-                                />
+                        {/* Step 2: Title, Warehouse & Deadlines */}
+                        <div className="p-4 rounded-lg border bg-card space-y-4">
+                            <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                                {t("2. Tender Details & Deadlines")}
+                            </p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="rfq_title" className="text-xs font-semibold">
+                                        {t("Tender Title / Description *")}
+                                    </Label>
+                                    <Input
+                                        id="rfq_title"
+                                        required
+                                        placeholder={t("e.g. Supply of Industrial Conveyor Belts")}
+                                        value={createForm.data.title}
+                                        onChange={e => createForm.setData('title', e.target.value)}
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="rfq_warehouse" className="text-xs font-semibold">
+                                        {t("Delivery Warehouse")}
+                                    </Label>
+                                    <Select
+                                        value={createForm.data.warehouse_id}
+                                        onValueChange={val => createForm.setData('warehouse_id', val)}
+                                    >
+                                        <SelectTrigger id="rfq_warehouse">
+                                            <SelectValue placeholder={t("Select Warehouse (Optional)")} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">{t("-- Any / Not Specified --")}</SelectItem>
+                                            {warehouses.map(wh => (
+                                                <SelectItem key={wh.id} value={String(wh.id)}>
+                                                    {wh.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
 
-                            <div className="space-y-1">
-                                <Label htmlFor="rfq_warehouse" className="text-xs font-semibold">
-                                    {t("Delivery Warehouse *")}
-                                </Label>
-                                <Select
-                                    value={createForm.data.warehouse_id}
-                                    onValueChange={val => createForm.setData('warehouse_id', val)}
-                                >
-                                    <SelectTrigger id="rfq_warehouse">
-                                        <SelectValue placeholder={t("Select Warehouse")} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {warehouses.map(wh => (
-                                            <SelectItem key={wh.id} value={String(wh.id)}>
-                                                {wh.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="rfq_closing_date" className="text-xs font-semibold">
+                                        {t("Quotation Submission Deadline *")}
+                                    </Label>
+                                    <Input
+                                        id="rfq_closing_date"
+                                        type="date"
+                                        required
+                                        value={createForm.data.closing_date}
+                                        onChange={e => createForm.setData('closing_date', e.target.value)}
+                                    />
+                                </div>
 
-                        {/* Closing Date & Delivery Deadline */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <Label htmlFor="rfq_closing_date" className="text-xs font-semibold">
-                                    {t("Quotation Submission Deadline *")}
-                                </Label>
-                                <Input
-                                    id="rfq_closing_date"
-                                    type="date"
-                                    required
-                                    value={createForm.data.closing_date}
-                                    onChange={e => createForm.setData('closing_date', e.target.value)}
-                                />
-                            </div>
-
-                            <div className="space-y-1">
-                                <Label htmlFor="rfq_delivery_deadline" className="text-xs font-semibold">
-                                    {t("Required Delivery Deadline")}
-                                </Label>
-                                <Input
-                                    id="rfq_delivery_deadline"
-                                    type="date"
-                                    value={createForm.data.delivery_deadline}
-                                    onChange={e => createForm.setData('delivery_deadline', e.target.value)}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Terms */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <Label htmlFor="rfq_payment_terms" className="text-xs font-semibold">
-                                    {t("Payment Terms")}
-                                </Label>
-                                <Input
-                                    id="rfq_payment_terms"
-                                    placeholder={t("e.g. Net 30 Days after GRN inspection")}
-                                    value={createForm.data.payment_terms}
-                                    onChange={e => createForm.setData('payment_terms', e.target.value)}
-                                />
-                            </div>
-
-                            <div className="space-y-1">
-                                <Label htmlFor="rfq_delivery_terms" className="text-xs font-semibold">
-                                    {t("Delivery Terms (Incoterms)")}
-                                </Label>
-                                <Input
-                                    id="rfq_delivery_terms"
-                                    placeholder={t("e.g. DAP Dar es Salaam Warehouse")}
-                                    value={createForm.data.delivery_terms}
-                                    onChange={e => createForm.setData('delivery_terms', e.target.value)}
-                                />
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="rfq_delivery_deadline" className="text-xs font-semibold">
+                                        {t("Required Delivery Deadline")}
+                                    </Label>
+                                    <Input
+                                        id="rfq_delivery_deadline"
+                                        type="date"
+                                        value={createForm.data.delivery_deadline}
+                                        onChange={e => createForm.setData('delivery_deadline', e.target.value)}
+                                    />
+                                </div>
                             </div>
                         </div>
 
-                        {/* Evaluation Notes */}
-                        <div className="space-y-1">
-                            <Label htmlFor="rfq_eval_notes" className="text-xs font-semibold">
-                                {t("Evaluation Criteria / Tender Instructions")}
-                            </Label>
-                            <Textarea
-                                id="rfq_eval_notes"
-                                rows={2}
-                                placeholder={t("e.g. Bidders must be certified manufacturers and provide minimum 12 months warranty.")}
-                                value={createForm.data.evaluation_notes}
-                                onChange={e => createForm.setData('evaluation_notes', e.target.value)}
-                            />
+                        {/* Step 3: Commercial & Evaluation Terms */}
+                        <div className="p-4 rounded-lg border bg-card space-y-4">
+                            <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                                {t("3. Commercial & Evaluation Terms")}
+                            </p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="rfq_payment_terms" className="text-xs font-semibold">
+                                        {t("Payment Terms")}
+                                    </Label>
+                                    <Input
+                                        id="rfq_payment_terms"
+                                        placeholder={t("e.g. Net 30 Days after GRN inspection")}
+                                        value={createForm.data.payment_terms}
+                                        onChange={e => createForm.setData('payment_terms', e.target.value)}
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="rfq_delivery_terms" className="text-xs font-semibold">
+                                        {t("Delivery Terms (Incoterms)")}
+                                    </Label>
+                                    <Input
+                                        id="rfq_delivery_terms"
+                                        placeholder={t("e.g. DAP Dar es Salaam Warehouse")}
+                                        value={createForm.data.delivery_terms}
+                                        onChange={e => createForm.setData('delivery_terms', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label htmlFor="rfq_eval_notes" className="text-xs font-semibold">
+                                    {t("Evaluation Criteria / Tender Instructions")}
+                                </Label>
+                                <Textarea
+                                    id="rfq_eval_notes"
+                                    rows={2}
+                                    placeholder={t("e.g. Bidders must be certified manufacturers and provide minimum 12 months warranty.")}
+                                    value={createForm.data.evaluation_notes}
+                                    onChange={e => createForm.setData('evaluation_notes', e.target.value)}
+                                />
+                            </div>
                         </div>
 
                         {/* Line Items Section */}

@@ -13,13 +13,18 @@ class Expense extends Model
         'expense_number',
         'expense_date',
         'category_id',
+        'warehouse_id',
         'bank_account_id',
+        'payment_method',
         'chart_of_account_id',
         'amount',
         'description',
         'reference_number',
+        'attachment',
         'status',
+        'rejection_reason',
         'approved_by',
+        'approved_at',
         'creator_id',
         'created_by',
     ];
@@ -28,6 +33,7 @@ class Expense extends Model
     {
         return [
             'expense_date' => 'date',
+            'approved_at' => 'datetime',
             'amount' => 'decimal:2',
         ];
     }
@@ -35,6 +41,11 @@ class Expense extends Model
     public function category()
     {
         return $this->belongsTo(ExpenseCategories::class);
+    }
+
+    public function warehouse()
+    {
+        return $this->belongsTo(\App\Models\Warehouse::class);
     }
 
     public function bankAccount()

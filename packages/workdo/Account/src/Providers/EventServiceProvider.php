@@ -17,7 +17,6 @@ use Workdo\Account\Listeners\ApprovePettyCashListener;
 use Workdo\Account\Listeners\BankAccountFieldUpdate;
 use Workdo\Account\Listeners\CreateDebitNoteFromReturn;
 use Workdo\Account\Listeners\CreateCreditNoteFromReturn;
-use Workdo\Account\Listeners\UpdateMobileServicePaymentStatusLis;
 use Workdo\Account\Listeners\DataDefault;
 use Workdo\Account\Listeners\PostPurchaseInvoiceListener;
 use Workdo\Account\Listeners\CreateTransferListener;
@@ -34,12 +33,10 @@ use Workdo\Hrm\Events\PaySalary;
 use Workdo\Account\Listeners\CreatePosListener;
 use Workdo\Account\Listeners\ApprovePosReturnListener;
 use Workdo\Fleet\Events\MarkFleetBookingPaymentPaid;
-use Workdo\MobileServiceManagement\Events\UpdateMobileServicePaymentStatus;
 use Workdo\Pos\Events\CreatePos;
 use Workdo\Pos\Events\ApprovePosReturn;
 use Workdo\Account\Listeners\MarkFleetBookingPaymentPaidListener;
 use Workdo\Fleet\Events\CraeteFleetBookingPayment;
-use Workdo\MobileServiceManagement\Events\CreateMobileServicePayment;
 use Workdo\Account\Listeners\BeautyBookingPaymentListener;
 use Workdo\DairyCattleManagement\Events\CreateDairyCattlePayment;
 use Workdo\DairyCattleManagement\Events\UpdateDairyCattlePaymentStatus;
@@ -284,12 +281,6 @@ class EventServiceProvider extends ServiceProvider
         ],
         ApprovePosReturn::class => [
             ApprovePosReturnListener::class,
-        ],
-        CreateMobileServicePayment::class => [
-            BankAccountFieldUpdate::class,
-        ],
-        UpdateMobileServicePaymentStatus::class => [
-            UpdateMobileServicePaymentStatusLis::class,
         ],
         CraeteFleetBookingPayment::class => [
             BankAccountFieldUpdate::class,

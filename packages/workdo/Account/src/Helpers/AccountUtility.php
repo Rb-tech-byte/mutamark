@@ -18,6 +18,11 @@ class AccountUtility
         self::createChartOfAccounts($company_id);
     }
 
+    public static function defaultChartAccounts($company_id = null)
+    {
+        self::defaultdata($company_id);
+    }
+
     private static function createAccountCategories($company_id)
     {
         $exist = AccountCategory::where('created_by', $company_id)->first();

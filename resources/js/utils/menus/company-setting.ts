@@ -1,4 +1,4 @@
-import { Palette, Building, SettingsIcon, Mail, DollarSign, CreditCard, Bot, Smartphone } from 'lucide-react';
+import { Palette, Building, SettingsIcon, Mail, DollarSign, CreditCard, Bot, Smartphone, PenTool } from 'lucide-react';
 
 export interface SettingMenuItem {
   order: number;
@@ -33,6 +33,14 @@ export const getCompanySettings = (t: (key: string) => string): SettingMenuItem[
     icon: Building,
     permission: 'manage-company-settings',
     component: 'company-settings'
+  },
+  {
+    order: 32,
+    title: t('Digital Signature & Auto-Sign'),
+    href: '#digital-signature-settings',
+    icon: PenTool,
+    permission: 'manage-company-settings',
+    component: 'digital-signature-settings'
   },
   {
     order: 35,

@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
+import html2pdf from 'html2pdf.js';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import CorporateDocumentTemplate from '@/components/CorporateDocumentTemplate';
 import { Head, useForm, router } from '@inertiajs/react';
@@ -40,6 +41,7 @@ import {
     UserCheck,
     QrCode,
     Printer,
+    Download,
     Clock,
     Plus,
     Search,
@@ -194,6 +196,8 @@ export default function DeliveryNotesIndex({
     const [isDispatchOpen, setIsDispatchOpen] = useState(false);
     const [isPodOpen, setIsPodOpen] = useState(false);
     const [isSlipOpen, setIsSlipOpen] = useState(false);
+    const [isDownloadingSlip, setIsDownloadingSlip] = useState(false);
+    const slipContainerRef = useRef<HTMLDivElement>(null);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
     const [activeNote, setActiveNote] = useState<DeliveryNote | null>(null);
@@ -490,9 +494,36 @@ export default function DeliveryNotesIndex({
         });
     };
 
-    const openSlipModal = (note: DeliveryNote) => {
+    const openSlipModal = (note: DeliveryNote, autoDownload = false) => {
         setActiveNote(note);
         setIsSlipOpen(true);
+        if (autoDownload) {
+            setTimeout(() => {
+                handleDownloadSlip(note);
+            }, 350);
+        }
+    };
+
+    const handleDownloadSlip = async (targetNote?: DeliveryNote | null) => {
+        const noteToExport = targetNote || activeNote;
+        if (!noteToExport || !slipContainerRef.current || isDownloadingSlip) return;
+        setIsDownloadingSlip(true);
+        try {
+            await html2pdf()
+                .set({
+                    margin: 0.25,
+                    filename: `delivery-note-${noteToExport.delivery_number}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true },
+                    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+                })
+                .from(slipContainerRef.current)
+                .save();
+        } catch (err) {
+            console.error('Delivery Note PDF download failed:', err);
+        } finally {
+            setIsDownloadingSlip(false);
+        }
     };
 
     const getStatusBadge = (status: string) => {
@@ -783,6 +814,10 @@ export default function DeliveryNotesIndex({
                                                             <DropdownMenuItem onClick={() => openSlipModal(note)}>
                                                                 <Printer className="w-4 h-4 mr-2 text-indigo-500" />
                                                                 Print Delivery Slip
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => openSlipModal(note, true)}>
+                                                                <Download className="w-4 h-4 mr-2 text-emerald-600" />
+                                                                Download PDF
                                                             </DropdownMenuItem>
 
                                                             {['draft', 'scheduled'].includes(note.status) && (
@@ -1347,26 +1382,41 @@ export default function DeliveryNotesIndex({
 
                 {/* MODAL 5: Printable Verifiable Delivery Slip */}
                 <Dialog open={isSlipOpen} onOpenChange={setIsSlipOpen}>
-                    <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
+                    <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto print:max-h-none print:overflow-visible print:border-0 print:shadow-none">
                         <DialogHeader className="print:hidden">
-                            <DialogTitle className="flex items-center justify-between">
+                            <DialogTitle className="flex items-center justify-between gap-2">
                                 <span className="flex items-center gap-2">
                                     <Printer className="w-5 h-5 text-indigo-500" />
                                     Delivery Note Voucher: {activeNote?.delivery_number}
                                 </span>
-                                <Button
-                                    onClick={() => window.print()}
-                                    size="sm"
-                                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
-                                >
-                                    <Printer className="w-4 h-4 mr-2" /> Print Slip
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => handleDownloadSlip()}
+                                        disabled={isDownloadingSlip}
+                                        size="sm"
+                                        className="border-emerald-600 text-emerald-700 hover:bg-emerald-50 font-semibold"
+                                    >
+                                        <Download className="w-4 h-4 mr-2" />
+                                        {isDownloadingSlip ? 'Generating PDF...' : 'Download PDF'}
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        onClick={() => window.print()}
+                                        size="sm"
+                                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
+                                    >
+                                        <Printer className="w-4 h-4 mr-2" /> Print Slip
+                                    </Button>
+                                </div>
                             </DialogTitle>
                         </DialogHeader>
 
                         {/* Printable Delivery Manifest Document */}
                         {activeNote && (
-                            <CorporateDocumentTemplate
+                            <div ref={slipContainerRef} className="bg-white">
+                                <CorporateDocumentTemplate
                                 type="delivery_note"
                                 documentTitle="DELIVERY NOTE"
                                 documentNumber={activeNote.delivery_number}
@@ -1459,6 +1509,7 @@ export default function DeliveryNotesIndex({
                                 footerSlogan="Thank you for your business."
                                 verificationHash={activeNote.verification_hash}
                             />
+                            </div>
                         )}
                     </DialogContent>
                 </Dialog>

@@ -21,7 +21,6 @@ import {
     Plus,
     FileText,
     Truck,
-    Smartphone,
     User,
     Calendar,
     DollarSign,
@@ -87,7 +86,7 @@ interface PageProps {
 
 export default function WarrantyIndex({ metrics, warranties, service_tickets, products, technicians }: PageProps) {
     const { t } = useTranslation();
-    const [activeTab, setActiveTab] = useState<'warranties' | 'tickets' | 'lookup' | 'device_repairs'>('warranties');
+    const [activeTab, setActiveTab] = useState<'warranties' | 'tickets' | 'lookup'>('warranties');
 
     // Filter states
     const [warrantySearch, setWarrantySearch] = useState('');
@@ -402,18 +401,6 @@ export default function WarrantyIndex({ metrics, warranties, service_tickets, pr
                             <Search className="h-4 w-4" />
                             {t('Serial Verification Lookup')}
                         </button>
-
-                        <button
-                            onClick={() => setActiveTab('device_repairs')}
-                            className={`pb-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-                                activeTab === 'device_repairs'
-                                    ? 'border-primary text-primary font-semibold'
-                                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                            }`}
-                        >
-                            <Smartphone className="h-4 w-4" />
-                            {t('Device & Mobile Repairs')}
-                        </button>
                     </nav>
                 </div>
 
@@ -716,60 +703,6 @@ export default function WarrantyIndex({ metrics, warranties, service_tickets, pr
                                     </div>
                                 </div>
                             )}
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* TAB 4: Device & Mobile Repairs */}
-                {activeTab === 'device_repairs' && (
-                    <Card className="shadow-sm">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Smartphone className="h-5 w-5 text-primary" />
-                                {t('Device & Mobile Service Management')}
-                            </CardTitle>
-                            <CardDescription>
-                                {t('Specialized workshop repair flows for mobile devices, diagnostics, customer quotes, and technician job sheets')}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <Card className="p-4 border hover:border-primary transition-colors cursor-pointer" onClick={() => router.visit(route('mobile-service-management.pending-service-requests.index'))}>
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2.5 rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
-                                            <Clock className="h-5 w-5" />
-                                        </div>
-                                        <div>
-                                            <div className="font-semibold text-sm">{t('Pending Requests')}</div>
-                                            <div className="text-xs text-muted-foreground">{t('Intake & customer queue')}</div>
-                                        </div>
-                                    </div>
-                                </Card>
-
-                                <Card className="p-4 border hover:border-primary transition-colors cursor-pointer" onClick={() => router.visit(route('mobile-service-management.service-requests.index'))}>
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2.5 rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                                            <Wrench className="h-5 w-5" />
-                                        </div>
-                                        <div>
-                                            <div className="font-semibold text-sm">{t('Active Service Requests')}</div>
-                                            <div className="text-xs text-muted-foreground">{t('Workshop technician benches')}</div>
-                                        </div>
-                                    </div>
-                                </Card>
-
-                                <Card className="p-4 border hover:border-primary transition-colors cursor-pointer" onClick={() => router.visit(route('mobile-service-management.service-history.index'))}>
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2.5 rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-                                            <CheckCircle2 className="h-5 w-5" />
-                                        </div>
-                                        <div>
-                                            <div className="font-semibold text-sm">{t('Service History & Billing')}</div>
-                                            <div className="text-xs text-muted-foreground">{t('Delivered repairs & archive')}</div>
-                                        </div>
-                                    </div>
-                                </Card>
-                            </div>
                         </CardContent>
                     </Card>
                 )}

@@ -155,7 +155,7 @@ export default function Index() {
             render: (_: any, returnItem: PosReturn) => (
                 <div className="flex gap-1">
                     <TooltipProvider>
-                        {returnItem.status === 'draft' && (
+                        {(returnItem.status === 'draft') && (
                             <>
                             {auth.user?.permissions?.includes('approve-pos-returns') && (
                                 <Tooltip delayDuration={0}>
@@ -210,7 +210,7 @@ export default function Index() {
                                 </TooltipContent>
                             </Tooltip>
                         )}
-                        {returnItem.status === 'draft' && (
+                        {(returnItem.status === 'draft' || returnItem.status === 'cancelled') && (
                             <>
                                 {auth.user?.permissions?.includes('delete-pos-returns') && (
                                     <Tooltip delayDuration={0}>
@@ -495,7 +495,7 @@ export default function Index() {
                                                                 <TooltipContent><p>{t('View')}</p></TooltipContent>
                                                             </Tooltip>
                                                         )}
-                                                        {returnItem.status === 'draft' && auth.user?.permissions?.includes('delete-pos-returns') && (
+                                                        {(returnItem.status === 'draft' || returnItem.status === 'cancelled') && auth.user?.permissions?.includes('delete-pos-returns') && (
                                                             <Tooltip delayDuration={0}>
                                                                 <TooltipTrigger asChild>
                                                                     <Button variant="ghost" size="sm" onClick={() => openDeleteDialog(returnItem.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive">

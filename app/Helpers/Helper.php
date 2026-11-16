@@ -160,10 +160,7 @@ if (!function_exists('ActivatedModule')) {
         }
 
         if (!empty($user)) {
-            $available_modules = array_values((new Module())->allEnabled());
-            // Mutamark ERP: no subscription plans; core enterprise modules are always active.
-            $coreAlwaysActive = ['ProductService', 'Account', 'Pos', 'Inventory', 'DoubleEntry', 'Lead', 'Hrm'];
-            $user_active_module = array_values(array_unique(array_merge($available_modules, $coreAlwaysActive)));
+            $user_active_module = array_values((new Module())->allEnabled());
         } else {
             $active_module = array_values((new Module())->allEnabledAdmin());
             $user_active_module = $active_module;
@@ -177,11 +174,6 @@ if (!function_exists('ActivatedModule')) {
 if (!function_exists('Module_is_active')) {
     function Module_is_active($module, $user_id = null)
     {
-        $coreAlwaysActive = ['ProductService', 'Account', 'Pos', 'Inventory', 'DoubleEntry', 'Lead', 'Hrm'];
-        if (in_array($module, $coreAlwaysActive)) {
-            return true;
-        }
-
         if ((new Module())->has($module)) {
 
             $isModuleActive = (new Module())->isEnabled($module);

@@ -209,82 +209,150 @@ class PurchaseRequisitionService
     }
 
     /**
-     * Convert Approved Purchase Requisition directly into a Purchase Order / Bill (PurchaseInvoice).
+     * Convert Approved Purchase Requisition directly into a Purchase Order & Purchase Bill (PurchaseInvoice).
      */
-    public static function convertToPurchaseInvoice(PurchaseRequisition $pr, int $userId): array
+    public static function convertToPurchaseInvoice(PurchaseRequisition $pr, int $userId, ?int $vendorUserId = null): array
     {
         CompanyAccess::check($pr);
-        $rfq = \App\Models\Rfq::where('created_by', creatorId())->where('requisition_id', $pr->id)->where('status','awarded')->first();
-        if ($rfq && $rfq->awarded_po_id) {
-            $order = \App\Models\PurchaseOrder::where('created_by', creatorId())->find($rfq->awarded_po_id);
-            if ($order) {
-                $pr->update(['status' => 'converted_to_po', 'converted_po_id' => $order->id]);
-                return ['requisition' => $pr->fresh(), 'purchase_order' => $order];
-            }
-        }
 
-        return DB::transaction(function () use ($pr, $userId) {
-            $vendorId = $pr->preferred_vendor_id;
-            if (!$vendorId) {
-                $firstVendor = \Workdo\Account\Models\Vendor::where('created_by', creatorId())->first();
-                $vendorId = $firstVendor ? $firstVendor->id : null;
+        return DB::transaction(function () use ($pr, $userId, $vendorUserId) {
+            $pr->loadMissing('items');
+
+            $resolvedVendorUserId = $vendorUserId
+                ?: $pr->preferred_vendor_id
+                ?: User::where('created_by', creatorId())
+                    ->where(function ($q) {
+                        $q->where('type', 'vendor')
+                            ->orWhereHas('roles', fn ($r) => $r->where('name', 'vendor'));
+                    })
+                    ->value('id');
+
+            if (!$resolvedVendorUserId) {
+                throw new \RuntimeException(__('Please select or create a vendor before generating a Purchase Bill.'));
             }
 
-            $poNumber = DocumentNumberService::next('PO');
+            $accountVendor = \Workdo\Account\Models\Vendor::where('user_id', $resolvedVendorUserId)->first()
+                ?? \Workdo\Account\Models\Vendor::where('created_by', creatorId())->first();
+
+            $order = null;
+            $rfq = \App\Models\Rfq::where('created_by', creatorId())
+                ->where('requisition_id', $pr->id)
+                ->where('status', 'awarded')
+                ->first();
+
+            if ($rfq && $rfq->awarded_po_id) {
+                $order = \App\Models\PurchaseOrder::where('created_by', creatorId())->find($rfq->awarded_po_id);
+            }
+
             $subtotal = 0;
-            $itemsData = [];
+            $totalTax = 0;
+            $poItemsData = [];
+            $piItemsData = [];
 
             foreach ($pr->items as $item) {
                 $qty = (float) $item->quantity;
                 $unitPrice = (float) ($item->estimated_unit_price ?? 0);
-                $lineTotal = round($qty * $unitPrice, 2);
-                $subtotal += $lineTotal;
+                $lineNet = round($qty * $unitPrice, 2);
+                $taxRate = 18.0;
+                $lineTax = round($lineNet * ($taxRate / 100), 2);
+                $lineGross = round($lineNet + $lineTax, 2);
 
-                $itemsData[] = [
+                $subtotal += $lineNet;
+                $totalTax += $lineTax;
+
+                $poItemsData[] = [
                     'product_id' => $item->product_id,
                     'product_name' => $item->product_name ?? 'Procured Item',
                     'sku' => $item->sku,
                     'quantity_ordered' => $qty,
                     'quantity_received' => 0,
                     'unit_price' => $unitPrice,
-                    'tax_rate' => 0,
-                    'tax_amount' => 0,
-                    'total_amount' => $lineTotal,
+                    'tax_rate' => $taxRate,
+                    'tax_amount' => $lineTax,
+                    'total_amount' => $lineGross,
                     'unit' => $item->unit ?? 'Unit',
+                ];
+
+                $piItemsData[] = [
+                    'product_id' => $item->product_id,
+                    'quantity' => $qty,
+                    'unit_price' => $unitPrice,
+                    'discount_percentage' => 0,
+                    'discount_amount' => 0,
+                    'tax_percentage' => $taxRate,
+                    'tax_amount' => $lineTax,
+                    'total_amount' => $lineGross,
                 ];
             }
 
-            $order = \App\Models\PurchaseOrder::create([
-                'po_number' => $poNumber,
-                'po_date' => now()->toDateString(),
-                'expected_delivery_date' => $pr->required_by_date ?? now()->addDays(7)->toDateString(),
-                'vendor_id' => $vendorId,
+            $grandTotal = round($subtotal + $totalTax, 2);
+
+            if (!$order && $accountVendor) {
+                $order = \App\Models\PurchaseOrder::create([
+                    'po_number' => DocumentNumberService::next('PO'),
+                    'po_date' => now()->toDateString(),
+                    'expected_delivery_date' => $pr->required_by_date ?? now()->addDays(7)->toDateString(),
+                    'vendor_id' => $accountVendor->id,
+                    'warehouse_id' => $pr->warehouse_id,
+                    'requisition_id' => $pr->id,
+                    'subtotal' => $subtotal,
+                    'tax_amount' => $totalTax,
+                    'discount_amount' => 0,
+                    'total_amount' => $grandTotal,
+                    'currency' => 'TZS',
+                    'status' => 'issued',
+                    'delivery_terms' => 'Standard Delivery',
+                    'payment_terms' => 'Net 30 Days',
+                    'notes' => $pr->purpose ?? ('Generated from Requisition ' . $pr->requisition_number),
+                    'creator_id' => $userId,
+                    'created_by' => creatorId(),
+                ]);
+
+                foreach ($poItemsData as $data) {
+                    $data['purchase_order_id'] = $order->id;
+                    \App\Models\PurchaseOrderItem::create($data);
+                }
+            }
+
+            $invoice = PurchaseInvoice::create([
+                'invoice_number' => PurchaseInvoice::generateInvoiceNumber(),
+                'purchase_order_id' => $order?->id,
+                'invoice_date' => now()->toDateString(),
+                'due_date' => $pr->required_by_date ?? now()->addDays(30)->toDateString(),
+                'vendor_id' => $resolvedVendorUserId,
                 'warehouse_id' => $pr->warehouse_id,
-                'requisition_id' => $pr->id,
                 'subtotal' => $subtotal,
-                'tax_amount' => 0,
+                'tax_amount' => $totalTax,
                 'discount_amount' => 0,
-                'total_amount' => $subtotal,
-                'currency' => 'TZS',
-                'status' => 'issued',
-                'delivery_terms' => 'Standard Delivery',
+                'total_amount' => $grandTotal,
+                'paid_amount' => 0,
+                'debit_note_applied' => 0,
+                'balance_amount' => $grandTotal,
+                'status' => 'draft',
                 'payment_terms' => 'Net 30 Days',
                 'notes' => $pr->purpose ?? ('Generated from Requisition ' . $pr->requisition_number),
                 'creator_id' => $userId,
                 'created_by' => creatorId(),
             ]);
 
-            foreach ($itemsData as $data) {
-                $data['purchase_order_id'] = $order->id;
-                \App\Models\PurchaseOrderItem::create($data);
+            foreach ($piItemsData as $piData) {
+                if (!empty($piData['product_id'])) {
+                    $piData['invoice_id'] = $invoice->id;
+                    PurchaseInvoiceItem::create($piData);
+                }
             }
 
             $pr->update([
                 'status' => 'converted_to_po',
-                'converted_po_id' => $order->id,
+                'converted_po_id' => $order?->id,
+                'converted_invoice_id' => $invoice->id,
             ]);
 
-            return ['requisition' => $pr->fresh(), 'purchase_order' => $order];
+            return [
+                'requisition' => $pr->fresh(),
+                'purchase_order' => $order,
+                'purchase_invoice' => $invoice,
+            ];
         });
     }
 

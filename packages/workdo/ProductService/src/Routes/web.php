@@ -14,6 +14,8 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:ProductService'])
     Route::prefix('product-service/items')->name('product-service.items.')->group(function () {
         Route::get('/', [ProductServiceItemController::class, 'index'])->name('index');
         Route::get('/create', [ProductServiceItemController::class, 'create'])->name('create');
+        Route::get('/import/template', [ProductServiceItemController::class, 'downloadTemplate'])->name('import.template');
+        Route::post('/import', [ProductServiceItemController::class, 'import'])->name('import');
         Route::post('/', [ProductServiceItemController::class, 'store'])->name('store');
         Route::get('/{item}', [ProductServiceItemController::class, 'show'])->name('show');
         Route::get('/{item}/edit', [ProductServiceItemController::class, 'edit'])->name('edit');

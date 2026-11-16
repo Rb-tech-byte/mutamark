@@ -5,6 +5,7 @@ export interface Item {
     name: string;
     sku?: string;
     tax_id?: number;
+    tax_type?: 'inclusive' | 'exclusive' | string;
     category_id?: number;
     description?: string;
     long_description?: string;
@@ -25,6 +26,7 @@ export interface ItemFormData {
     name: string;
     sku?: string;
     tax_ids?: string[];
+    tax_type?: 'inclusive' | 'exclusive' | string;
     category_id?: string;
     description?: string;
     long_description?: string;

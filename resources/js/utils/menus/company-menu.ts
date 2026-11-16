@@ -182,16 +182,6 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
                 permission: 'manage-pos-orders',
             },
             {
-                title: t('Products & Items Catalog'),
-                href: route('product-service.items.index'),
-                permission: 'manage-product-service-item',
-            },
-            {
-                title: t('Add New Product'),
-                href: route('product-service.items.create'),
-                permission: 'create-product-service-item',
-            },
-            {
                 title: t('Returns & Refunds'),
                 href: route('pos.returns.index'),
                 permission: 'manage-pos-returns',
@@ -244,6 +234,7 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
                 title: t('Categories & Tax Setup'),
                 href: route('product-service.item-categories.index'),
                 permission: 'manage-product-service-item',
+                module: 'ProductService',
             },
         ],
     },
@@ -300,19 +291,10 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
         order: 100,
         children: [
             {
-                title: t('Products & Items'),
-                href: route('product-service.items.index'),
-                permission: 'manage-product-service-item',
-            },
-            {
-                title: t('Add New Product'),
-                href: route('product-service.items.create'),
-                permission: 'create-product-service-item',
-            },
-            {
                 title: t('Stock Valuation & Levels'),
                 href: route('product-service.stock.index'),
                 permission: 'manage-stock',
+                module: 'ProductService',
             },
             {
                 title: t('Warehouses & Depots'),
@@ -333,11 +315,6 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
                 title: t('Serial & Batch Tracking'),
                 href: route('inventory-serials.index'),
                 permission: 'manage-inventory-serials',
-            },
-            {
-                title: t('Categories & Tax Setup'),
-                href: route('product-service.item-categories.index'),
-                permission: 'manage-product-service-item',
             },
         ],
     },
@@ -386,6 +363,16 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
                 title: t('Haulage & Transport Orders'),
                 href: route('clearing-forwarding.transport.index'),
                 permission: 'manage-cf-transport',
+            },
+            {
+                title: t('Border & Transit Control'),
+                href: route('clearing-forwarding.border.index'),
+                permission: 'manage-cf-jobs',
+            },
+            {
+                title: t('Freight & Customs Rules'),
+                href: route('clearing-forwarding.freight.index'),
+                permission: 'manage-cf-jobs',
             },
             {
                 title: t('C&F Reports & Analytics'),
@@ -447,37 +434,13 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
         title: t('Warranty & Servicing'),
         icon: Wrench,
         name: 'warranty-servicing',
-        permission: 'manage-mobile-service-management',
+        permission: 'manage-stock',
         order: 130,
         children: [
             {
                 title: t('Warranty Dashboard & Tickets'),
                 href: route('warranty.index'),
-                permission: 'manage-mobile-service-management',
-            },
-            {
-                title: t('Device & Mobile Repairs'),
-                href: route('mobile-service-management.pending-service-requests.index'),
-                permission: 'manage-mobile-service-management',
-                module: 'MobileServiceManagement',
-            },
-            {
-                title: t('Device Brands & Setup'),
-                href: route('mobile-service.device-brands.index'),
-                permission: 'manage-mobile-device-brands',
-                module: 'MobileServiceManagement',
-            },
-            {
-                title: t('Service Policies'),
-                href: route('mobile-service-management.mobile-service-policies.index'),
-                permission: 'manage-mobile-service-policies',
-                module: 'MobileServiceManagement',
-            },
-            {
-                title: t('Service Contracts'),
-                href: route('mobile-service-management.mobile-service-contracts.index'),
-                permission: 'manage-mobile-service-contracts',
-                module: 'MobileServiceManagement',
+                permission: 'manage-stock',
             },
         ],
     },
@@ -501,6 +464,21 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
         module: 'Account',
         order: 150,
         children: [
+            {
+                title: t('Financial Management & Periods'),
+                href: route('financial.overview'),
+                permission: 'manage-account',
+            },
+            {
+                title: t('Executive Reports Hub'),
+                href: route('reports.executive'),
+                permission: 'manage-account',
+            },
+            {
+                title: t('Notifications & Automation'),
+                href: route('notifications.index'),
+                permission: 'manage-account',
+            },
             {
                 title: t('Bank Accounts'),
                 href: route('account.bank-accounts.index'),

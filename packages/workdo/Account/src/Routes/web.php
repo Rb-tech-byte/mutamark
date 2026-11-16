@@ -130,6 +130,7 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Account'])->group
         Route::put('/{expense}', [ExpenseController::class, 'update'])->name('update');
         Route::delete('/{expense}', [ExpenseController::class, 'destroy'])->name('destroy');
         Route::post('/{expense}/approve', [ExpenseController::class, 'approve'])->name('approve');
+        Route::post('/{expense}/reject', [ExpenseController::class, 'reject'])->name('reject');
         Route::post('/{expense}/post', [ExpenseController::class, 'post'])->name('post');
     });
 

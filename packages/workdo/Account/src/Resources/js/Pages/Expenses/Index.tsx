@@ -622,6 +622,7 @@ export default function Index() {
                     <Create
                         categories={categories}
                         bankAccounts={bankAccounts}
+                        warehouses={(usePage().props as any).warehouses || []}
                         chartOfAccounts={chartOfAccounts}
                         onSuccess={closeModal}
                     />

@@ -345,4 +345,23 @@ class SalesReturnController extends Controller
             }
         }
     }
+
+    public function print(SalesInvoiceReturn $salesReturn)
+    {
+        if (Auth::user()->can('print-sales-returns') && $salesReturn->created_by == creatorId()) {
+            if (!$this->checkReturnAccess($salesReturn)) {
+                return back()->with('error', __('Permission denied'));
+            }
+
+            $salesReturn->load(['customer', 'warehouse', 'customerDetails', 'originalInvoice', 'items.product', 'items.taxes']);
+            $verification = \App\Services\DocumentVerificationService::getOrCreateVerification($salesReturn, 'sales_return');
+
+            return Inertia::render('SalesReturns/Print', [
+                'return' => $salesReturn,
+                'verification' => $verification,
+            ]);
+        }
+
+        return back()->with('error', __('Permission denied'));
+    }
 }

@@ -17,6 +17,9 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Pos'])->group(fun
     Route::get('/pos/products', [PosController::class, 'getProducts'])->name('pos.products');
     Route::get('/pos/pos-number', [PosController::class, 'getNextPosNumber'])->name('pos.pos-number');
     Route::post('/pos/store', [PosController::class, 'store'])->name('pos.store');
+    Route::post('/pos/customers/quick-store', [PosController::class, 'quickStoreCustomer'])->name('pos.customers.quick-store');
+    Route::post('/pos/offline-sync', [\Workdo\Pos\Http\Controllers\PosOfflineSyncController::class, 'syncBatch'])->name('pos.offline-sync');
+    Route::get('/pos/offline-sync/logs', [\Workdo\Pos\Http\Controllers\PosOfflineSyncController::class, 'logs'])->name('pos.offline-sync.logs');
     Route::get('/pos/orders/{sale}', [PosController::class, 'show'])->name('pos.show');
     Route::get('/pos/barcode', [PosController::class, 'barcode'])->name('pos.barcode');
     Route::get('/pos/barcode/{sale}', [PosController::class, 'printBarcode'])->name('pos.barcode.print');

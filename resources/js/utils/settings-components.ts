@@ -4,6 +4,7 @@ import { lazy } from 'react';
 const coreComponents = {
   'brand-settings': lazy(() => import('@/pages/settings/components/brand-settings')),
   'company-settings': lazy(() => import('@/pages/settings/components/company-settings')),
+  'digital-signature-settings': lazy(() => import('@/pages/settings/components/digital-signature-settings')),
   'system-settings': lazy(() => import('@/pages/settings/components/system-settings')),
   'currency-settings': lazy(() => import('@/pages/settings/components/currency-settings')),
   'seo-settings': lazy(() => import('@/pages/settings/components/seo-settings')),

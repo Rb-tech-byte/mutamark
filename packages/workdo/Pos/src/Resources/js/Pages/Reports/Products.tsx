@@ -1,16 +1,8 @@
 import { Head } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import AuthenticatedLayout from "@/layouts/authenticated-layout";
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/utils/helpers';
-import { Package, BarChart3, PieChart, TrendingUp } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Cell, Pie } from 'recharts';
-import { DataTable } from "@/components/ui/data-table";
-import NoRecordsFound from '@/components/no-records-found';
-import { PieChart as PieChartComponent } from '@/components/charts/PieChart';
-import { BarChart as BarChartComponent } from '@/components/charts/BarChart';
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658', '#FF7C7C', '#8DD1E1', '#D084D0'];
+import PosReportDocument from '../../Components/PosReportDocument';
 
 interface ProductsReportProps {
     productData: Array<{
@@ -22,215 +14,63 @@ interface ProductsReportProps {
     }>;
 }
 
-export default function ProductsReport({ productData }: ProductsReportProps) {
+export default function ProductsReport({ productData = [] }: ProductsReportProps) {
     const { t } = useTranslation();
+    const reportDate = new Date().toLocaleDateString('en-GB');
+    const totalQuantity = productData.reduce((sum, p) => sum + Number(p.total_quantity || 0), 0);
+    const totalRevenue = productData.reduce((sum, p) => sum + Number(p.total_revenue || 0), 0);
+    const totalOrders = productData.reduce((sum, p) => sum + Number(p.total_orders || 0), 0);
 
     return (
         <AuthenticatedLayout
             breadcrumbs={[
                 { label: t('POS'), url: route('pos.index') },
-                { label: t('Product Report') }
+                { label: t('Product Report') },
             ]}
             pageTitle={t('Product Report')}
         >
             <Head title={t('Product Report')} />
 
-            <div className="space-y-6">
-                {/* Summary Cards */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <Card className="relative overflow-hidden bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
-                        <div className="absolute top-2 right-2">
-                            <Package className="h-5 w-5 text-blue-700 opacity-80" />
-                        </div>
-                        <CardHeader className="text-center space-y-0 pb-1 pt-3">
-                            <div className="text-2xl font-bold text-blue-700">{productData?.length || 0}</div>
-                        </CardHeader>
-                        <CardContent className="text-center pt-1 pb-3">
-                            <CardTitle className="text-sm font-medium text-blue-700">{t('Total Products')}</CardTitle>
-                        </CardContent>
-                    </Card>
-                    <Card className="relative overflow-hidden bg-gradient-to-r from-green-50 to-green-100 border-green-200">
-                        <div className="absolute top-2 right-2">
-                            <TrendingUp className="h-5 w-5 text-green-700 opacity-80" />
-                        </div>
-                        <CardHeader className="text-center space-y-0 pb-1 pt-3">
-                            <div className="text-2xl font-bold text-green-700">
-                                {formatCurrency(productData?.reduce((sum, p) => sum + p.total_revenue, 0) || 0)}
-                            </div>
-                        </CardHeader>
-                        <CardContent className="text-center pt-1 pb-3">
-                            <CardTitle className="text-sm font-medium text-green-700">{t('Total Revenue')}</CardTitle>
-                        </CardContent>
-                    </Card>
-                    <Card className="relative overflow-hidden bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200">
-                        <div className="absolute top-2 right-2">
-                            <PieChart className="h-5 w-5 text-purple-700 opacity-80" />
-                        </div>
-                        <CardHeader className="text-center space-y-0 pb-1 pt-3">
-                            <div className="text-2xl font-bold text-purple-700">
-                                {productData?.reduce((sum, p) => sum + p.total_quantity, 0) || 0}
-                            </div>
-                        </CardHeader>
-                        <CardContent className="text-center pt-1 pb-3">
-                            <CardTitle className="text-sm font-medium text-purple-700">{t('Total Quantity')}</CardTitle>
-                        </CardContent>
-                    </Card>
-                    <Card className="relative overflow-hidden bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200">
-                        <div className="absolute top-2 right-2">
-                            <BarChart3 className="h-5 w-5 text-orange-700 opacity-80" />
-                        </div>
-                        <CardHeader className="text-center space-y-0 pb-1 pt-3">
-                            <div className="text-2xl font-bold text-orange-700">
-                                {productData?.reduce((sum, p) => sum + p.total_orders, 0) || 0}
-                            </div>
-                        </CardHeader>
-                        <CardContent className="text-center pt-1 pb-3">
-                            <CardTitle className="text-sm font-medium text-orange-700">{t('Total Orders')}</CardTitle>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Charts Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Revenue Bar Chart */}
-                    <Card className="shadow-sm">
-                        <CardHeader className="pb-3">
-                            <CardTitle className="flex items-center gap-2 text-base">
-                                <BarChart3 className="h-4 w-4" />
-                                {t('Top 10 Products by Revenue')}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-0 pb-0 flex justify-center">
-                            {productData?.length > 0 ? (
-                                <div className="w-full">
-                                    <ResponsiveContainer width="100%" height={400}>
-                                        <BarChart data={productData?.slice(0, 10).map(product => ({ 
-                                            name: product.name.substring(0, 15), 
-                                            value: Number(product.total_revenue) || 0
-                                        })) || []} margin={{ bottom: 60 }}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis 
-                                                dataKey="name" 
-                                                angle={-45} 
-                                                textAnchor="end" 
-                                                height={60}
-                                                interval={0}
-                                            />
-                                            <YAxis />
-                                            <Tooltip />
-                                            <Bar dataKey="value" fill="#3b82f6" />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            ) : (
-                                <div className="flex items-center justify-center h-48 text-muted-foreground">
-                                    <div className="text-center">
-                                        <BarChart3 className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                        <p className="text-sm">{t('No revenue data available')}</p>
-                                    </div>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {/* Quantity Pie Chart */}
-                    <Card className="shadow-sm">
-                        <CardHeader className="pb-3">
-                            <CardTitle className="flex items-center gap-2 text-base">
-                                <PieChart className="h-4 w-4" />
-                                {t('Quantity Distribution')}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-0 pb-3">
-                            {productData?.length > 0 ? (
-                                <div className="w-full">
-                                    <ResponsiveContainer width="100%" height={320}>
-                                        <RechartsPieChart>
-                                            <Tooltip 
-                                                formatter={(value) => [value, t('Quantity')]}
-                                            />
-                                            <Pie
-                                                data={productData?.slice(0, 10) || []}
-                                                cx="50%"
-                                                cy="50%"
-                                                labelLine={false}
-                                                label={({ name }) => name}
-                                                outerRadius={120}
-                                                fill="#8884d8"
-                                                dataKey="total_quantity"
-                                            >
-                                                {(productData?.slice(0, 10) || []).map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                                ))}
-                                            </Pie>
-                                        </RechartsPieChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            ) : (
-                                <div className="flex items-center justify-center h-48 text-muted-foreground">
-                                    <div className="text-center">
-                                        <PieChart className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                        <p className="text-sm">{t('No quantity data available')}</p>
-                                    </div>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Data Table */}
-                <Card className="shadow-sm">
-                    <CardHeader className="p-6 border-b bg-gray-50/50">
-                        <CardTitle className="text-lg flex items-center gap-2 text-base">
-                            <Package className="h-5 w-5" />
-                            {t('Product Performance Report')}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 h-96 rounded-none w-full">
-                            <div className="min-w-[800px]">
-                                <DataTable
-                                    data={productData || []}
-                                    columns={[
-                                        {
-                                            key: 'name',
-                                            header: t('Product Name')
-                                        },
-                                        {
-                                            key: 'sku',
-                                            header: t('SKU')
-                                        },
-                                        {
-                                            key: 'total_quantity',
-                                            header: t('Quantity Sold')
-                                        },
-                                        {
-                                            key: 'total_revenue',
-                                            header: t('Total Revenue'),
-                                            render: (value: number) => formatCurrency(value)
-                                        },
-                                        {
-                                            key: 'total_orders',
-                                            header: t('Orders')
-                                        }
-                                    ]}
-                                    className="rounded-none"
-                                    emptyState={
-                                        <NoRecordsFound
-                                            icon={Package}
-                                            title={t('No products found')}
-                                            description={t('No product data available for the selected period.')}
-                                            hasFilters={false}
-                                            onClearFilters={() => {}}
-                                            className="h-auto"
-                                        />
-                                    }
-                                />
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+            <PosReportDocument
+                documentTitle={t('POS PRODUCT SALES STATEMENT')}
+                documentNumber="RPT-POS-PRD-001"
+                reportDate={reportDate}
+                leftBoxTitle={t('Report Scope')}
+                leftBoxFields={[
+                    { label: t('Report Type'), value: t('Product Performance Ledger') },
+                    { label: t('Total Products Listed'), value: productData.length },
+                    { label: t('Total Quantity Sold'), value: totalQuantity },
+                ]}
+                rightBoxTitle={t('Financial Summary')}
+                rightBoxFields={[
+                    { label: t('Total Orders'), value: totalOrders },
+                    { label: t('Total Revenue'), value: formatCurrency(totalRevenue) },
+                    { label: t('Status'), value: t('Official Document') },
+                ]}
+                columns={[
+                    { key: 'index', label: '#', width: '6%', align: 'center', render: (_item, idx) => idx + 1 },
+                    { key: 'name', label: t('Product Name'), width: '34%' },
+                    { key: 'sku', label: t('SKU'), width: '18%' },
+                    { key: 'total_quantity', label: t('Quantity Sold'), width: '14%', align: 'right' },
+                    { key: 'total_orders', label: t('Orders'), width: '10%', align: 'right' },
+                    { key: 'total_revenue', label: t('Total Revenue'), width: '18%', align: 'right', render: (item) => formatCurrency(item.total_revenue || 0) },
+                ]}
+                items={productData}
+                totals={[
+                    { label: t('Total Quantity Sold'), value: String(totalQuantity) },
+                    { label: t('Total Revenue'), value: formatCurrency(totalRevenue), isGrandTotal: true },
+                ]}
+                csvFilename="pos-product-sales-statement.csv"
+                pdfFilename="pos-product-sales-statement.pdf"
+                csvHeaders={[t('Product Name'), t('SKU'), t('Quantity Sold'), t('Orders'), t('Total Revenue')]}
+                csvRows={productData.map((p) => [
+                    p.name,
+                    p.sku,
+                    p.total_quantity,
+                    p.total_orders,
+                    Number(p.total_revenue || 0).toFixed(2),
+                ])}
+            />
         </AuthenticatedLayout>
     );
 }

@@ -210,7 +210,7 @@ class HomeController extends Controller
         // -------------------------------------------------------------
         // 1. FINANCE METRICS (For Company & Finance Manager)
         // -------------------------------------------------------------
-        if ($isCompany || $isFinance) {
+        if (($isCompany || $isFinance) && module_is_active('Account')) {
             $bankAccounts = BankAccount::where('created_by', $companyId)
                 ->where('is_active', 1)
                 ->get(['id', 'bank_name', 'account_name', 'account_number', 'current_balance', 'currency'])
@@ -299,15 +299,16 @@ class HomeController extends Controller
         // 2. WAREHOUSE & INVENTORY METRICS (For Company & Warehouse Manager)
         // -------------------------------------------------------------
         if ($isCompany || $isWarehouse) {
-            $totalItemsCount = ProductServiceItem::where('created_by', $companyId)->count();
+            $hasProductService = module_is_active('ProductService');
+            $totalItemsCount = $hasProductService ? ProductServiceItem::where('created_by', $companyId)->count() : 0;
 
-            $stockValuation = (float) DB::table('warehouse_stocks')
+            $stockValuation = $hasProductService ? (float) DB::table('warehouse_stocks')
                 ->join('product_service_items', 'warehouse_stocks.product_id', '=', 'product_service_items.id')
                 ->where('product_service_items.created_by', $companyId)
-                ->sum(DB::raw('warehouse_stocks.quantity * product_service_items.purchase_price'));
+                ->sum(DB::raw('warehouse_stocks.quantity * product_service_items.purchase_price')) : 0.0;
 
             // Low stock items (items where total stock <= 30)
-            $lowStockItems = DB::table('warehouse_stocks')
+            $lowStockItems = $hasProductService ? DB::table('warehouse_stocks')
                 ->join('product_service_items', 'warehouse_stocks.product_id', '=', 'product_service_items.id')
                 ->where('product_service_items.created_by', $companyId)
                 ->select(
@@ -321,7 +322,7 @@ class HomeController extends Controller
                 ->groupBy('product_service_items.id', 'product_service_items.name', 'product_service_items.sku', 'product_service_items.sale_price', 'product_service_items.purchase_price')
                 ->having('current_stock', '<=', 40)
                 ->take(6)
-                ->get();
+                ->get() : collect();
 
             $pendingGrns = GoodsReceivedNote::where('created_by', $companyId)
                 ->whereIn('status', ['draft', 'pending', 'inspection'])
@@ -411,24 +412,25 @@ class HomeController extends Controller
                 ->count();
 
             // Today's POS turnover
-            $posTodaySales = (float) DB::table('pos')
+            $hasPos = module_is_active('Pos');
+            $posTodaySales = $hasPos ? (float) DB::table('pos')
                 ->join('pos_payments', 'pos.id', '=', 'pos_payments.pos_id')
                 ->where('pos.created_by', $companyId)
                 ->whereDate('pos.created_at', now()->today())
-                ->sum('pos_payments.amount');
+                ->sum('pos_payments.amount') : 0.0;
 
-            $posTodayOrdersCount = DB::table('pos')
+            $posTodayOrdersCount = $hasPos ? DB::table('pos')
                 ->where('created_by', $companyId)
                 ->whereDate('created_at', now()->today())
-                ->count();
+                ->count() : 0;
 
-            $recentPosOrders = DB::table('pos')
+            $recentPosOrders = $hasPos ? DB::table('pos')
                 ->leftJoin('pos_payments', 'pos.id', '=', 'pos_payments.pos_id')
                 ->where('pos.created_by', $companyId)
                 ->latest('pos.created_at')
                 ->take(6)
                 ->select('pos.id', 'pos.sale_number', 'pos.created_at', 'pos.status', 'pos_payments.amount', 'pos_payments.payment_method')
-                ->get();
+                ->get() : collect();
 
             $data['sales'] = [
                 'monthly_sales_amount' => $monthlySalesAmount,
@@ -479,7 +481,7 @@ class HomeController extends Controller
         // -------------------------------------------------------------
         // 5. HUMAN RESOURCES & PAYROLL (For Company & HR Manager)
         // -------------------------------------------------------------
-        if ($isCompany || $isHr) {
+        if (($isCompany || $isHr) && module_is_active('Hrm')) {
             $totalEmployees = Employee::where('created_by', $companyId)->count();
 
             $presentToday = Attendance::where('created_by', $companyId)

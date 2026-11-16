@@ -31,6 +31,7 @@ class StoreProductServiceItemRequest extends FormRequest
             'sku' => 'required|string|max:255|unique:product_service_items,sku,NULL,id,created_by,' . creatorId(),
             'tax_ids' => 'nullable|array',
             'tax_ids.*' => ['integer', 'distinct', \Illuminate\Validation\Rule::exists('product_service_taxes','id')->where('created_by',creatorId())],
+            'tax_type' => 'nullable|in:inclusive,exclusive',
             'category_id' => ['nullable', \Illuminate\Validation\Rule::exists('product_service_categories','id')->where('created_by',creatorId())],
             'description' => 'nullable|string',
             'long_description' => 'nullable|string',

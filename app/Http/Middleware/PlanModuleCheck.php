@@ -21,13 +21,10 @@ class PlanModuleCheck
             return $next($request);
         }
 
-        // Dedicated enterprise system for Mutamark ERP - perpetual access without SaaS plan expiration lockouts
-        $coreAlwaysActive = ['ProductService', 'Account', 'Pos', 'Inventory', 'DoubleEntry', 'Lead', 'Hrm'];
-
         if ($moduleName != null) {
             $moduleNames = explode('-', $moduleName);
             foreach ($moduleNames as $m) {
-                if (in_array($m, $coreAlwaysActive) || module_is_active($m)) {
+                if (module_is_active($m)) {
                     return $next($request);
                 }
             }

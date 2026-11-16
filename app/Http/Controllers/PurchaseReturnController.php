@@ -342,4 +342,23 @@ class PurchaseReturnController extends Controller
             }
         }
     }
+
+    public function print(PurchaseReturn $return)
+    {
+        if (Auth::user()->can('print-purchase-returns') && $return->created_by == creatorId()) {
+            if (!$this->checkReturnAccess($return)) {
+                return back()->with('error', __('Permission denied'));
+            }
+
+            $return->load(['vendor', 'vendorDetails', 'warehouse', 'originalInvoice', 'items.product', 'items.taxes']);
+            $verification = \App\Services\DocumentVerificationService::getOrCreateVerification($return, 'purchase_return');
+
+            return Inertia::render('PurchaseReturns/Print', [
+                'return' => $return,
+                'verification' => $verification,
+            ]);
+        }
+
+        return back()->with('error', __('Permission denied'));
+    }
 }

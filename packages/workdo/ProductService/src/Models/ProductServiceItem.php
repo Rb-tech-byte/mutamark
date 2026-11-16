@@ -13,6 +13,7 @@ class ProductServiceItem extends Model
         'name',
         'sku',
         'tax_ids',
+        'tax_type',
         'category_id',
         'description',
         'sale_price',

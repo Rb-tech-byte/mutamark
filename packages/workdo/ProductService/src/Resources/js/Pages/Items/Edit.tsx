@@ -28,6 +28,7 @@ export default function Edit() {
 
     const { data, setData, put, processing, errors } = useForm<ItemFormData>({
         ...item,
+        tax_type: item.tax_type || 'exclusive',
         images: item.images ? (typeof item.images === 'string' ? JSON.parse(item.images) : item.images) : []
     });
 
@@ -174,6 +175,19 @@ export default function Edit() {
                                                 placeholder={t('Select Taxes')}
                                             />
                                             <InputError message={errors.tax_ids} />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="tax_type" required>{t('Tax Type')}</Label>
+                                            <Select value={data.tax_type || 'exclusive'} onValueChange={(value) => setData('tax_type', value)}>
+                                                <SelectTrigger id="tax_type">
+                                                    <SelectValue placeholder={t('Select Tax Type')} />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="exclusive">{t('Tax Exclusive (Added on top of price)')}</SelectItem>
+                                                    <SelectItem value="inclusive">{t('Tax Inclusive (Included in price)')}</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <InputError message={errors.tax_type} />
                                         </div>
                                         <div>
                                             <Label htmlFor="category_id" required>{t('Category')}</Label>

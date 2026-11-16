@@ -43,7 +43,7 @@ class JournalService
                 ->first();
             if (!$account) {
                 // If standard accounts were not yet seeded for this company, seed them now
-                \Workdo\Account\Helpers\AccountUtility::defaultChartAccounts($creator);
+                \Workdo\Account\Helpers\AccountUtility::defaultdata($creator);
                 $account = ChartOfAccount::where('account_code', $code)
                     ->where('created_by', $creator)
                     ->first();
@@ -1089,8 +1089,8 @@ class JournalService
         }
         if (!$bankGLAccount) {
             $bankGLAccount = ChartOfAccount::where('created_by', $creator)
-                ->where(function($q) {
-                    $q->where('type', 'Assets')->orWhere('type', 'Asset');
+                ->whereHas('accountType.category', function($q) {
+                    $q->whereIn('type', ['assets', 'asset', 'Assets', 'Asset']);
                 })->first();
         }
 
@@ -1103,7 +1103,10 @@ class JournalService
 
         $salesAccount = ChartOfAccount::where('account_code', '4100')->where('created_by', $creator)->first();
         if (!$salesAccount) {
-            $salesAccount = ChartOfAccount::where('type', 'Income')->where('created_by', $creator)->first();
+            $salesAccount = ChartOfAccount::where('created_by', $creator)
+                ->whereHas('accountType.category', function($q) {
+                    $q->whereIn('type', ['revenue', 'income', 'Revenue', 'Income']);
+                })->first();
         }
         if (!$salesAccount) {
             $salesAccount = ChartOfAccount::where('account_code', 'like', '4%')->where('created_by', $creator)->first();
@@ -1211,8 +1214,8 @@ class JournalService
         }
         if (!$bankGLAccount) {
             $bankGLAccount = ChartOfAccount::where('created_by', $creator)
-                ->where(function($q) {
-                    $q->where('type', 'Assets')->orWhere('type', 'Asset');
+                ->whereHas('accountType.category', function($q) {
+                    $q->whereIn('type', ['assets', 'asset', 'Assets', 'Asset']);
                 })->first();
         }
 
@@ -1225,7 +1228,10 @@ class JournalService
 
         $salesAccount = ChartOfAccount::where('account_code', '4100')->where('created_by', $creator)->first();
         if (!$salesAccount) {
-            $salesAccount = ChartOfAccount::where('type', 'Income')->where('created_by', $creator)->first();
+            $salesAccount = ChartOfAccount::where('created_by', $creator)
+                ->whereHas('accountType.category', function($q) {
+                    $q->whereIn('type', ['revenue', 'income', 'Revenue', 'Income']);
+                })->first();
         }
         if (!$salesAccount) {
             $salesAccount = ChartOfAccount::where('account_code', 'like', '4%')->where('created_by', $creator)->first();
@@ -1586,69 +1592,6 @@ class JournalService
         } catch (\Exception $e) {
             return null;
         }
-    }
-
-    /**
-     * Creates journal entry for mobile service payment: Dr: Bank, Cr: Mobile Service Revenue
-     * Usage: MobileServiceController->store() after recording mobile service payment
-     */
-    public function createMobileServicePaymentJournal($payment)
-    {
-        // Get the specific bank account's GL account
-        $bankGLAccount = BankAccount::where('id', $payment->bank_account_id)->first()->glAccount;
-        if (!$bankGLAccount) {
-            throw new \Exception("Bank account must have a GL account assigned");
-        }
-
-        // Validate required accounts exist (4200 for Mobile Service Revenue)
-        $this->validateAccounts(['4200']);
-
-        // Validate amounts balance
-        $this->validateBalance($payment->payment_amount, $payment->payment_amount);
-
-        $mobileServiceRevenueAccount = ChartOfAccount::where('account_code', '4200')->where('created_by', creatorId())->first();
-        $journalEntry = JournalEntry::create([
-            'journal_date' => $payment->payment_date ?? now(),
-            'entry_type' => 'automatic',
-            'reference_type' => 'mobile_service_payment',
-            'reference_id' => $payment->id,
-            'description' => 'Mobile Service Payment - ' . $payment->notes,
-            'total_debit' => $payment->payment_amount,
-            'total_credit' => $payment->payment_amount,
-            'status' => 'posted',
-            'creator_id' => Auth::id(),
-            'created_by' => creatorId()
-        ]);
-        // Debit: Specific Bank Account (from GL Account)
-        JournalEntryItem::create([
-            'journal_entry_id' => $journalEntry->id,
-            'account_id' => $bankGLAccount->id,
-            'description' => 'Mobile service payment received',
-            'debit_amount' => $payment->payment_amount,
-            'credit_amount' => 0,
-            'creator_id' => Auth::id(),
-            'created_by' => creatorId()
-        ]);
-
-        // Credit: Mobile Service Revenue Account
-        JournalEntryItem::create([
-            'journal_entry_id' => $journalEntry->id,
-            'account_id' => $mobileServiceRevenueAccount->id,
-            'description' => 'Mobile service revenue earned',
-            'debit_amount' => 0,
-            'credit_amount' => $payment->payment_amount,
-            'creator_id' => Auth::id(),
-            'created_by' => creatorId()
-        ]);
-
-        try {
-            UpdateBudgetSpending::dispatch($journalEntry);
-        } catch (\Exception $e) {
-            return back()->with('error', $e->getMessage());
-        }
-
-        $this->updateAccountBalances($journalEntry);
-        return $journalEntry;
     }
 
     /**

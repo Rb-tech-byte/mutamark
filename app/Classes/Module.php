@@ -208,6 +208,7 @@ class Module
             else{
                 Cache::forget($module);
             }
+            Cache::forget('app_all_packages_meta');
         } catch (\Exception $e) {
             \Log::error($module . $e->getMessage());
         }

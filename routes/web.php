@@ -96,6 +96,17 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
         Route::get('reports', [\App\Http\Controllers\ClearingForwardingController::class, 'reports'])->name('reports');
         Route::get('reports/export-csv', [\App\Http\Controllers\ClearingForwardingController::class, 'exportReportsCsv'])->name('reports.export-csv');
         Route::get('jobs/{cfJob}/print/{type}', [\App\Http\Controllers\ClearingForwardingController::class, 'printDocument'])->name('jobs.print');
+
+        // Border & Transit Control, Freight Bookings, Customs Rules, Fleet Transfer & Job Invoicing
+        Route::get('border', [\App\Http\Controllers\ClearingExtensionsController::class, 'borderIndex'])->name('border.index');
+        Route::post('border', [\App\Http\Controllers\ClearingExtensionsController::class, 'storeBorder'])->name('border.store');
+        Route::patch('border/{movement}/status', [\App\Http\Controllers\ClearingExtensionsController::class, 'updateBorderStatus'])->name('border.status');
+        Route::get('freight', [\App\Http\Controllers\ClearingExtensionsController::class, 'freightIndex'])->name('freight.index');
+        Route::post('freight', [\App\Http\Controllers\ClearingExtensionsController::class, 'storeFreight'])->name('freight.store');
+        Route::patch('freight/{booking}/status', [\App\Http\Controllers\ClearingExtensionsController::class, 'updateFreightStatus'])->name('freight.status');
+        Route::post('customs-rules', [\App\Http\Controllers\ClearingExtensionsController::class, 'storeCustomsRule'])->name('customs-rules.store');
+        Route::post('jobs/{cfJob}/transfer-to-fleet', [\App\Http\Controllers\ClearingExtensionsController::class, 'transferToFleet'])->name('jobs.transfer-to-fleet');
+        Route::post('jobs/{cfJob}/generate-invoice', [\App\Http\Controllers\ClearingExtensionsController::class, 'generateInvoice'])->name('jobs.generate-invoice');
     });
 
     // Profile management routes
@@ -195,6 +206,22 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     Route::post('accounting/multi-currency/revaluations/{revaluation}/reverse', [MultiCurrencyForexController::class, 'reverseRevaluation'])->name('accounting.multi-currency.revaluations.reverse');
     Route::delete('accounting/multi-currency/revaluations/{revaluation}', [MultiCurrencyForexController::class, 'destroyRevaluation'])->name('accounting.multi-currency.revaluations.destroy');
 
+    // Financial Management & Period Closing
+    Route::get('financial/overview', [\App\Http\Controllers\FinancialManagementController::class, 'index'])->name('financial.overview');
+    Route::post('financial/periods', [\App\Http\Controllers\FinancialManagementController::class, 'storePeriod'])->name('financial.periods.store');
+    Route::post('financial/periods/{period}/close', [\App\Http\Controllers\FinancialManagementController::class, 'closePeriod'])->name('financial.periods.close');
+    Route::post('financial/periods/{period}/reopen', [\App\Http\Controllers\FinancialManagementController::class, 'reopenPeriod'])->name('financial.periods.reopen');
+
+    // Unified Executive Reporting & Analytics Hub (PDF, Excel, CSV)
+    Route::get('reports/executive', [\App\Http\Controllers\ExecutiveReportController::class, 'index'])->name('reports.executive');
+    Route::get('reports/executive/export-excel', [\App\Http\Controllers\ExecutiveReportController::class, 'exportExcel'])->name('reports.executive.export-excel');
+
+    // Notifications & Automation Center
+    Route::get('notifications', [\App\Http\Controllers\NotificationCenterController::class, 'index'])->name('notifications.index');
+    Route::post('notifications/scan', [\App\Http\Controllers\NotificationCenterController::class, 'runScan'])->name('notifications.scan');
+    Route::post('notifications/{notification}/read', [\App\Http\Controllers\NotificationCenterController::class, 'markRead'])->name('notifications.read');
+    Route::post('notifications/read-all', [\App\Http\Controllers\NotificationCenterController::class, 'markAllRead'])->name('notifications.read-all');
+
     Route::resource('roles', RoleController::class);
 
     // purchase invoices
@@ -229,6 +256,7 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     Route::delete('purchase-returns/{return}', [PurchaseReturnController::class, 'destroy'])->name('purchase-returns.destroy');
     Route::post('purchase-returns/{return}/approve', [PurchaseReturnController::class, 'approve'])->name('purchase-returns.approve');
     Route::post('purchase-returns/{return}/complete', [PurchaseReturnController::class, 'complete'])->name('purchase-returns.complete');
+    Route::get('purchase-returns/{return}/print', [PurchaseReturnController::class, 'print'])->name('purchase-returns.print');
 
     // sales returns
     Route::get('sales-returns', [SalesReturnController::class, 'index'])->name('sales-returns.index');
@@ -238,6 +266,7 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     Route::delete('sales-returns/{salesReturn}', [SalesReturnController::class, 'destroy'])->name('sales-returns.destroy');
     Route::post('sales-returns/{salesReturn}/approve', [SalesReturnController::class, 'approve'])->name('sales-returns.approve');
     Route::post('sales-returns/{salesReturn}/complete', [SalesReturnController::class, 'complete'])->name('sales-returns.complete');
+    Route::get('sales-returns/{salesReturn}/print', [SalesReturnController::class, 'print'])->name('sales-returns.print');
 
     // Helpdesk Routes
     Route::resource('helpdesk-categories', HelpdeskCategoryController::class);
@@ -261,6 +290,8 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     Route::get('settings', [SettingController::class, 'index'])->name('settings.index');
     Route::post('settings/brand', [SettingController::class, 'updateBrandSettings'])->name('settings.brand.update');
     Route::post('settings/company', [SettingController::class, 'updateCompanySettings'])->name('settings.company.update');
+    Route::post('settings/digital-signature', [\App\Http\Controllers\DigitalSignatureController::class, 'update'])->name('settings.digital-signature.update');
+    Route::delete('settings/digital-signature', [\App\Http\Controllers\DigitalSignatureController::class, 'destroy'])->name('settings.digital-signature.destroy');
     Route::post('settings/system', [SettingController::class, 'updateSystemSettings'])->name('settings.system.update');
     Route::post('settings/currency', [SettingController::class, 'updateCurrencySettings'])->name('settings.currency.update');
     Route::post('settings/cache/clear', [SettingController::class, 'clearCache'])->name('settings.cache.clear');

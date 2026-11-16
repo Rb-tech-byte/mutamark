@@ -242,7 +242,7 @@ class PurchaseRequisitionController extends Controller implements \Illuminate\Ro
     /**
      * Convert Approved Purchase Requisition to Purchase Bill / Order (PurchaseInvoice).
      */
-    public function convertToInvoice(PurchaseRequisition $purchaseRequisition)
+    public function convertToInvoice(Request $request, PurchaseRequisition $purchaseRequisition)
     {
         \App\Services\CompanyAccess::check($purchaseRequisition);
         if (!Auth::user()->can('manage-purchase-invoices')) {
@@ -250,15 +250,20 @@ class PurchaseRequisitionController extends Controller implements \Illuminate\Ro
         }
 
         if ($purchaseRequisition->status !== 'approved') {
-            return back()->with('error', __('Only approved requisitions can be converted into purchase orders.'));
+            return back()->with('error', __('Only approved requisitions can be converted into purchase bills.'));
         }
 
-        $result = PurchaseRequisitionService::convertToPurchaseInvoice($purchaseRequisition, Auth::id());
+        try {
+            $vendorId = $request->input('vendor_id') ? (int) $request->input('vendor_id') : null;
+            $result = PurchaseRequisitionService::convertToPurchaseInvoice($purchaseRequisition, Auth::id(), $vendorId);
 
-        return redirect()->back()->with('success', __('Requisition :pr converted successfully into Purchase Order :inv.', [
-            'pr' => $purchaseRequisition->requisition_number,
-            'inv' => $result['purchase_order']->po_number,
-        ]));
+            return redirect()->back()->with('success', __('Requisition :pr converted successfully into Purchase Bill :inv.', [
+                'pr' => $purchaseRequisition->requisition_number,
+                'inv' => $result['purchase_invoice']->invoice_number,
+            ]));
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
     }
 
     /**

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { usePage } from '@inertiajs/react';
 import { getCompanySetting, getImagePath } from '@/utils/helpers';
 import ApplicationLogo from '@/components/application-logo';
 import DocumentVerificationBadge, { DocumentVerificationData } from '@/components/DocumentVerificationBadge';
@@ -146,6 +147,22 @@ export default function CorporateDocumentTemplate({
     className = '',
 }: CorporateDocumentTemplateProps) {
     const [logoFailed, setLogoFailed] = useState(false);
+    const { companyAllSetting = {}, baseUrl } = (usePage().props as any) || {};
+
+    const isDigitalSigEnabled = companyAllSetting?.digital_signature_enabled === 'on';
+    const isAutoSign = companyAllSetting?.digital_signature_auto_sign !== 'off';
+    const digitalSigPath = companyAllSetting?.digital_signature_path || '';
+    const digitalStampPath = companyAllSetting?.digital_stamp_path || '';
+    const digitalSigName = companyAllSetting?.digital_signature_name || '';
+    const digitalSigTitle = companyAllSetting?.digital_signature_title || 'Authorized Signatory';
+    const digitalSigStamp = companyAllSetting?.digital_signature_stamp_text || 'DIGITALLY SIGNED & VERIFIED';
+    const originBase = (baseUrl || (typeof window !== 'undefined' ? window.location.origin : '')).replace(/\/$/, '');
+    const digitalSigUrl = digitalSigPath ? `${originBase}/storage/${digitalSigPath.replace(/^\/+/, '')}` : '';
+    const digitalStampUrl = digitalStampPath ? `${originBase}/storage/${digitalStampPath.replace(/^\/+/, '')}` : '';
+
+    const [isDigitallySigned, setIsDigitallySigned] = useState<boolean>(
+        () => isDigitalSigEnabled && isAutoSign
+    );
 
     // Resolve Company details from props or system settings
     const rawLogoSetting =
@@ -564,42 +581,135 @@ export default function CorporateDocumentTemplate({
             )}
 
             {/* 6. SIGNATURE AND STAMP ROWS */}
+            {isDigitalSigEnabled && (
+                <div className="print:hidden mb-3 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
+                    <div className="flex items-center gap-2 text-slate-700">
+                        <span className={`inline-block h-2 w-2 rounded-full ${isDigitallySigned ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                        <span>
+                            {isDigitallySigned
+                                ? (isAutoSign ? 'Auto-Signed for Print & PDF Download' : 'Document Signed & Ready for Print / Download')
+                                : 'Digital Signature Ready (Sign before printing or downloading)'}
+                        </span>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setIsDigitallySigned((prev) => !prev)}
+                        className={`rounded px-2.5 py-1 font-medium transition-colors ${
+                            isDigitallySigned
+                                ? 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
+                                : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                        }`}
+                    >
+                        {isDigitallySigned ? 'Remove Signature' : 'Sign Document Now'}
+                    </button>
+                </div>
+            )}
+
             {signatures && signatures.length > 0 && (
                 <div className="mb-4 pt-2">
                     <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                        {signatures.map((sig, sIdx) => (
-                            <div key={sIdx} className="space-y-1.5 text-[11px]">
-                                <div className="flex items-baseline gap-2">
-                                    <span className="font-bold text-slate-800 min-w-[130px] flex-shrink-0">
-                                        {sig.label}:
-                                    </span>
-                                    <span className="border-b border-slate-400 flex-1 font-medium text-slate-900 pb-0.5 min-h-[18px]">
-                                        {sig.value || ''}
-                                    </span>
+                        {signatures.map((sig, sIdx) => {
+                            const isPrimarySigSlot =
+                                sIdx === 0 || /authori[sz]ed|signature|approved/i.test(sig.label || '');
+                            const showAutoSigInSlot = isDigitalSigEnabled && isDigitallySigned && isPrimarySigSlot;
+                            return (
+                                <div key={sIdx} className="space-y-1.5 text-[11px]">
+                                    {showAutoSigInSlot && (digitalSigUrl || digitalSigName) && (
+                                        <div className="flex items-end justify-between gap-2 pb-1">
+                                            <div>
+                                                {digitalSigUrl && (
+                                                    <img
+                                                        src={digitalSigUrl}
+                                                        alt="Digital Signature"
+                                                        className="max-h-12 object-contain"
+                                                    />
+                                                )}
+                                                {digitalSigName && (
+                                                    <div className="text-[10px] font-semibold text-slate-800">
+                                                        {digitalSigName} {digitalSigTitle ? `— ${digitalSigTitle}` : ''}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {digitalSigStamp && (
+                                                <div className="rounded border border-emerald-600/50 bg-emerald-50/70 px-1.5 py-0.5 text-[8.5px] font-bold tracking-wide text-emerald-800 uppercase">
+                                                    {digitalSigStamp}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                    <div className="flex items-baseline gap-2">
+                                        <span className="font-bold text-slate-800 min-w-[130px] flex-shrink-0">
+                                            {sig.label}:
+                                        </span>
+                                        <span className="border-b border-slate-400 flex-1 font-medium text-slate-900 pb-0.5 min-h-[18px]">
+                                            {sig.value || (showAutoSigInSlot ? digitalSigName : '')}
+                                        </span>
+                                    </div>
+                                    {sig.dateLabel && (
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-slate-600 min-w-[130px] flex-shrink-0">
+                                                {sig.dateLabel}:
+                                            </span>
+                                            <span className="border-b border-slate-400 flex-1 text-slate-800 pb-0.5 min-h-[18px]">
+                                                {sig.dateValue || ''}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {sig.extraLabel && (
+                                        <div className="flex items-start gap-2">
+                                            <span className="text-slate-600 min-w-[130px] flex-shrink-0 pt-1">
+                                                {sig.extraLabel}:
+                                            </span>
+                                            <div className="border-b border-slate-400 flex-1 text-slate-800 pb-1 min-h-[22px]">
+                                                {sig.extraValue || (
+                                                    /stamp/i.test(sig.extraLabel) && !/receiver/i.test(sig.extraLabel) ? (
+                                                        digitalStampUrl ? (
+                                                            <img
+                                                                src={digitalStampUrl}
+                                                                alt="Official Company Stamp"
+                                                                className="max-h-14 object-contain"
+                                                            />
+                                                        ) : (
+                                                            <div className="inline-flex flex-col items-center justify-center rounded border-2 border-indigo-700/70 bg-indigo-50/40 px-2.5 py-1 text-center leading-tight text-indigo-900">
+                                                                <span className="text-[9px] font-extrabold uppercase tracking-wider">
+                                                                    {displayCompanyName}
+                                                                </span>
+                                                                <span className="text-[7.5px] font-semibold tracking-wide text-indigo-700">
+                                                                    OFFICIAL STAMP {displayTin ? `• TIN: ${displayTin}` : ''}
+                                                                </span>
+                                                                <span className="text-[7px] font-mono text-indigo-600">
+                                                                    {sig.dateValue || date || new Date().toLocaleDateString()}
+                                                                </span>
+                                                            </div>
+                                                        )
+                                                    ) : ''
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                                {sig.dateLabel && (
-                                    <div className="flex items-baseline gap-2">
-                                        <span className="text-slate-600 min-w-[130px] flex-shrink-0">
-                                            {sig.dateLabel}:
-                                        </span>
-                                        <span className="border-b border-slate-400 flex-1 text-slate-800 pb-0.5 min-h-[18px]">
-                                            {sig.dateValue || ''}
-                                        </span>
-                                    </div>
-                                )}
-                                {sig.extraLabel && (
-                                    <div className="flex items-baseline gap-2">
-                                        <span className="text-slate-600 min-w-[130px] flex-shrink-0">
-                                            {sig.extraLabel}:
-                                        </span>
-                                        <span className="border-b border-slate-400 flex-1 text-slate-800 pb-0.5 min-h-[18px]">
-                                            {sig.extraValue || ''}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
+                </div>
+            )}
+
+            {(!signatures || signatures.length === 0) && isDigitalSigEnabled && isDigitallySigned && (digitalSigUrl || digitalSigName) && (
+                <div className="mb-4 pt-2 flex items-end justify-between border-t border-slate-200">
+                    <div>
+                        {digitalSigUrl && (
+                            <img src={digitalSigUrl} alt="Digital Signature" className="max-h-12 object-contain" />
+                        )}
+                        <div className="text-[10.5px] font-semibold text-slate-800">
+                            {digitalSigName || 'Authorized Signatory'}
+                            {digitalSigTitle ? ` — ${digitalSigTitle}` : ''}
+                        </div>
+                    </div>
+                    {digitalSigStamp && (
+                        <div className="rounded border border-emerald-600/50 bg-emerald-50/70 px-2 py-0.5 text-[9px] font-bold tracking-wide text-emerald-800 uppercase">
+                            {digitalSigStamp}
+                        </div>
+                    )}
                 </div>
             )}
 

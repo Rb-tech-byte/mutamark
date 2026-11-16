@@ -173,7 +173,6 @@ class MutamarkNicheUsersSeeder extends Seeder
             'manage-announcements', 'view-announcements',
             'manage-statutory-declarations',
             'manage-document-verifications', 'manage-portals',
-            'manage-mobile-service-management', 'manage-mobile-device-brands', 'manage-mobile-service-policies', 'manage-mobile-service-contracts',
             'manage-media', 'manage-approvals', 'manage-ai-agent',
             'manage-profile', 'edit-profile',
         ];
@@ -395,7 +394,6 @@ class MutamarkNicheUsersSeeder extends Seeder
             ['module' => 'Taskly', 'name' => 'Project', 'package_name' => 'taskly', 'priority' => 60],
             ['module' => 'Fleet', 'name' => 'Fleet', 'package_name' => 'fleet', 'priority' => 70],
             ['module' => 'LandingPage', 'name' => 'CMS', 'package_name' => 'landing-page', 'priority' => 80],
-            ['module' => 'MobileServiceManagement', 'name' => 'Mobile Service Management', 'package_name' => 'mobile-service-management', 'priority' => 90],
         ];
 
         foreach ($coreAddons as $ca) {
