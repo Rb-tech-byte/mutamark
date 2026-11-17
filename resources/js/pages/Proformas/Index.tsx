@@ -28,7 +28,7 @@ export default function Index({ invoices, customers, products, warehouses, filte
     const [open, setOpen] = useState(false);
     const [selected, setSelected] = useState<Proforma | null>(null);
     const form = useForm({ customer_id: '', issue_date: today(), expiry_date: '', currency: 'TZS', payment_terms: '', notes: '', items: [line()] });
-    const conversion = useForm({ warehouse_id: '', invoice_date: today(), due_date: today() });
+    const conversion = useForm<{ warehouse_id: string; invoice_date: string; due_date: string; post_to_accounting: boolean }>({ warehouse_id: '', invoice_date: today(), due_date: today(), post_to_accounting: true });
     const submit = (e: FormEvent) => { e.preventDefault(); form.post(route('proformas.store'), { onSuccess: () => { setOpen(false); form.reset(); } }); };
     const updateLine = (index: number, field: string, value: string | number) => form.setData('items', form.data.items.map((item, i) => i === index ? { ...item, [field]: value } : item));
     const total = form.data.items.reduce((sum, item) => sum + item.quantity * item.unit_price * (1 - item.discount_percentage / 100) * (1 + item.tax_rate / 100), 0);
@@ -56,6 +56,7 @@ export default function Index({ invoices, customers, products, warehouses, filte
         <Dialog open={!!selected} onOpenChange={v => { if (!v) setSelected(null); }}><DialogContent><DialogHeader><DialogTitle>{t('Convert to Draft Invoice')}</DialogTitle></DialogHeader><form className="space-y-4" onSubmit={e => { e.preventDefault(); if (selected) conversion.post(route('proformas.convert', selected.id), { onSuccess: () => setSelected(null) }); }}>
             <div><Label>{t('Warehouse')}</Label><Select value={conversion.data.warehouse_id} onValueChange={v => conversion.setData('warehouse_id', v)}><SelectTrigger aria-label={t('Warehouse')}><SelectValue placeholder={t('Select warehouse')} /></SelectTrigger><SelectContent>{warehouses.map(w => <SelectItem key={w.id} value={String(w.id)}>{w.name}</SelectItem>)}</SelectContent></Select></div>
             <div><Label htmlFor="conversion-date">{t('Invoice Date')}</Label><Input id="conversion-date" type="date" required value={conversion.data.invoice_date} onChange={e => conversion.setData('invoice_date', e.target.value)} /></div><div><Label htmlFor="conversion-due">{t('Due Date')}</Label><Input id="conversion-due" type="date" required min={conversion.data.invoice_date} value={conversion.data.due_date} onChange={e => conversion.setData('due_date', e.target.value)} /></div>
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={conversion.data.post_to_accounting} onChange={e => conversion.setData('post_to_accounting', e.target.checked)} /> {t('Post converted invoice to Accounting immediately')}</label>
             {Object.entries(conversion.errors).map(([key, error]) => <p role="alert" className="text-sm text-destructive" key={key}>{error}</p>)}<Button type="submit" disabled={conversion.processing}>{t('Convert')}</Button>
         </form></DialogContent></Dialog>
     </AuthenticatedLayout>;

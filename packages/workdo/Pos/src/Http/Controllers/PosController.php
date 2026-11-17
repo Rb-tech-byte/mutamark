@@ -369,13 +369,32 @@ class PosController extends Controller
 
     public function printBarcode(Request $request, $sale = null)
     {
-        if(Auth::user()->can('manage-pos-barcodes')){
+        if (Auth::user()->can('manage-pos-barcodes')) {
+            $products = json_decode((string) $request->get('products'), true) ?: [];
+            if (empty($products) && $request->filled('ids')) {
+                $ids = array_filter(array_map('intval', explode(',', (string) $request->get('ids'))));
+                if (!empty($ids)) {
+                    $products = \Workdo\ProductService\Models\ProductServiceItem::where('created_by', creatorId())
+                        ->whereIn('id', $ids)
+                        ->get(['id', 'name', 'sku', 'sale_price'])
+                        ->map(fn ($p) => [
+                            'id' => $p->id,
+                            'name' => $p->name,
+                            'sku' => $p->sku,
+                            'price' => (float) $p->sale_price,
+                        ])
+                        ->values()
+                        ->all();
+                }
+            }
+            $copies = json_decode((string) $request->get('copies'), true) ?: [];
+
             return Inertia::render('Pos/Barcode/Print', [
-                'products' => json_decode($request->get('products'), true),
-                'copies' => json_decode($request->get('copies'), true),
+                'products' => $products,
+                'copies' => $copies,
             ]);
-        }else{
-           return redirect()->route('pos.index')->with('error', __('Permission denied'));
+        } else {
+            return redirect()->route('pos.index')->with('error', __('Permission denied'));
         }
     }
 

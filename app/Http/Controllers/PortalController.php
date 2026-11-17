@@ -55,7 +55,14 @@ class PortalController extends Controller
     private function supplier(Request $request): Vendor
     {
         if ($request->user()->type === 'vendor') {
-            $vendor = Vendor::where('created_by', creatorId())->where('user_id', Auth::id())->firstOrFail();
+            $user = $request->user();
+            $vendor = Vendor::where('created_by', creatorId())
+                ->where(function ($q) use ($user) {
+                    $q->where('user_id', $user->id)
+                        ->orWhere('primary_email', $user->email)
+                        ->orWhere('contact_person_email', $user->email);
+                })
+                ->firstOrFail();
             abort_if($request->filled('vendor_id') && $request->integer('vendor_id') !== $vendor->id, 403);
             return $vendor;
         }
@@ -442,10 +449,16 @@ class PortalController extends Controller
         $rfq = Rfq::findOrFail($rfqId);
         CompanyAccess::check($rfq);
         $vendor = $this->supplier($request);
-        abort_unless(in_array($rfq->status, ['published', 'evaluating']) && (!$rfq->closing_date || !$rfq->closing_date->endOfDay()->isPast()), 409);
+
+        if (!in_array($rfq->status, ['published', 'evaluating'], true)) {
+            return back()->withErrors(['rfq' => __('This RFQ is not open for supplier bids.')]);
+        }
+        if ($rfq->closing_date && $rfq->closing_date->endOfDay()->isPast()) {
+            return back()->withErrors(['rfq' => __('This RFQ has already passed its closing date.')]);
+        }
 
         $validated = $request->validate([
-            'vendor_id' => 'required|integer',
+            'vendor_id' => 'nullable|integer',
             'quotation_reference' => 'required|string|max:100',
             'delivery_lead_time_days' => 'required|integer|min:1',
             'warranty_months' => 'nullable|integer|min:0',

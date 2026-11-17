@@ -121,19 +121,20 @@ export default function Index() {
 
 
 
-    const handleDownloadBarcodes = () => {
+    const openBarcodePrint = (downloadPdf: boolean) => {
         if (selectedProducts.length === 0) return;
 
-        const selectedProductsData = products.filter(p => selectedProducts.includes(p.id));
         const params = new URLSearchParams({
-            products: JSON.stringify(selectedProductsData),
+            ids: selectedProducts.join(','),
             copies: JSON.stringify(productCopies),
             field: barcodeField
         });
 
-        const printUrl = route('pos.barcode.print', 'bulk') + '?' + params.toString() + '&download=pdf';
+        const printUrl = route('pos.barcode.print', 'bulk') + '?' + params.toString() + (downloadPdf ? '&download=pdf' : '');
         window.open(printUrl, '_blank');
     };
+
+    const handleDownloadBarcodes = () => openBarcodePrint(true);
 
     const filteredProducts = products.filter(product =>
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -150,7 +151,7 @@ export default function Index() {
         <AuthenticatedLayout
             breadcrumbs={[
                 { label: t('POS'), url: route('pos.index') },
-                { label: t('Product Barcod') }
+                { label: t('Product Barcode') }
             ]}
             pageTitle={t('Manage Product Barcode')}
             pageActions={null}

@@ -61,10 +61,25 @@ class ProformaInvoiceController extends Controller
         CompanyAccess::check($proforma);
         $data = $request->validate([
             'warehouse_id' => ['required', Rule::exists('warehouses', 'id')->where('created_by', creatorId())->where('is_active', true)],
-            'invoice_date' => 'required|date', 'due_date' => 'required|date|after_or_equal:invoice_date',
+            'invoice_date' => 'required|date',
+            'due_date' => 'required|date|after_or_equal:invoice_date',
+            'post_to_accounting' => 'nullable|boolean',
         ]);
         $invoice = ProformaInvoiceService::convert($proforma, $data);
-        return $request->expectsJson() ? response()->json($invoice) : redirect()->route('sales-invoices.show', $invoice)->with('success', __('Proforma converted to a draft sales invoice.'));
+
+        $postedMsg = __('Proforma converted to sales invoice :num.', ['num' => $invoice->invoice_number]);
+        if ($request->boolean('post_to_accounting', true) && $invoice->status === 'draft') {
+            try {
+                \App\Services\FinancialControlService::postInvoice($invoice);
+                $postedMsg = __('Proforma converted to invoice :num and posted to Accounting.', ['num' => $invoice->invoice_number]);
+            } catch (\Throwable $e) {
+                $postedMsg = __('Proforma converted to draft invoice :num (Accounting post skipped: :msg).', ['num' => $invoice->invoice_number, 'msg' => $e->getMessage()]);
+            }
+        }
+
+        return $request->expectsJson()
+            ? response()->json($invoice->fresh())
+            : redirect()->route('sales-invoices.show', $invoice)->with('success', $postedMsg);
     }
 
     public function cancel(Request $request, ProformaInvoice $proforma)
