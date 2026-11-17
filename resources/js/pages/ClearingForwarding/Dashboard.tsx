@@ -34,6 +34,16 @@ interface DashboardProps {
         total_disbursed: number;
         total_service_revenue: number;
         total_profit: number;
+        total_customers?: number;
+        pending_documents?: number;
+        under_customs?: number;
+        awaiting_transport?: number;
+        delivered_shipments?: number;
+        border_delays_count?: number;
+        trucks_available?: number;
+        trucks_on_transit?: number;
+        trucks_maintenance?: number;
+        drivers_available?: number;
     };
     containersAtRisk: CFContainer[];
     recentJobs: CFJob[];
@@ -104,6 +114,16 @@ export default function Dashboard({ metrics, containersAtRisk, recentJobs }: Das
                                 <Container className="w-4 h-4 text-amber-600" /> Demurrage Tracker
                             </Button>
                         </Link>
+                        <Link href={route('clearing-forwarding.border.index')}>
+                            <Button variant="outline" className="gap-1.5">
+                                <MapPin className="w-4 h-4 text-emerald-600" /> Border &amp; Transit
+                            </Button>
+                        </Link>
+                        <Link href={route('clearing-forwarding.freight.index')}>
+                            <Button variant="outline" className="gap-1.5">
+                                <Anchor className="w-4 h-4 text-blue-600" /> Freight &amp; CPC Rules
+                            </Button>
+                        </Link>
                     </div>
                 </div>
 
@@ -164,6 +184,18 @@ export default function Dashboard({ metrics, containersAtRisk, recentJobs }: Das
                             <p className="text-xs text-slate-500 mt-1">Containers ≤ 5 days free time remaining</p>
                         </CardContent>
                     </Card>
+                </div>
+
+                {/* Operational & Fleet Readiness Strip */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+                    <Card className="border-slate-200 shadow-sm"><CardContent className="p-3"><div className="text-[11px] text-slate-500">Customers</div><div className="text-lg font-bold text-slate-900">{metrics.total_customers ?? 0}</div></CardContent></Card>
+                    <Card className="border-slate-200 shadow-sm"><CardContent className="p-3"><div className="text-[11px] text-slate-500">Pending Docs</div><div className="text-lg font-bold text-amber-700">{metrics.pending_documents ?? 0}</div></CardContent></Card>
+                    <Card className="border-slate-200 shadow-sm"><CardContent className="p-3"><div className="text-[11px] text-slate-500">Under Customs</div><div className="text-lg font-bold text-purple-700">{metrics.under_customs ?? 0}</div></CardContent></Card>
+                    <Card className="border-slate-200 shadow-sm"><CardContent className="p-3"><div className="text-[11px] text-slate-500">Awaiting Transport</div><div className="text-lg font-bold text-indigo-700">{metrics.awaiting_transport ?? 0}</div></CardContent></Card>
+                    <Card className="border-slate-200 shadow-sm"><CardContent className="p-3"><div className="text-[11px] text-slate-500">Trucks Available</div><div className="text-lg font-bold text-emerald-700">{metrics.trucks_available ?? 0}</div></CardContent></Card>
+                    <Card className="border-slate-200 shadow-sm"><CardContent className="p-3"><div className="text-[11px] text-slate-500">Trucks Maint.</div><div className="text-lg font-bold text-slate-700">{metrics.trucks_maintenance ?? 0}</div></CardContent></Card>
+                    <Card className="border-slate-200 shadow-sm"><CardContent className="p-3"><div className="text-[11px] text-slate-500">Drivers Ready</div><div className="text-lg font-bold text-blue-700">{metrics.drivers_available ?? 0}</div></CardContent></Card>
+                    <Card className="border-slate-200 shadow-sm"><CardContent className="p-3"><div className="text-[11px] text-slate-500">Border Delays</div><div className={`text-lg font-bold ${(metrics.border_delays_count ?? 0) > 0 ? 'text-rose-600' : 'text-slate-900'}`}>{metrics.border_delays_count ?? 0}</div></CardContent></Card>
                 </div>
 
                 {/* Financial Overview Cards */}

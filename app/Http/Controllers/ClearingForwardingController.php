@@ -52,6 +52,29 @@ class ClearingForwardingController extends Controller
         $totalServiceRevenue = CFJobCosting::sum('total_service_revenue');
         $totalProfit = CFJobCosting::sum('gross_profit');
 
+        // Executive & Fleet KPIs
+        $totalCustomers = User::where('type', 'client')->count();
+        $pendingDocuments = CFDocumentChecklist::whereNull('file_path')->count();
+        $underCustoms = CFJob::whereIn('status', ['declaration_submitted', 'assessed'])->count();
+        $awaitingTransport = CFJob::where('status', 'cargo_released')->whereDoesntHave('transportOrders')->count();
+        $deliveredShipments = CFJob::whereIn('status', ['delivered', 'completed'])->count();
+        $borderDelaysCount = \Illuminate\Support\Facades\Schema::hasTable('cf_border_movements')
+            ? \App\Models\ClearingForwarding\CFBorderMovement::whereNotNull('delay_reason')
+                ->where('clearance_status', '!=', 'released')
+                ->count()
+            : 0;
+
+        $trucksAvailable = class_exists(\App\Models\FleetVehicle::class) && \Illuminate\Support\Facades\Schema::hasTable('fleet_vehicles')
+            ? \App\Models\FleetVehicle::where('status', 'active')->count()
+            : 0;
+        $trucksOnTransit = CFTransportOrder::where('status', 'in_transit')->count();
+        $trucksMaintenance = class_exists(\App\Models\FleetVehicle::class) && \Illuminate\Support\Facades\Schema::hasTable('fleet_vehicles')
+            ? \App\Models\FleetVehicle::where('status', 'maintenance')->count()
+            : 0;
+        $driversAvailable = class_exists(\App\Models\FleetDriver::class) && \Illuminate\Support\Facades\Schema::hasTable('fleet_drivers')
+            ? \App\Models\FleetDriver::where('status', 'active')->count()
+            : 0;
+
         // Recent Jobs
         $recentJobs = CFJob::with(['customer', 'shipment', 'containers', 'jobCosting'])
             ->latest('id')
@@ -70,6 +93,16 @@ class ClearingForwardingController extends Controller
                 'total_disbursed' => (float) $totalDisbursed,
                 'total_service_revenue' => (float) $totalServiceRevenue,
                 'total_profit' => (float) $totalProfit,
+                'total_customers' => $totalCustomers,
+                'pending_documents' => $pendingDocuments,
+                'under_customs' => $underCustoms,
+                'awaiting_transport' => $awaitingTransport,
+                'delivered_shipments' => $deliveredShipments,
+                'border_delays_count' => $borderDelaysCount,
+                'trucks_available' => $trucksAvailable,
+                'trucks_on_transit' => $trucksOnTransit,
+                'trucks_maintenance' => $trucksMaintenance,
+                'drivers_available' => $driversAvailable,
             ],
             'containersAtRisk' => $containersAtRisk,
             'recentJobs' => $recentJobs,
@@ -304,13 +337,29 @@ class ClearingForwardingController extends Controller
             'trackingEvents.recorder',
             'deliveries.proofOfDelivery.verifier',
             'jobCosting.reconciler',
+            'borderMovements',
+            'freightBookings',
         ]);
 
         $users = User::select('id', 'name', 'email', 'type')->orderBy('name')->get();
+        $customsRules = \Illuminate\Support\Facades\Schema::hasTable('cf_customs_rules')
+            ? \App\Models\ClearingForwarding\CFCustomsRule::where('is_active', true)->orderBy('cpc_code')->get()
+            : collect();
+        $fleetTrucks = class_exists(\App\Models\FleetVehicle::class) && \Illuminate\Support\Facades\Schema::hasTable('fleet_vehicles')
+            ? \App\Models\FleetVehicle::where('status', 'active')->get(['id', 'registration_number', 'make', 'model'])
+            : collect();
+        $fleetDrivers = class_exists(\App\Models\FleetDriver::class) && \Illuminate\Support\Facades\Schema::hasTable('fleet_drivers')
+            ? \App\Models\FleetDriver::where('status', 'active')->get(['id', 'full_name', 'phone'])
+            : collect();
 
         return Inertia::render('ClearingForwarding/Jobs/Show', [
             'job' => $cfJob,
             'users' => $users,
+            'workflowSteps' => $cfJob->getWorkflowSteps(),
+            'documentValidation' => $cfJob->getDocumentValidationSummary(),
+            'customsRules' => $customsRules,
+            'fleetTrucks' => $fleetTrucks,
+            'fleetDrivers' => $fleetDrivers,
         ]);
     }
 
@@ -1161,6 +1210,107 @@ class ClearingForwardingController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Multi-Document Upload (PDF, Excel, Word, Images, ZIP) with Duplicate Detection
+     */
+    public function uploadJobDocuments(Request $request, CFJob $cfJob)
+    {
+        $request->validate([
+            'document_type' => 'required|string|max:120',
+            'document_name' => 'nullable|string|max:180',
+            'document_reference' => 'nullable|string|max:120',
+            'files' => 'required|array|min:1',
+            'files.*' => 'file|mimes:pdf,xls,xlsx,doc,docx,jpg,jpeg,png,zip|max:15360',
+        ]);
+
+        $existingNames = $cfJob->documents()
+            ->whereNotNull('file_path')
+            ->pluck('file_path')
+            ->map(fn ($p) => strtolower(basename((string) $p)))
+            ->all();
+
+        $uploadedCount = 0;
+        $duplicateCount = 0;
+
+        foreach ($request->file('files') as $file) {
+            $originalName = strtolower($file->getClientOriginalName());
+            if (in_array($originalName, $existingNames, true)) {
+                $duplicateCount++;
+            }
+
+            $storedPath = $file->store('clearing/documents/' . $cfJob->id, 'public');
+            $cfJob->documents()->create([
+                'document_type' => $request->input('document_type'),
+                'document_name' => ($request->input('document_name') ?: $file->getClientOriginalName()),
+                'document_reference' => $request->input('document_reference'),
+                'is_mandatory' => false,
+                'is_original_received' => true,
+                'verification_status' => 'pending',
+                'file_path' => $storedPath,
+            ]);
+            $uploadedCount++;
+        }
+
+        CFTrackingEvent::create([
+            'cf_job_id' => $cfJob->id,
+            'milestone_code' => 'documents_uploaded',
+            'location_name' => 'Document Management',
+            'event_time' => now(),
+            'remarks' => "{$uploadedCount} document(s) uploaded" . ($duplicateCount > 0 ? " ({$duplicateCount} potential duplicate filename flagged)." : '.'),
+            'recorded_by' => Auth::id(),
+        ]);
+
+        $msg = "{$uploadedCount} document(s) uploaded successfully.";
+        if ($duplicateCount > 0) {
+            $msg .= " Warning: {$duplicateCount} duplicate filename(s) detected.";
+        }
+
+        return back()->with($duplicateCount > 0 ? 'warning' : 'success', $msg);
+    }
+
+    /**
+     * Store Quotation / Charge Estimate Line Item (Estimated vs Actual Costing)
+     */
+    public function storeChargeEstimate(Request $request, CFJob $cfJob)
+    {
+        $validated = $request->validate([
+            'charge_category' => 'required|string|max:100',
+            'charge_name' => 'required|string|max:255',
+            'is_disbursement' => 'nullable|boolean',
+            'estimated_amount' => 'required|numeric|min:0',
+            'currency' => 'nullable|string|max:10',
+            'exchange_rate' => 'nullable|numeric|min:0.0001',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $rate = (float) ($validated['exchange_rate'] ?? 1);
+        $amountTzs = (float) $validated['estimated_amount'] * $rate;
+        $isDisbursement = (bool) ($validated['is_disbursement'] ?? false);
+
+        $cfJob->chargeEstimates()->create([
+            'charge_category' => $validated['charge_category'],
+            'charge_name' => $validated['charge_name'],
+            'is_disbursement' => $isDisbursement,
+            'estimated_amount' => $validated['estimated_amount'],
+            'currency' => $validated['currency'] ?? 'TZS',
+            'exchange_rate' => $rate,
+            'amount_tzs' => $amountTzs,
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        $totalServiceRevenue = (float) $cfJob->chargeEstimates()->where('is_disbursement', false)->sum('amount_tzs');
+        $costing = $cfJob->jobCosting()->firstOrCreate(
+            ['cf_job_id' => $cfJob->id],
+            ['customer_advance_received' => 0, 'total_disbursements_and_direct_costs' => 0]
+        );
+        $costing->update([
+            'total_service_revenue' => $totalServiceRevenue,
+            'gross_profit' => $totalServiceRevenue - (float) $costing->total_disbursements_and_direct_costs,
+        ]);
+
+        return back()->with('success', 'Quotation / charge estimate line added and job revenue updated.');
     }
 }
 

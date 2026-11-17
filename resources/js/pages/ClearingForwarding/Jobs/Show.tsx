@@ -46,12 +46,38 @@ import {
 } from 'lucide-react';
 import { CFJob, CFDocumentChecklist, UserSummary } from '../types';
 
+interface WorkflowStep {
+    step: number;
+    label: string;
+    done: boolean;
+}
+
+interface DocumentValidationSummary {
+    missing_mandatory: string[];
+    duplicate_files: string[];
+    verified_count: number;
+    total_count: number;
+}
+
 interface ShowProps {
     job: CFJob;
     users: UserSummary[];
+    workflowSteps?: WorkflowStep[];
+    documentValidation?: DocumentValidationSummary;
+    customsRules?: any[];
+    fleetTrucks?: Array<{ id: number; registration_number: string; make?: string; model?: string }>;
+    fleetDrivers?: Array<{ id: number; full_name: string; phone?: string }>;
 }
 
-export default function Show({ job, users }: ShowProps) {
+export default function Show({
+    job,
+    users,
+    workflowSteps = [],
+    documentValidation,
+    customsRules = [],
+    fleetTrucks = [],
+    fleetDrivers = [],
+}: ShowProps) {
     const [activeTab, setActiveTab] = useState('overview');
 
     // Dialog states
@@ -62,7 +88,40 @@ export default function Show({ job, users }: ShowProps) {
     const [isDeliveryDialogOpen, setIsDeliveryDialogOpen] = useState(false);
     const [isDeclarationDialogOpen, setIsDeclarationDialogOpen] = useState(false);
     const [isReconcileDialogOpen, setIsReconcileDialogOpen] = useState(false);
+    const [isUploadDocOpen, setIsUploadDocOpen] = useState(false);
+    const [isEstimateOpen, setIsEstimateOpen] = useState(false);
+    const [isFleetTransferOpen, setIsFleetTransferOpen] = useState(false);
     const [selectedDoc, setSelectedDoc] = useState<CFDocumentChecklist | null>(null);
+
+    const uploadDocForm = useForm<{
+        document_type: string;
+        document_name: string;
+        document_reference: string;
+        files: File[];
+    }>({
+        document_type: 'commercial_invoice',
+        document_name: '',
+        document_reference: '',
+        files: [],
+    });
+
+    const estimateForm = useForm({
+        charge_category: 'clearing_fee',
+        charge_name: '',
+        estimated_amount: '',
+        currency: 'TZS',
+        is_disbursement: false,
+    });
+
+    const fleetForm = useForm({
+        vehicle_id: '',
+        driver_id: '',
+        pickup_location: job.shipment?.port_of_discharge || 'Dar es Salaam Port',
+        delivery_destination: job.shipment?.final_destination || 'Customer Premises',
+        dispatch_date: new Date().toISOString().split('T')[0],
+        expected_delivery_date: '',
+        agreed_freight_cost: '0',
+    });
 
     // Form handlers
     const statusForm = useForm({
@@ -291,6 +350,38 @@ export default function Show({ job, users }: ShowProps) {
 
                     {/* Tab 1: Overview & Shipment */}
                     <TabsContent value="overview" className="space-y-4">
+                        {workflowSteps.length > 0 && (
+                            <Card className="border-slate-200 shadow-sm">
+                                <CardHeader className="bg-slate-50 pb-2 border-b">
+                                    <CardTitle className="text-xs font-bold uppercase text-slate-700 flex items-center justify-between">
+                                        <span>16-Step Shipment Lifecycle Progress</span>
+                                        <span className="text-indigo-700">
+                                            {workflowSteps.filter((s) => s.done).length} / {workflowSteps.length} Completed
+                                        </span>
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-3">
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+                                        {workflowSteps.map((st) => (
+                                            <div
+                                                key={st.step}
+                                                className={`rounded border px-2 py-1.5 text-[11px] ${
+                                                    st.done
+                                                        ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                                                        : 'border-slate-200 bg-slate-50 text-slate-500'
+                                                }`}
+                                            >
+                                                <div className="flex items-center justify-between font-bold">
+                                                    <span>#{st.step}</span>
+                                                    {st.done ? <Check className="w-3 h-3 text-emerald-600" /> : <Clock className="w-3 h-3 text-slate-400" />}
+                                                </div>
+                                                <div className="truncate mt-0.5">{st.label}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {/* Parties Card */}
                             <Card className="border-slate-200 shadow-sm">
@@ -512,11 +603,28 @@ export default function Show({ job, users }: ShowProps) {
 
                     {/* Tab 3: Documents & Compliance */}
                     <TabsContent value="documents" className="space-y-4">
+                        {documentValidation && (documentValidation.missing_mandatory.length > 0 || documentValidation.duplicate_files.length > 0) && (
+                            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 space-y-1">
+                                {documentValidation.missing_mandatory.length > 0 && (
+                                    <div>
+                                        <strong>Missing Mandatory Documents:</strong> {documentValidation.missing_mandatory.join(', ')}
+                                    </div>
+                                )}
+                                {documentValidation.duplicate_files.length > 0 && (
+                                    <div>
+                                        <strong>Duplicate Filenames Detected:</strong> {documentValidation.duplicate_files.join(', ')}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                         <Card className="border-slate-200 shadow-sm">
-                            <CardHeader className="bg-slate-50 pb-2 border-b">
+                            <CardHeader className="bg-slate-50 pb-2 border-b flex flex-row items-center justify-between">
                                 <CardTitle className="text-xs font-bold uppercase text-slate-700">
                                     Document Checklist & Verification Register
                                 </CardTitle>
+                                <Button size="sm" onClick={() => setIsUploadDocOpen(true)} className="bg-[#1e3a5f] hover:bg-[#152a45] text-white text-xs gap-1">
+                                    <Plus className="w-3.5 h-3.5" /> Upload Documents
+                                </Button>
                             </CardHeader>
                             <CardContent className="p-0">
                                 <Table>
@@ -1007,9 +1115,14 @@ export default function Show({ job, users }: ShowProps) {
                                         Assigned transporters, truck plates, drivers, corridors, and freight costs.
                                     </CardDescription>
                                 </div>
-                                <Button size="sm" onClick={() => setIsTransportDialogOpen(true)} className="bg-[#1e3a5f] hover:bg-[#152a45] text-white text-xs gap-1">
-                                    Issue Transport Order
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Button size="sm" variant="outline" onClick={() => setIsFleetTransferOpen(true)} className="text-xs gap-1">
+                                        <Truck className="w-3.5 h-3.5 text-emerald-600" /> Transfer to Fleet
+                                    </Button>
+                                    <Button size="sm" onClick={() => setIsTransportDialogOpen(true)} className="bg-[#1e3a5f] hover:bg-[#152a45] text-white text-xs gap-1">
+                                        Issue Transport Order
+                                    </Button>
+                                </div>
                             </CardHeader>
                             <CardContent className="p-0">
                                 <Table>
@@ -1223,7 +1336,18 @@ export default function Show({ job, users }: ShowProps) {
                                         Actual payments made on behalf of customer (TRA duties, TPA port wharfage, shipping DO, etc.).
                                     </CardDescription>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex flex-wrap gap-2">
+                                    <Button size="sm" variant="outline" onClick={() => setIsEstimateOpen(true)} className="text-xs">
+                                        Add Quotation Line
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => router.post(route('clearing-forwarding.jobs.generate-invoice', job.id))}
+                                        className="text-xs text-emerald-700 border-emerald-300"
+                                    >
+                                        Generate Invoice
+                                    </Button>
                                     <Button size="sm" variant="outline" onClick={() => setIsReconcileDialogOpen(true)} className="text-xs">
                                         Reconcile Advance
                                     </Button>
@@ -1276,6 +1400,222 @@ export default function Show({ job, users }: ShowProps) {
                     </TabsContent>
                 </Tabs>
             </div>
+
+            {/* Dialog: Multi-Document Upload */}
+            <Dialog open={isUploadDocOpen} onOpenChange={setIsUploadDocOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Upload Shipment Documents</DialogTitle>
+                        <DialogDescription>Supported formats: PDF, Excel, Word, JPG, PNG, ZIP.</DialogDescription>
+                    </DialogHeader>
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            uploadDocForm.post(route('clearing-forwarding.jobs.documents.upload', job.id), {
+                                forceFormData: true,
+                                onSuccess: () => {
+                                    setIsUploadDocOpen(false);
+                                    uploadDocForm.reset();
+                                },
+                            });
+                        }}
+                        className="space-y-3"
+                    >
+                        <div>
+                            <Label>Document Category / Type</Label>
+                            <select
+                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                value={uploadDocForm.data.document_type}
+                                onChange={(e) => uploadDocForm.setData('document_type', e.target.value)}
+                            >
+                                <option value="commercial_invoice">Commercial Invoice</option>
+                                <option value="packing_list">Packing List</option>
+                                <option value="bill_of_lading">Bill of Lading / AWB / CMR</option>
+                                <option value="customs_declaration">Customs Declaration / TANSAD</option>
+                                <option value="certificate_of_origin">Certificate of Origin</option>
+                                <option value="permit_license">Permit / TBS / Regulatory</option>
+                                <option value="insurance_certificate">Insurance Certificate</option>
+                                <option value="other_supporting">Other Supporting Document</option>
+                            </select>
+                        </div>
+                        <div>
+                            <Label>Document Title (optional)</Label>
+                            <Input
+                                value={uploadDocForm.data.document_name}
+                                onChange={(e) => uploadDocForm.setData('document_name', e.target.value)}
+                                placeholder="Defaults to uploaded filename"
+                            />
+                        </div>
+                        <div>
+                            <Label>Reference No (optional)</Label>
+                            <Input
+                                value={uploadDocForm.data.document_reference}
+                                onChange={(e) => uploadDocForm.setData('document_reference', e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <Label>Select File(s)</Label>
+                            <Input
+                                type="file"
+                                multiple
+                                accept=".pdf,.xls,.xlsx,.doc,.docx,.jpg,.jpeg,.png,.zip"
+                                onChange={(e) => uploadDocForm.setData('files', Array.from(e.target.files || []))}
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setIsUploadDocOpen(false)}>Cancel</Button>
+                            <Button type="submit" disabled={uploadDocForm.processing || uploadDocForm.data.files.length === 0}>Upload</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Dialog: Quotation / Charge Estimate */}
+            <Dialog open={isEstimateOpen} onOpenChange={setIsEstimateOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Add Quotation / Charge Estimate</DialogTitle>
+                    </DialogHeader>
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            estimateForm.post(route('clearing-forwarding.jobs.charge-estimates.store', job.id), {
+                                onSuccess: () => {
+                                    setIsEstimateOpen(false);
+                                    estimateForm.reset();
+                                },
+                            });
+                        }}
+                        className="space-y-3"
+                    >
+                        <div>
+                            <Label>Service Category</Label>
+                            <select
+                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                value={estimateForm.data.charge_category}
+                                onChange={(e) => estimateForm.setData('charge_category', e.target.value)}
+                            >
+                                <option value="clearing_fee">Customs Clearing</option>
+                                <option value="freight_charge">Freight Forwarding</option>
+                                <option value="transport_haulage">Transportation / Haulage</option>
+                                <option value="documentation_fee">Documentation</option>
+                                <option value="border_service">Border Services</option>
+                                <option value="handling_charge">Port &amp; Handling Charges</option>
+                            </select>
+                        </div>
+                        <div>
+                            <Label>Description</Label>
+                            <Input
+                                required
+                                value={estimateForm.data.charge_name}
+                                onChange={(e) => estimateForm.setData('charge_name', e.target.value)}
+                                placeholder="e.g. Customs Agency & TANSAD Filing Fee"
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <Label>Amount</Label>
+                                <Input
+                                    type="number"
+                                    step="0.01"
+                                    required
+                                    value={estimateForm.data.estimated_amount}
+                                    onChange={(e) => estimateForm.setData('estimated_amount', e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <Label>Currency</Label>
+                                <Input
+                                    value={estimateForm.data.currency}
+                                    onChange={(e) => estimateForm.setData('currency', e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setIsEstimateOpen(false)}>Cancel</Button>
+                            <Button type="submit" disabled={estimateForm.processing}>Save Estimate</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Dialog: Transfer to Fleet Dispatch */}
+            <Dialog open={isFleetTransferOpen} onOpenChange={setIsFleetTransferOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Transfer Shipment to Fleet Dispatch</DialogTitle>
+                        <DialogDescription>Assign an available truck and driver without overlapping active trips.</DialogDescription>
+                    </DialogHeader>
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            fleetForm.post(route('clearing-forwarding.jobs.transfer-to-fleet', job.id), {
+                                onSuccess: () => {
+                                    setIsFleetTransferOpen(false);
+                                    fleetForm.reset();
+                                },
+                            });
+                        }}
+                        className="space-y-3"
+                    >
+                        <div>
+                            <Label>Truck / Vehicle</Label>
+                            <select
+                                required
+                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                value={fleetForm.data.vehicle_id}
+                                onChange={(e) => fleetForm.setData('vehicle_id', e.target.value)}
+                            >
+                                <option value="">Select Truck</option>
+                                {fleetTrucks.map((v) => (
+                                    <option key={v.id} value={v.id}>
+                                        {v.registration_number} {v.make ? `(${v.make} ${v.model || ''})` : ''}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <Label>Driver</Label>
+                            <select
+                                required
+                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                value={fleetForm.data.driver_id}
+                                onChange={(e) => fleetForm.setData('driver_id', e.target.value)}
+                            >
+                                <option value="">Select Driver</option>
+                                {fleetDrivers.map((d) => (
+                                    <option key={d.id} value={d.id}>
+                                        {d.full_name} {d.phone ? `(${d.phone})` : ''}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <Label>Dispatch Date</Label>
+                                <Input
+                                    type="date"
+                                    required
+                                    value={fleetForm.data.dispatch_date}
+                                    onChange={(e) => fleetForm.setData('dispatch_date', e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <Label>Expected Delivery Date</Label>
+                                <Input
+                                    type="date"
+                                    value={fleetForm.data.expected_delivery_date}
+                                    onChange={(e) => fleetForm.setData('expected_delivery_date', e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setIsFleetTransferOpen(false)}>Cancel</Button>
+                            <Button type="submit" disabled={fleetForm.processing}>Assign &amp; Dispatch</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
 
             {/* Dialog: Update Status */}
             <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>

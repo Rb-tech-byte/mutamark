@@ -107,6 +107,8 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
         Route::post('customs-rules', [\App\Http\Controllers\ClearingExtensionsController::class, 'storeCustomsRule'])->name('customs-rules.store');
         Route::post('jobs/{cfJob}/transfer-to-fleet', [\App\Http\Controllers\ClearingExtensionsController::class, 'transferToFleet'])->name('jobs.transfer-to-fleet');
         Route::post('jobs/{cfJob}/generate-invoice', [\App\Http\Controllers\ClearingExtensionsController::class, 'generateInvoice'])->name('jobs.generate-invoice');
+        Route::post('jobs/{cfJob}/upload-documents', [\App\Http\Controllers\ClearingForwardingController::class, 'uploadJobDocuments'])->name('jobs.documents.upload');
+        Route::post('jobs/{cfJob}/charge-estimates', [\App\Http\Controllers\ClearingForwardingController::class, 'storeChargeEstimate'])->name('jobs.charge-estimates.store');
     });
 
     // Profile management routes
