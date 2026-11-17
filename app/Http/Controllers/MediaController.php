@@ -138,12 +138,6 @@ class MediaController extends Controller
     public function batchStore(Request $request)
     {
         if(Auth::user()->can('create-media')){
-             // Check storage limits
-            $storageCheck = $this->checkStorageLimit($request->file('files'));
-            if ($storageCheck) {
-                return $storageCheck;
-            }
-
             $config = StorageConfigService::getStorageConfig();
             $validationRules = StorageConfigService::getFileValidationRules();
 
@@ -331,30 +325,6 @@ class MediaController extends Controller
 
     private function checkStorageLimit($files)
     {
-        $user = auth()->user();
-        if ($user->type === 'superadmin') return null;
-
-        $creator = ($user->type === 'company') ? $user : User::find($user->created_by);
-        if (!$creator) {
-            return response()->json([
-                'message' => __('Creator not found'),
-                'errors' => [__('Please contact administrator')]
-            ], 422);
-        }
-
-        if ($creator->storage_limit == -1) return null;
-
-        $limit = $creator->storage_limit * 1024; // Convert KB to Bytes
-        $uploadSize = collect($files)->sum('size');
-        $currentUsage = Media::where('created_by', $creator->id)->sum('size');
-
-        if (($currentUsage + $uploadSize) > $limit) {
-            return response()->json([
-                'message' => __('Storage limit exceeded'),
-                'errors' => [__('Please delete files or upgrade plan')]
-            ], 422);
-        }
-
         return null;
     }
 
