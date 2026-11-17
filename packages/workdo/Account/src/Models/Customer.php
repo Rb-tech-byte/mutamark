@@ -14,16 +14,21 @@ class Customer extends Model
         'user_id',
         'customer_code',
         'company_name',
+        'customer_category',
         'credit_limit',
         'contact_person_name',
         'contact_person_email',
         'contact_person_mobile',
         'tax_number',
+        'brela_number',
+        'vat_number',
         'payment_terms',
+        'status',
         'billing_address',
         'shipping_address',
         'same_as_billing',
         'notes',
+        'supporting_documents',
         'creator_id',
         'created_by',
     ];
@@ -31,6 +36,7 @@ class Customer extends Model
     protected $casts = [
         'billing_address' => 'array',
         'shipping_address' => 'array',
+        'supporting_documents' => 'array',
         'same_as_billing' => 'boolean',
     ];
 

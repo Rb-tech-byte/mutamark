@@ -2025,6 +2025,40 @@ export default function Show({
                         }}
                         className="space-y-3"
                     >
+                        {customsRules.length > 0 && (
+                            <div className="rounded border border-indigo-100 bg-indigo-50/50 p-2">
+                                <Label className="text-xs font-semibold text-indigo-900">Apply Configurable CPC Tax Rule</Label>
+                                <select
+                                    className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs mt-1"
+                                    defaultValue=""
+                                    onChange={(e) => {
+                                        const rule = customsRules.find((r) => String(r.id) === e.target.value);
+                                        if (!rule) return;
+                                        const cif = Number(job.valuation?.customs_value_tzs || 0);
+                                        const duty = Math.round(cif * (Number(rule.import_duty_rate || 0) / 100));
+                                        const excise = Math.round((cif + duty) * (Number(rule.excise_duty_rate || 0) / 100));
+                                        const rdl = Math.round(cif * (Number(rule.rdl_rate || 0) / 100));
+                                        const vat = Math.round((cif + duty + excise + rdl) * (Number(rule.vat_rate || 0) / 100));
+                                        declarationForm.setData((prev: any) => ({
+                                            ...prev,
+                                            regime_code: rule.cpc_code,
+                                            import_duty_assessed_tzs: String(duty),
+                                            excise_assessed_tzs: String(excise),
+                                            rdl_assessed_tzs: String(rdl),
+                                            vat_assessed_tzs: String(vat),
+                                            assessed_amount_tzs: String(duty + excise + rdl + vat),
+                                        }));
+                                    }}
+                                >
+                                    <option value="">Select CPC Procedure Rule (optional)...</option>
+                                    {customsRules.map((r) => (
+                                        <option key={r.id} value={r.id}>
+                                            {r.cpc_code} — {r.procedure_name} (Duty {r.import_duty_rate}%, VAT {r.vat_rate}%, RDL {r.rdl_rate}%)
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                         <div className="grid grid-cols-2 gap-2">
                             <div>
                                 <Label className="text-xs font-semibold">TANSAD / Decl No</Label>
