@@ -206,7 +206,7 @@ export default function FreightIndex({
                                     <SelectTrigger><SelectValue /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="none">{t('-- Standalone --')}</SelectItem>
-                                        {jobs.map((j) => <SelectItem key={j.id} value={String(j.id)}>{j.job_number} - {j.title}</SelectItem>)}
+                                        {jobs.map((j) => <SelectItem key={j.id} value={String(j.id)}>{j.job_number} - {j.consignee_name || j.service_type}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             </div>

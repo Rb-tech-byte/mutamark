@@ -29,7 +29,7 @@ class ClearingExtensionsController extends Controller
 
         $jobs = CFJob::where('created_by', $creatorId)
             ->orderByDesc('id')
-            ->get(['id', 'job_number', 'title']);
+            ->get(['id', 'job_number', 'consignee_name', 'service_type']);
 
         return Inertia::render('ClearingForwarding/Border/Index', [
             'movements' => $movements,
@@ -99,7 +99,7 @@ class ClearingExtensionsController extends Controller
 
         $jobs = CFJob::where('created_by', $creatorId)
             ->orderByDesc('id')
-            ->get(['id', 'job_number', 'title']);
+            ->get(['id', 'job_number', 'consignee_name', 'service_type']);
 
         $customsRules = CFCustomsRule::where('created_by', $creatorId)
             ->orderBy('cpc_code')
