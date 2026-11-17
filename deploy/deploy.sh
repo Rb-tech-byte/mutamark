@@ -44,6 +44,7 @@ php artisan migrate --force
 if [ "$SEED_FLAG" = true ]; then
   log "Running idempotent database seeders..."
   php artisan db:seed --class=CFCustomsRulesSeeder --force
+  php artisan db:seed --class=MutamarkHrTemplatesSeeder --force
 fi
 
 log "Linking public/storage and verifying runtime directories..."

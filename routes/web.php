@@ -224,6 +224,9 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     Route::post('notifications/{notification}/read', [\App\Http\Controllers\NotificationCenterController::class, 'markRead'])->name('notifications.read');
     Route::post('notifications/read-all', [\App\Http\Controllers\NotificationCenterController::class, 'markAllRead'])->name('notifications.read-all');
 
+    Route::get('hrm/letters', [\App\Http\Controllers\HrmLettersController::class, 'index'])->name('hrm.letters.index');
+    Route::get('hrm/letters/print', [\App\Http\Controllers\HrmLettersController::class, 'print'])->name('hrm.letters.print');
+
     Route::resource('roles', RoleController::class);
 
     // purchase invoices

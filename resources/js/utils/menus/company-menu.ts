@@ -585,6 +585,11 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
                 permission: 'manage-employees',
             },
             {
+                title: t('HR Letters & Templates'),
+                href: route('hrm.letters.index'),
+                permission: 'manage-employees',
+            },
+            {
                 title: t('Tanzania Statutory Reports (TRA / NSSF)'),
                 href: route('hrm.reports.tanzania-statutory'),
                 permission: 'manage-payrolls',
