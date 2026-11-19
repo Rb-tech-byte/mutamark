@@ -141,12 +141,7 @@ export default function Print() {
                             label: 'Item / Service Description',
                             align: 'left',
                             render: (it) => (
-                                <div>
-                                    <div className="font-semibold text-slate-900">{it.product?.name || it.name}</div>
-                                    {it.product?.sku && (
-                                        <div className="text-[10px] text-slate-500 font-mono">SKU: {it.product.sku}</div>
-                                    )}
-                                </div>
+                                <div className="font-semibold text-slate-900">{it.product?.name || it.name}</div>
                             ),
                         },
                         { key: 'quantity', label: 'Qty', align: 'center', width: '55px', render: (it) => it.quantity },

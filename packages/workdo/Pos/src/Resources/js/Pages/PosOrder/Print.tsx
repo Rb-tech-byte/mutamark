@@ -131,12 +131,7 @@ export default function Print() {
                             label: t('Item / Service Description'),
                             align: 'left',
                             render: (item: PosItem) => (
-                                <div>
-                                    <div className="font-semibold text-slate-900">{item.product?.name}</div>
-                                    {item.product?.sku && (
-                                        <div className="text-[10px] text-slate-500 font-mono">{t('SKU')}: {item.product.sku}</div>
-                                    )}
-                                </div>
+                                <div className="font-semibold text-slate-900">{item.product?.name}</div>
                             ),
                         },
                         { key: 'quantity', label: t('Qty'), align: 'center', width: '50px', render: (item: PosItem) => item.quantity },

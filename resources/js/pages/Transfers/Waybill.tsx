@@ -20,24 +20,24 @@ export default function Waybill({ transfer }: WaybillProps) {
     const waybillItems =
         transfer.items && transfer.items.length > 0
             ? transfer.items.map((it) => ({
-                  name: it.product?.name || '',
-                  sku: it.product?.sku || '',
-                  dispatched: Number(it.dispatched_quantity || 0).toLocaleString(),
-                  received:
-                      it.received_quantity !== null && it.received_quantity !== undefined
-                          ? Number(it.received_quantity).toLocaleString()
-                          : '—',
-              }))
+                name: it.product?.name || '',
+                sku: it.product?.sku || '',
+                dispatched: Number(it.dispatched_quantity || 0).toLocaleString(),
+                received:
+                    it.received_quantity !== null && it.received_quantity !== undefined
+                        ? Number(it.received_quantity).toLocaleString()
+                        : '—',
+            }))
             : transfer.product
-            ? [
-                  {
-                      name: transfer.product.name || t('Goods'),
-                      sku: transfer.product.sku || '',
-                      dispatched: Number(transfer.quantity || 0).toLocaleString(),
-                      received: Number(transfer.quantity || 0).toLocaleString(),
-                  },
-              ]
-            : [];
+                ? [
+                    {
+                        name: transfer.product.name || t('Goods'),
+                        sku: transfer.product.sku || '',
+                        dispatched: Number(transfer.quantity || 0).toLocaleString(),
+                        received: Number(transfer.quantity || 0).toLocaleString(),
+                    },
+                ]
+                : [];
 
     const docNumber = transfer.transfer_number || `STO-2026-${String(transfer.id).padStart(5, '0')}`;
 
@@ -90,10 +90,7 @@ export default function Waybill({ transfer }: WaybillProps) {
                         label: t('Item Description'),
                         align: 'left',
                         render: (it) => (
-                            <div>
-                                <div className="font-semibold text-slate-900">{it.name}</div>
-                                {it.sku && <div className="text-[10px] text-slate-500 font-mono">SKU: {it.sku}</div>}
-                            </div>
+                            <div className="font-semibold text-slate-900">{it.name}</div>
                         ),
                     },
                     { key: 'dispatched', label: t('Qty Dispatched'), align: 'right', width: '115px' },

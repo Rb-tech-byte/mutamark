@@ -68,10 +68,7 @@ export default function Print() {
             key: 'product',
             label: t('Product / Description'),
             render: (item) => (
-                <div>
-                    <div className="font-medium text-slate-900">{item.product?.name || '-'}</div>
-                    {item.product?.sku && <div className="text-[11px] text-slate-500">SKU: {item.product.sku}</div>}
-                </div>
+                <div className="font-medium text-slate-900">{item.product?.name || '-'}</div>
             ),
         },
         {

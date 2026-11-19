@@ -820,10 +820,7 @@ export default function DocumentTemplatesIndex({
                                                 label: 'Item / Description & Specification',
                                                 align: 'left',
                                                 render: (it) => (
-                                                    <div>
-                                                        <div className="font-semibold text-slate-900">{it.name}</div>
-                                                        <div className="text-[10px] text-slate-500 font-mono">SKU: {it.sku}</div>
-                                                    </div>
+                                                    <div className="font-semibold text-slate-900">{it.name}</div>
                                                 ),
                                             },
                                             { key: 'quantity', label: 'Qty', align: 'center', width: '55px', render: (it) => it.quantity },
@@ -898,10 +895,7 @@ export default function DocumentTemplatesIndex({
                                                 label: 'Item / Description & Specification',
                                                 align: 'left',
                                                 render: (it) => (
-                                                    <div>
-                                                        <div className="font-semibold text-slate-900">{it.name}</div>
-                                                        <div className="text-[10px] text-slate-500 font-mono">SKU: {it.sku}</div>
-                                                    </div>
+                                                    <div className="font-semibold text-slate-900">{it.name}</div>
                                                 ),
                                             },
                                             { key: 'quantity', label: 'Qty', align: 'center', width: '60px', render: (it) => it.quantity },
@@ -977,10 +971,7 @@ export default function DocumentTemplatesIndex({
                                                 label: 'Item / Service Description',
                                                 align: 'left',
                                                 render: (it) => (
-                                                    <div>
-                                                        <div className="font-semibold text-slate-900">{it.name}</div>
-                                                        <div className="text-[10px] text-slate-500 font-mono">SKU: {it.sku}</div>
-                                                    </div>
+                                                    <div className="font-semibold text-slate-900">{it.name}</div>
                                                 ),
                                             },
                                             { key: 'quantity', label: 'Qty', align: 'center', width: '55px', render: (it) => it.quantity },
@@ -1057,10 +1048,7 @@ export default function DocumentTemplatesIndex({
                                                 label: 'Item / Description',
                                                 align: 'left',
                                                 render: (it) => (
-                                                    <div>
-                                                        <div className="font-semibold text-slate-900">{it.name}</div>
-                                                        <div className="text-[10px] text-slate-500 font-mono">SKU: {it.sku}</div>
-                                                    </div>
+                                                    <div className="font-semibold text-slate-900">{it.name}</div>
                                                 ),
                                             },
                                             { key: 'unit', label: 'Unit', align: 'center', width: '60px', render: (it) => it.unit },
@@ -1126,10 +1114,7 @@ export default function DocumentTemplatesIndex({
                                                 label: 'Item / Description',
                                                 align: 'left',
                                                 render: (it) => (
-                                                    <div>
-                                                        <div className="font-semibold text-slate-900">{it.name}</div>
-                                                        <div className="text-[10px] text-slate-500 font-mono">SKU: {it.sku}</div>
-                                                    </div>
+                                                    <div className="font-semibold text-slate-900">{it.name}</div>
                                                 ),
                                             },
                                             { key: 'unit', label: 'Unit', align: 'center', width: '55px', render: (it) => it.unit },
@@ -1201,10 +1186,7 @@ export default function DocumentTemplatesIndex({
                                                 label: 'Item / Service Description',
                                                 align: 'left',
                                                 render: (it) => (
-                                                    <div>
-                                                        <div className="font-semibold text-slate-900">{it.name}</div>
-                                                        <div className="text-[10px] text-slate-500 font-mono">SKU: {it.sku}</div>
-                                                    </div>
+                                                    <div className="font-semibold text-slate-900">{it.name}</div>
                                                 ),
                                             },
                                             { key: 'quantity', label: 'Qty', align: 'center', width: '55px', render: (it) => it.quantity },

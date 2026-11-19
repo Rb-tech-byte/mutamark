@@ -1325,9 +1325,6 @@ export default function PurchaseRequisitionsIndex({
                                         render: (it) => (
                                             <div>
                                                 <div className="font-semibold text-slate-900">{it.product_name}</div>
-                                                {it.sku && (
-                                                    <div className="text-[10px] text-slate-500 font-mono">SKU: {it.sku}</div>
-                                                )}
                                                 {it.specifications && (
                                                     <div className="text-[10px] text-slate-600 italic mt-0.5">{it.specifications}</div>
                                                 )}

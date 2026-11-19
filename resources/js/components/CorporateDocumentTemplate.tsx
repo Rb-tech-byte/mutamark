@@ -693,40 +693,40 @@ export default function CorporateDocumentTemplate({
                                             {labelClean}
                                         </div>
 
-                                        <div className="space-y-1.5">
-                                            <div className="flex items-end gap-1.5">
-                                                <span className="font-bold text-slate-900 whitespace-nowrap">Signature:</span>
-                                                <span className="flex-1 border-b border-slate-700 min-h-[16px] flex items-end justify-center pb-0.5">
+                                        <div className="space-y-2">
+                                            <div className="flex items-end gap-1.5 min-h-[26px]">
+                                                <span className="font-bold text-slate-900 whitespace-nowrap leading-none pb-[2px]">Signature:</span>
+                                                <span className="inline-flex items-end justify-center w-[115px] max-w-[58%] border-b border-slate-700 min-h-[22px] leading-none">
                                                     {showAutoSigInSlot && digitalSigUrl ? (
                                                         <img
                                                             src={digitalSigUrl}
                                                             alt="Signature"
-                                                            className="max-h-7 object-contain"
+                                                            className="max-h-7 max-w-[108px] object-contain object-bottom block -mb-[2px]"
                                                         />
                                                     ) : null}
                                                 </span>
                                             </div>
 
-                                            <div className="flex items-end gap-1.5">
+                                            <div className="flex items-baseline gap-1.5">
                                                 <span className="font-bold text-slate-900 whitespace-nowrap">Name:</span>
-                                                <span className="flex-1 border-b border-slate-700 min-h-[15px] text-slate-800 px-1 truncate">
-                                                    {resolvedName}
+                                                <span className="inline-block w-[125px] max-w-[68%] border-b border-slate-700 pb-[3px] leading-[1.35] text-slate-800 px-0.5 break-words">
+                                                    {resolvedName || '\u00A0'}
                                                 </span>
                                             </div>
 
-                                            <div className="flex items-end gap-1.5">
+                                            <div className="flex items-baseline gap-1.5">
                                                 <span className="font-bold text-slate-900 whitespace-nowrap">Designation:</span>
-                                                <span className="flex-1 border-b border-slate-700 min-h-[15px] text-slate-800 px-1 truncate">
-                                                    {resolvedDesignation}
+                                                <span className="inline-block w-[110px] max-w-[60%] border-b border-slate-700 pb-[3px] leading-[1.35] text-slate-800 px-0.5 break-words">
+                                                    {resolvedDesignation || '\u00A0'}
                                                 </span>
                                             </div>
 
-                                            <div className="flex items-end gap-1.5">
+                                            <div className="flex items-baseline gap-1.5">
                                                 <span className="font-bold text-slate-900 whitespace-nowrap">
                                                     {cleanLabel(sig.dateLabel || 'Date')}:
                                                 </span>
-                                                <span className="flex-1 border-b border-slate-700 min-h-[15px] text-slate-800 px-1">
-                                                    {sig.dateValue || ''}
+                                                <span className="inline-block w-[95px] max-w-[58%] border-b border-slate-700 pb-[3px] leading-[1.35] text-slate-800 px-0.5">
+                                                    {sig.dateValue || '\u00A0'}
                                                 </span>
                                             </div>
                                         </div>
