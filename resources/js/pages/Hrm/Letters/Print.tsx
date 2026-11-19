@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { Head, usePage } from '@inertiajs/react';
 import html2pdf from 'html2pdf.js';
-import { getCompanySetting, getImagePath } from '@/utils/helpers';
+import { getCompanySetting } from '@/utils/helpers';
+import { CorporateDocumentHeader } from '@/components/CorporateDocumentTemplate';
 
 interface LetterData {
     template: {
@@ -25,11 +26,6 @@ export default function Print() {
     const printedRef = useRef(false);
 
     const companyName = getCompanySetting('company_name') || 'Mutamark Enterprises Ltd';
-    const companyAddress = getCompanySetting('company_address') || '';
-    const companyCity = getCompanySetting('company_city') || '';
-    const companyPhone = getCompanySetting('company_telephone') || '';
-    const companyEmail = getCompanySetting('company_email') || '';
-    const companyLogo = getCompanySetting('logo_dark') || getCompanySetting('company_logo') || '';
 
     const isDigitalSigEnabled = companyAllSetting?.digital_signature_enabled === 'on';
     const isAutoSign = companyAllSetting?.digital_signature_auto_sign !== 'off';
@@ -93,28 +89,15 @@ export default function Print() {
             </div>
 
             <div id="hr-letter-root" className="mx-auto max-w-3xl bg-white p-10 shadow-sm print:shadow-none text-slate-900 text-sm leading-relaxed">
-                {/* Official Letterhead */}
-                <div className="flex items-start justify-between border-b-2 border-[#1e3a5f] pb-4 mb-6">
-                    <div>
-                        <h1 className="text-lg font-extrabold text-[#1e3a5f] uppercase tracking-wide">{companyName}</h1>
-                        <div className="text-xs text-slate-600 mt-1 space-y-0.5">
-                            {companyAddress && <div>{companyAddress}{companyCity ? `, ${companyCity}` : ''}</div>}
-                            {(companyPhone || companyEmail) && <div>{companyPhone}{companyPhone && companyEmail ? ' | ' : ''}{companyEmail}</div>}
-                        </div>
-                    </div>
-                    {companyLogo && (
-                        <img src={getImagePath(companyLogo)} alt={companyName} className="max-h-14 object-contain" />
-                    )}
-                </div>
-
-                {/* Ref & Date */}
-                <div className="flex justify-between text-xs text-slate-700 mb-6">
-                    <div>
-                        <div><strong>Ref:</strong> {letter.reference_number}</div>
-                        <div><strong>Doc Code:</strong> {letter.template.doc_code}</div>
-                    </div>
-                    <div><strong>Date:</strong> {letter.date}</div>
-                </div>
+                {/* Centered Official Mutamark Letterhead */}
+                <CorporateDocumentHeader
+                    title={letter.template.title}
+                    metaItems={[
+                        { label: 'Ref', value: letter.reference_number },
+                        { label: 'Doc Code', value: letter.template.doc_code },
+                        { label: 'Date', value: letter.date },
+                    ]}
+                />
 
                 {/* Recipient */}
                 {(letter.employee_name || letter.employee_number) && (

@@ -65,9 +65,6 @@ class AuthenticatedSessionController extends Controller
             if ($user->type === 'vendor' || $user->hasRole('vendor')) {
                 return redirect()->route('portal.supplier');
             }
-            if (($user->hasRole('Clearing & Forwarding Manager') || $user->hasRole('Customs Declarant') || $user->hasRole('Transport Coordinator')) && $user->type !== 'company') {
-                return redirect()->route('clearing-forwarding.dashboard');
-            }
         }
 
         return redirect()->route('dashboard');

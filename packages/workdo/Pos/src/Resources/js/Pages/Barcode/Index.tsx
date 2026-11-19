@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Head, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, QrCode, Package, Search } from 'lucide-react';
+import { Download, Printer, QrCode, Package, Search } from 'lucide-react';
 import { formatCurrency } from '@/utils/helpers';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import { DataTable } from "@/components/ui/data-table";
@@ -50,11 +50,12 @@ export default function Index() {
 
     useEffect(() => {
         if (selectedWarehouse) {
+            setSelectedProducts([]);
+            setProductCopies({});
             fetch(`${route('pos.products')}?warehouse_id=${selectedWarehouse}`)
                 .then(response => response.json())
                 .then(data => {
-                    setProducts(data);
-                    setTimeout(() => generateBarcodes(data), 100);
+                    setProducts(Array.isArray(data) ? data : []);
                 })
                 .catch(error => console.error('Error:', error));
         }
@@ -65,11 +66,12 @@ export default function Index() {
 
         productList.forEach(product => {
             try {
-                if (product.sku) {
+                const codeValue = String(product.sku || product.id || '').trim();
+                if (codeValue) {
                     const canvas = document.createElement('canvas');
                     canvas.width = 400;
                     canvas.height = 150;
-                    JsBarcode(canvas, product.sku, {
+                    JsBarcode(canvas, codeValue, {
                         format: "CODE128",
                         width: 4,
                         height: 80,
@@ -91,27 +93,42 @@ export default function Index() {
     useEffect(() => {
         if (products.length > 0) {
             generateBarcodes(products);
+        } else {
+            setBarcodeDataUrls({});
         }
     }, [products, generateBarcodes]);
 
     const handleProductSelect = (productId: number, checked: boolean) => {
         if (checked) {
-            setSelectedProducts([...selectedProducts, productId]);
-            setProductCopies({ ...productCopies, [productId]: 1 });
+            setSelectedProducts(prev => (prev.includes(productId) ? prev : [...prev, productId]));
+            setProductCopies(prev => ({ ...prev, [productId]: prev[productId] || 1 }));
         } else {
-            setSelectedProducts(selectedProducts.filter(id => id !== productId));
-            const newCopies = { ...productCopies };
-            delete newCopies[productId];
-            setProductCopies(newCopies);
+            setSelectedProducts(prev => prev.filter(id => id !== productId));
+            setProductCopies(prev => {
+                const next = { ...prev };
+                delete next[productId];
+                return next;
+            });
         }
     };
+
+    const filteredProducts = useMemo(() => {
+        const term = searchTerm.trim().toLowerCase();
+        if (!term) return products;
+        return products.filter(product =>
+            (product.name || '').toLowerCase().includes(term) ||
+            (product.sku || '').toLowerCase().includes(term)
+        );
+    }, [products, searchTerm]);
 
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
             const productIds = filteredProducts.map(p => p.id);
             setSelectedProducts(productIds);
             const newCopies: { [key: number]: number } = {};
-            productIds.forEach(id => newCopies[id] = 1);
+            productIds.forEach(id => {
+                newCopies[id] = productCopies[id] || 1;
+            });
             setProductCopies(newCopies);
         } else {
             setSelectedProducts([]);
@@ -119,33 +136,30 @@ export default function Index() {
         }
     };
 
-
-
-    const openBarcodePrint = (downloadPdf: boolean) => {
+    const openBarcodePrint = (mode: 'print' | 'pdf') => {
         if (selectedProducts.length === 0) return;
+
+        const selectedCopies: { [key: number]: number } = {};
+        selectedProducts.forEach(id => {
+            selectedCopies[id] = Math.max(1, Math.min(200, Number(productCopies[id] || 1)));
+        });
 
         const params = new URLSearchParams({
             ids: selectedProducts.join(','),
-            copies: JSON.stringify(productCopies),
-            field: barcodeField
+            copies: JSON.stringify(selectedCopies),
+            field: barcodeField,
+            ...(mode === 'pdf' ? { download: 'pdf' } : { autoprint: '1' }),
         });
 
-        const printUrl = route('pos.barcode.print', 'bulk') + '?' + params.toString() + (downloadPdf ? '&download=pdf' : '');
-        window.open(printUrl, '_blank');
+        const printUrl = `${route('pos.barcode.print', 'bulk')}?${params.toString()}`;
+        const popup = window.open(printUrl, '_blank');
+        if (!popup) {
+            window.location.href = printUrl;
+        }
     };
 
-    const handleDownloadBarcodes = () => openBarcodePrint(true);
-
-    const filteredProducts = products.filter(product =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.sku.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    useEffect(() => {
-        if (filteredProducts.length > 0) {
-            generateBarcodes(filteredProducts);
-        }
-    }, [filteredProducts, generateBarcodes]);
+    const handlePrintBarcodes = () => openBarcodePrint('print');
+    const handleDownloadBarcodes = () => openBarcodePrint('pdf');
 
     return (
         <AuthenticatedLayout
@@ -198,17 +212,26 @@ export default function Index() {
                                     />
                                 </div>
                             </div>
-                            <div>
+                            <div className="md:col-span-2 flex flex-wrap items-center gap-2">
                                 {selectedProducts.length > 0 && (
-                                    <Button
-                                        onClick={handleDownloadBarcodes}
-                                        variant="outline"
-                                        size="sm"
-                                        className="bg-white border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400"
-                                    >
-                                        <Download className="h-4 w-4 mr-2" />
-                                        {t('Download PDF')} ({selectedProducts.length})
-                                    </Button>
+                                    <>
+                                        <Button
+                                            onClick={handlePrintBarcodes}
+                                            size="sm"
+                                        >
+                                            <Printer className="h-4 w-4 mr-2" />
+                                            {t('Print Barcodes')} ({selectedProducts.length})
+                                        </Button>
+                                        <Button
+                                            onClick={handleDownloadBarcodes}
+                                            variant="outline"
+                                            size="sm"
+                                            className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
+                                        >
+                                            <Download className="h-4 w-4 mr-2" />
+                                            {t('Download PDF')} ({selectedProducts.length})
+                                        </Button>
+                                    </>
                                 )}
                             </div>
                         </div>

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Head, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import html2pdf from 'html2pdf.js';
-import { formatCurrency, formatDate, getCompanySetting } from '@/utils/helpers';
+import { formatCurrency, formatDate, getCompanySetting, getImagePath } from '@/utils/helpers';
 import { useFormFields } from '@/hooks/useFormFields';
 import CorporateDocumentTemplate from '@/components/CorporateDocumentTemplate';
 
@@ -139,7 +139,23 @@ export default function Print() {
                     ]}
 
                     columns={[
-                        { key: 'index', label: '#', align: 'center', width: '38px', render: (_, idx) => idx + 1 },
+                        { key: 'index', label: '#', align: 'center', width: '34px', render: (_, idx) => idx + 1 },
+                        {
+                            key: 'image',
+                            label: 'Item Image',
+                            align: 'center',
+                            width: '62px',
+                            render: (it) =>
+                                it.product?.image ? (
+                                    <img
+                                        src={getImagePath(it.product.image)}
+                                        alt={it.product?.name || ''}
+                                        className="h-9 w-9 object-contain mx-auto rounded-sm"
+                                    />
+                                ) : (
+                                    ''
+                                ),
+                        },
                         {
                             key: 'description',
                             label: 'Item / Service Description',
@@ -154,19 +170,19 @@ export default function Print() {
                             ),
                         },
                         { key: 'quantity', label: 'Qty', align: 'center', width: '55px', render: (it) => it.quantity },
-                        { key: 'unit', label: 'Unit', align: 'center', width: '60px', render: (it) => it.product?.unit || it.unit || 'units' },
+                        { key: 'unit', label: 'Unit', align: 'center', width: '58px', render: (it) => it.product?.unit || it.unit || 'units' },
                         {
                             key: 'unit_price',
                             label: 'Unit Price (TZS)',
                             align: 'right',
-                            width: '130px',
+                            width: '118px',
                             render: (it) => Number(it.unit_price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
                         },
                         {
                             key: 'amount',
                             label: 'Amount (TZS)',
                             align: 'right',
-                            width: '130px',
+                            width: '118px',
                             render: (it) => Number(it.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
                         },
                     ]}

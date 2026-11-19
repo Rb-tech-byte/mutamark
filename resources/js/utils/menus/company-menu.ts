@@ -327,61 +327,6 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
         module: 'Fleet',
         order: 110,
     },
-    {
-        title: t('Clearing & Forwarding'),
-        icon: Ship,
-        permission: 'manage-cf-dashboard',
-        name: 'clearing-forwarding',
-        order: 115,
-        children: [
-            {
-                title: t('C&F Dashboard'),
-                href: route('clearing-forwarding.dashboard'),
-                permission: 'manage-cf-dashboard',
-            },
-            {
-                title: t('Shipment & Job Register'),
-                href: route('clearing-forwarding.jobs.index'),
-                permission: 'manage-cf-jobs',
-            },
-            {
-                title: t('New Shipment Job'),
-                href: route('clearing-forwarding.jobs.create'),
-                permission: 'create-cf-jobs',
-            },
-            {
-                title: t('Customs & TANCIS Workspace'),
-                href: route('clearing-forwarding.declarations.index'),
-                permission: 'manage-cf-declarations',
-            },
-            {
-                title: t('Container Demurrage Tracker'),
-                href: route('clearing-forwarding.containers.index'),
-                permission: 'manage-cf-jobs',
-            },
-            {
-                title: t('Haulage & Transport Orders'),
-                href: route('clearing-forwarding.transport.index'),
-                permission: 'manage-cf-transport',
-            },
-            {
-                title: t('Border & Transit Control'),
-                href: route('clearing-forwarding.border.index'),
-                permission: 'manage-cf-jobs',
-            },
-            {
-                title: t('Freight & Customs Rules'),
-                href: route('clearing-forwarding.freight.index'),
-                permission: 'manage-cf-jobs',
-            },
-            {
-                title: t('C&F Reports & Analytics'),
-                href: route('clearing-forwarding.reports'),
-                permission: 'view-cf-reports',
-            },
-        ],
-    },
-
     // ----------------------------------------------------
     // 4. Operations, Servicing & Asset Lifecycle
     // ----------------------------------------------------

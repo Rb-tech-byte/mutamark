@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { usePage } from '@inertiajs/react';
 import { getCompanySetting, getImagePath } from '@/utils/helpers';
 import ApplicationLogo from '@/components/application-logo';
-import DocumentVerificationBadge, { DocumentVerificationData } from '@/components/DocumentVerificationBadge';
+import { DocumentVerificationData } from '@/components/DocumentVerificationBadge';
 
 export type DocumentKind =
     | 'purchase_requisition'
@@ -10,7 +10,11 @@ export type DocumentKind =
     | 'purchase_order'
     | 'delivery_note'
     | 'goods_received_note'
-    | 'invoice';
+    | 'invoice'
+    | 'quotation'
+    | 'credit_note'
+    | 'payment_voucher'
+    | 'report';
 
 export interface MetaField {
     label: string;
@@ -34,10 +38,27 @@ export interface TotalsRow {
 export interface SignatureSlot {
     label: string;
     value?: string | null;
+    designation?: string | null;
     dateLabel?: string;
     dateValue?: string | null;
     extraLabel?: string;
     extraValue?: string | null;
+    showStamp?: boolean;
+}
+
+export interface CorporateDocumentHeaderProps {
+    title: string;
+    metaItems?: Array<{ label?: string; value?: React.ReactNode }>;
+    companyLogo?: string;
+    showCompanyLogo?: boolean;
+    companyName?: string;
+    companyAddress?: string;
+    companyCity?: string;
+    companyPhone?: string;
+    companyEmail?: string;
+    companyTin?: string;
+    companyVrn?: string;
+    className?: string;
 }
 
 export interface CorporateDocumentTemplateProps {
@@ -98,6 +119,154 @@ export interface CorporateDocumentTemplateProps {
     className?: string;
 }
 
+function cleanLabel(label?: string): string {
+    return (label || '').replace(/:\s*$/, '').trim();
+}
+
+export function CorporateDocumentHeader({
+    title,
+    metaItems = [],
+    companyLogo,
+    showCompanyLogo = true,
+    companyName,
+    companyAddress,
+    companyCity,
+    companyPhone,
+    companyEmail,
+    companyTin,
+    companyVrn,
+    className = '',
+}: CorporateDocumentHeaderProps) {
+    const [logoFailed, setLogoFailed] = useState(false);
+
+    const rawLogoSetting =
+        companyLogo ||
+        getCompanySetting('company_logo') ||
+        getCompanySetting('logo_dark') ||
+        getCompanySetting('logo_light') ||
+        'mutamark_logo_dark.png';
+
+    const resolvedLogoSrc = useMemo(() => {
+        if (!rawLogoSetting) return '';
+        if (
+            rawLogoSetting.startsWith('http://') ||
+            rawLogoSetting.startsWith('https://') ||
+            rawLogoSetting.startsWith('data:')
+        ) {
+            return rawLogoSetting;
+        }
+        return getImagePath(rawLogoSetting);
+    }, [rawLogoSetting]);
+
+    const displayCompanyName =
+        companyName ||
+        getCompanySetting('company_name') ||
+        'MUTAMARK ENTERPRISES LTD';
+
+    const displayAddress =
+        companyAddress ||
+        getCompanySetting('company_address') ||
+        'Mabibo-Ubungo, Dar Es Salaam';
+
+    const displayCity =
+        companyCity ||
+        getCompanySetting('company_city') ||
+        'Dar es Salaam, Tanzania';
+
+    const displayPhone =
+        companyPhone ||
+        getCompanySetting('company_telephone') ||
+        '0695207885';
+
+    const displayEmail =
+        companyEmail ||
+        getCompanySetting('company_email') ||
+        'info@mutamark.co.tz';
+
+    const displayTin =
+        companyTin ||
+        getCompanySetting('registration_number') ||
+        '572382';
+
+    const displayVrn =
+        companyVrn ||
+        getCompanySetting('tax_number') ||
+        '158628023';
+
+    const fullAddress = useMemo(() => {
+        const addr = (displayAddress || '').trim();
+        const city = (displayCity || '').trim();
+        if (!addr) return city;
+        if (!city || addr.toLowerCase().includes(city.toLowerCase())) return addr;
+        return `${addr}, ${city}`;
+    }, [displayAddress, displayCity]);
+
+    const contactParts = [
+        displayPhone ? `Phone: ${displayPhone}` : null,
+        displayEmail ? `Email: ${displayEmail}` : null,
+        displayTin ? `TIN: ${displayTin}` : null,
+        displayVrn ? `VRN: ${displayVrn}` : null,
+    ].filter(Boolean);
+
+    const visibleMeta = metaItems.filter(
+        (item) => item && (item.value !== undefined && item.value !== null && String(item.value).trim() !== '')
+    );
+
+    return (
+        <div className={`text-center ${className}`}>
+            {showCompanyLogo && (
+                <div className="flex justify-center mb-1.5">
+                    {resolvedLogoSrc && !logoFailed ? (
+                        <img
+                            src={resolvedLogoSrc}
+                            alt={displayCompanyName}
+                            className="h-10 max-h-[42px] max-w-[200px] w-auto object-contain print:max-h-[38px]"
+                            onError={() => setLogoFailed(true)}
+                        />
+                    ) : (
+                        <div className="h-9 w-9 rounded border border-slate-200 bg-slate-50 flex items-center justify-center p-1">
+                            <ApplicationLogo className="h-full w-full text-[#1B365D]" />
+                        </div>
+                    )}
+                </div>
+            )}
+
+            <h1 className="text-[15px] font-extrabold uppercase tracking-wide text-[#1B365D] leading-tight">
+                {displayCompanyName}
+            </h1>
+
+            <div className="mt-0.5 space-y-0.5 text-[10.5px] text-slate-500 leading-snug">
+                {fullAddress && <p>{fullAddress}</p>}
+                {contactParts.length > 0 && <p>{contactParts.join(' | ')}</p>}
+            </div>
+
+            <h2 className="mt-3 text-[18px] font-extrabold uppercase tracking-wide text-[#1B365D] leading-tight">
+                {title}
+            </h2>
+
+            {visibleMeta.length > 0 && (
+                <div className="mt-1 flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 text-[11px] text-slate-800">
+                    {visibleMeta.map((item, idx) => (
+                        <React.Fragment key={idx}>
+                            {idx > 0 && <span className="text-slate-400">|</span>}
+                            <span>
+                                {item.label && (
+                                    <span className="font-bold text-slate-900">
+                                        {cleanLabel(item.label)}:{' '}
+                                    </span>
+                                )}
+                                <span className="text-slate-800">{item.value}</span>
+                            </span>
+                        </React.Fragment>
+                    ))}
+                </div>
+            )}
+
+            <div className="border-t-[1.5px] border-[#1B365D] mt-3 mb-4" />
+        </div>
+    );
+}
+
 export default function CorporateDocumentTemplate({
     type,
     documentTitle,
@@ -127,8 +296,6 @@ export default function CorporateDocumentTemplate({
 
     columns,
     items = [],
-    minRows,
-    padEmptyRows = false,
 
     totals,
     currency = 'TZS',
@@ -146,7 +313,6 @@ export default function CorporateDocumentTemplate({
 
     className = '',
 }: CorporateDocumentTemplateProps) {
-    const [logoFailed, setLogoFailed] = useState(false);
     const { companyAllSetting = {}, baseUrl } = (usePage().props as any) || {};
 
     const isDigitalSigEnabled = companyAllSetting?.digital_signature_enabled === 'on';
@@ -155,7 +321,6 @@ export default function CorporateDocumentTemplate({
     const digitalStampPath = companyAllSetting?.digital_stamp_path || '';
     const digitalSigName = companyAllSetting?.digital_signature_name || '';
     const digitalSigTitle = companyAllSetting?.digital_signature_title || 'Authorized Signatory';
-    const digitalSigStamp = companyAllSetting?.digital_signature_stamp_text || 'DIGITALLY SIGNED & VERIFIED';
     const originBase = (baseUrl || (typeof window !== 'undefined' ? window.location.origin : '')).replace(/\/$/, '');
     const digitalSigUrl = digitalSigPath ? `${originBase}/storage/${digitalSigPath.replace(/^\/+/, '')}` : '';
     const digitalStampUrl = digitalStampPath ? `${originBase}/storage/${digitalStampPath.replace(/^\/+/, '')}` : '';
@@ -164,80 +329,6 @@ export default function CorporateDocumentTemplate({
         () => isDigitalSigEnabled && isAutoSign
     );
 
-    // Resolve Company details from props or system settings
-    const rawLogoSetting =
-        companyLogo ||
-        getCompanySetting('company_logo') ||
-        getCompanySetting('logo_dark') ||
-        getCompanySetting('logo_light') ||
-        'mutamark_logo_dark.png';
-
-    const resolvedLogoSrc = useMemo(() => {
-        if (!rawLogoSetting) return '';
-        if (
-            rawLogoSetting.startsWith('http://') ||
-            rawLogoSetting.startsWith('https://') ||
-            rawLogoSetting.startsWith('data:')
-        ) {
-            return rawLogoSetting;
-        }
-        return getImagePath(rawLogoSetting);
-    }, [rawLogoSetting]);
-
-    const displayCompanyName =
-        companyName ||
-        getCompanySetting('company_name') ||
-        'MUTAMARK ENTERPRISES LIMITED';
-
-    // When logo already contains the MUTAMARK wordmark, trim 'MUTAMARK' to keep 'ENTERPRISES'
-    // so the visual identity reads cleanly as [Logo: MUTAMARK] + ENTERPRISES
-    const formattedCompanyName = useMemo(() => {
-        if (!showCompanyLogo || logoFailed) {
-            return displayCompanyName;
-        }
-
-        if (/MUTAMARK/i.test(displayCompanyName)) {
-            if (/ENTERPRISES/i.test(displayCompanyName)) {
-                return 'ENTERPRISES';
-            }
-            const trimmed = displayCompanyName.replace(/^MUTAMARK\s+/i, '').trim();
-            return trimmed || 'ENTERPRISES';
-        }
-
-        return displayCompanyName;
-    }, [displayCompanyName, showCompanyLogo, logoFailed]);
-
-    const displayAddress =
-        companyAddress ||
-        getCompanySetting('company_address') ||
-        'Plot 42, Nyerere Road Industrial Area, P.O. Box 7192';
-
-    const displayCity =
-        companyCity ||
-        getCompanySetting('company_city') ||
-        'Dar es Salaam, Tanzania';
-
-    const displayPhone =
-        companyPhone ||
-        getCompanySetting('company_telephone') ||
-        '+255 22 286 1900 / +255 754 000 111';
-
-    const displayEmail =
-        companyEmail ||
-        getCompanySetting('company_email') ||
-        'accounts@mutamark.co.tz';
-
-    const displayTin =
-        companyTin ||
-        getCompanySetting('registration_number') ||
-        '104-892-411';
-
-    const displayVrn =
-        companyVrn ||
-        getCompanySetting('tax_number') ||
-        '40019283-Z';
-
-    // Defaults per document type matching the corporate standard
     const typeConfig: Record<
         DocumentKind,
         {
@@ -251,51 +342,76 @@ export default function CorporateDocumentTemplate({
     > = {
         purchase_requisition: {
             title: 'PURCHASE REQUISITION',
-            numLabel: 'PR No:',
-            dateLabel: 'Date:',
-            secDateLabel: 'Date Required:',
+            numLabel: 'PR No',
+            dateLabel: 'Date',
+            secDateLabel: 'Date Required',
             slogan: 'Please attach supporting documents to this requisition.',
         },
         rfq: {
             title: 'REQUEST FOR QUOTATION',
-            numLabel: 'RFQ No:',
-            dateLabel: 'Issue Date:',
-            secDateLabel: 'Closing Date:',
+            numLabel: 'RFQ No',
+            dateLabel: 'Issue Date',
+            secDateLabel: 'Closing Date',
             slogan: 'Thank you for your quotation.',
         },
         purchase_order: {
             title: 'PURCHASE ORDER',
-            numLabel: 'PO No:',
-            dateLabel: 'Order Date:',
-            secDateLabel: 'Delivery Date:',
+            numLabel: 'PO No',
+            dateLabel: 'Order Date',
+            secDateLabel: 'Delivery Date',
             slogan: 'Please acknowledge receipt of this order.',
         },
         delivery_note: {
             title: 'DELIVERY NOTE',
-            numLabel: 'DN No:',
-            dateLabel: 'Delivery Date:',
-            secDateLabel: undefined,
-            tertiaryLabel: 'PO / Order No:',
+            numLabel: 'DN No',
+            dateLabel: 'Delivery Date',
+            tertiaryLabel: 'PO / Order No',
             slogan: 'Thank you for your business.',
         },
         goods_received_note: {
             title: 'GOODS RECEIVED NOTE',
-            numLabel: 'GRN No:',
-            dateLabel: 'Date Received:',
-            secDateLabel: undefined,
-            tertiaryLabel: 'PO No:',
+            numLabel: 'GRN No',
+            dateLabel: 'Date Received',
+            tertiaryLabel: 'PO No',
             slogan: 'Distribution: Accounts / Store / Procurement',
         },
         invoice: {
             title: 'INVOICE',
-            numLabel: 'Invoice No:',
-            dateLabel: 'Invoice Date:',
-            secDateLabel: 'Due Date:',
+            numLabel: 'Invoice No',
+            dateLabel: 'Invoice Date',
+            secDateLabel: 'Due Date',
+            slogan: 'Thank you for your business.',
+        },
+        quotation: {
+            title: 'QUOTATION',
+            numLabel: 'Quote No',
+            dateLabel: 'Quote Date',
+            secDateLabel: 'Valid Until',
+            slogan: 'Thank you for the opportunity to quote.',
+        },
+        credit_note: {
+            title: 'CREDIT NOTE',
+            numLabel: 'Credit Note No',
+            dateLabel: 'Date',
+            tertiaryLabel: 'Invoice Ref',
+            slogan: 'Thank you for your business.',
+        },
+        payment_voucher: {
+            title: 'PAYMENT VOUCHER',
+            numLabel: 'PV No',
+            dateLabel: 'Date',
+            tertiaryLabel: 'Cheque / Ref No',
+            slogan: 'Payment must be supported by original documents.',
+        },
+        report: {
+            title: 'MANAGEMENT REPORT',
+            numLabel: 'Report Ref',
+            dateLabel: 'Generated On',
             slogan: 'Thank you for your business.',
         },
     };
 
-    const currentConfig = typeConfig[type];
+    const currentConfig = typeConfig[type] || typeConfig.invoice;
     const resolvedTitle = documentTitle || currentConfig.title;
     const resolvedNumLabel = documentNumberLabel || currentConfig.numLabel;
     const resolvedDateLabel = dateLabel || currentConfig.dateLabel;
@@ -303,110 +419,69 @@ export default function CorporateDocumentTemplate({
     const resolvedTertiaryLabel = tertiaryNumberLabel || currentConfig.tertiaryLabel;
     const resolvedSlogan = footerSlogan || currentConfig.slogan;
 
-    // Rows dynamically match the actual item count (no artificial filler lines).
-    // If padEmptyRows is explicitly enabled and minRows is specified, pad remaining lines.
-    const paddedRowsCount = padEmptyRows && minRows ? Math.max(0, minRows - items.length) : 0;
-    const emptyRows = Array.from({ length: paddedRowsCount });
+    const headerMetaItems = [
+        documentNumber ? { label: resolvedNumLabel, value: documentNumber } : null,
+        date ? { label: resolvedDateLabel, value: date } : null,
+        secondaryDate && resolvedSecDateLabel ? { label: resolvedSecDateLabel, value: secondaryDate } : null,
+        tertiaryNumber && resolvedTertiaryLabel ? { label: resolvedTertiaryLabel, value: tertiaryNumber } : null,
+    ].filter(Boolean) as Array<{ label: string; value: React.ReactNode }>;
+
+    const formatTotalValue = (val: string | number) => {
+        if (typeof val === 'number') {
+            return val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+        return val;
+    };
+
+    const sigGridCols =
+        !signatures || signatures.length <= 1
+            ? 'grid-cols-1'
+            : signatures.length === 2
+            ? 'grid-cols-2'
+            : signatures.length === 3
+            ? 'grid-cols-3'
+            : 'grid-cols-4';
+
+    const firstColIsIndex =
+        columns.length > 0 &&
+        (columns[0].key === 'index' || columns[0].label.trim() === '#');
 
     return (
         <div
-            className={`corporate-document-container bg-white text-slate-900 w-full max-w-[850px] mx-auto p-8 shadow-sm border border-slate-200 text-[12px] font-sans print:shadow-none print:border-none print:m-0 print:p-6 print:max-w-none ${className}`}
-            style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif' }}
+            className={`corporate-document-container bg-white text-slate-900 w-full max-w-[850px] mx-auto p-8 shadow-sm border border-slate-200 text-[11.5px] font-sans print:shadow-none print:border-none print:m-0 print:p-4 print:max-w-none ${className}`}
+            style={{ fontFamily: 'Arial, Helvetica, Inter, system-ui, sans-serif' }}
         >
-            {/* 1. TOP HEADER */}
-            <div className="flex justify-between items-start pb-2 gap-4">
-                {/* Left: Company Brand & Legal Particulars */}
-                <div className="w-[60%]">
-                    {/* Brand Row: Logo + Company Name side by side */}
-                    {showCompanyLogo ? (
-                        <div className="flex items-center gap-2.5">
-                            {resolvedLogoSrc && !logoFailed ? (
-                                <img
-                                    src={resolvedLogoSrc}
-                                    alt={displayCompanyName}
-                                    className="h-8 max-h-[36px] max-w-[160px] w-auto object-contain print:max-h-[34px]"
-                                    onError={() => setLogoFailed(true)}
-                                />
-                            ) : (
-                                <div className="h-8 w-8 rounded border border-slate-200 bg-slate-50 flex items-center justify-center p-1 shadow-xs flex-shrink-0">
-                                    <ApplicationLogo className="h-full w-full text-[#1e3a5f]" />
-                                </div>
-                            )}
-                            <h1 className="text-[20px] font-extrabold uppercase tracking-wider text-[#1e3a5f] leading-none">
-                                {formattedCompanyName}
-                            </h1>
-                        </div>
-                    ) : (
-                        <h1 className="text-[20px] font-extrabold uppercase tracking-tight text-[#1e3a5f] leading-tight">
-                            {displayCompanyName}
-                        </h1>
-                    )}
-
-                    {/* Company Particulars (aligned directly with the logo starting edge) */}
-                    <div className="mt-2 space-y-0.5 text-[11px] text-slate-600 leading-snug">
-                        <p>
-                            {displayAddress}, {displayCity}
-                        </p>
-                        <p>
-                            Phone: {displayPhone} | Email: {displayEmail}
-                        </p>
-                        <p>
-                            TIN: <span className="font-semibold text-slate-800">{displayTin}</span> | VRN: <span className="font-semibold text-slate-800">{displayVrn}</span>
-                        </p>
-                    </div>
-                </div>
-
-                {/* Right: Document Title & Identifiers */}
-                <div className="w-[40%] text-right flex-shrink-0">
-                    <h2 className="text-[20px] font-extrabold uppercase tracking-tight text-[#1e3a5f] leading-tight">
-                        {resolvedTitle}
-                    </h2>
-                    <div className="mt-2 space-y-1 text-[11px]">
-                        <div className="flex justify-end gap-1">
-                            <span className="font-bold text-slate-800">{resolvedNumLabel}</span>
-                            <span className="font-mono font-bold text-slate-900">{documentNumber}</span>
-                        </div>
-                        <div className="flex justify-end gap-1">
-                            <span className="font-bold text-slate-800">{resolvedDateLabel}</span>
-                            <span className="text-slate-800">{date}</span>
-                        </div>
-                        {secondaryDate && resolvedSecDateLabel && (
-                            <div className="flex justify-end gap-1">
-                                <span className="font-bold text-slate-800">{resolvedSecDateLabel}</span>
-                                <span className="text-slate-800">{secondaryDate}</span>
-                            </div>
-                        )}
-                        {tertiaryNumber && resolvedTertiaryLabel && (
-                            <div className="flex justify-end gap-1">
-                                <span className="font-bold text-slate-800">{resolvedTertiaryLabel}</span>
-                                <span className="font-mono font-semibold text-slate-900">{tertiaryNumber}</span>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* Separator Line */}
-            <div className="border-t-[1.5px] border-slate-700 mt-3 mb-4" />
+            {/* 1. CENTERED CORPORATE LETTERHEAD & DOCUMENT TITLE */}
+            <CorporateDocumentHeader
+                title={resolvedTitle}
+                metaItems={headerMetaItems}
+                companyLogo={companyLogo}
+                showCompanyLogo={showCompanyLogo}
+                companyName={companyName}
+                companyAddress={companyAddress}
+                companyCity={companyCity}
+                companyPhone={companyPhone}
+                companyEmail={companyEmail}
+                companyTin={companyTin}
+                companyVrn={companyVrn}
+            />
 
             {/* 2. TWO-COLUMN METADATA BOX */}
-            <div className="grid grid-cols-2 border border-slate-300 rounded-sm overflow-hidden mb-4">
+            <div className="grid grid-cols-2 border border-[#9EB3C8] mb-4">
                 {/* Left Box */}
-                <div className="border-r border-slate-300">
-                    <div className="bg-[#eef4f9] px-3 py-1.5 border-b border-slate-300">
-                        <span className="font-extrabold text-[11px] text-[#1e3a5f] uppercase tracking-wider">
+                <div className="border-r border-[#9EB3C8]">
+                    <div className="bg-[#EBF1F6] px-3 py-1.5 border-b border-[#9EB3C8]">
+                        <span className="font-extrabold text-[10.5px] text-[#1B365D] uppercase tracking-wide">
                             {leftBoxTitle}
                         </span>
                     </div>
-                    <div className="p-3 space-y-1.5 text-[11px]">
+                    <div className="p-3 space-y-1 text-[11px] leading-snug">
                         {leftBoxFields.map((field, idx) => (
-                            <div key={idx} className="flex items-baseline leading-snug">
-                                <span className="text-slate-700 font-semibold min-w-[130px] flex-shrink-0">
-                                    {field.label}:
+                            <div key={idx} className="break-words">
+                                <span className="font-bold text-slate-900">
+                                    {cleanLabel(field.label)}:{' '}
                                 </span>
-                                <span className="text-slate-900 font-medium break-words flex-1">
-                                    {field.value || '—'}
-                                </span>
+                                <span className="text-slate-800">{field.value || '—'}</span>
                             </div>
                         ))}
                     </div>
@@ -414,36 +489,34 @@ export default function CorporateDocumentTemplate({
 
                 {/* Right Box */}
                 <div>
-                    <div className="bg-[#eef4f9] px-3 py-1.5 border-b border-slate-300">
-                        <span className="font-extrabold text-[11px] text-[#1e3a5f] uppercase tracking-wider">
+                    <div className="bg-[#EBF1F6] px-3 py-1.5 border-b border-[#9EB3C8]">
+                        <span className="font-extrabold text-[10.5px] text-[#1B365D] uppercase tracking-wide">
                             {rightBoxTitle}
                         </span>
                     </div>
-                    <div className="p-3 space-y-1.5 text-[11px]">
+                    <div className="p-3 space-y-1 text-[11px] leading-snug">
                         {rightBoxFields.map((field, idx) => (
-                            <div key={idx} className="flex items-baseline leading-snug">
-                                <span className="text-slate-700 font-semibold min-w-[140px] flex-shrink-0">
-                                    {field.label}:
+                            <div key={idx} className="break-words">
+                                <span className="font-bold text-slate-900">
+                                    {cleanLabel(field.label)}:{' '}
                                 </span>
-                                <span className="text-slate-900 font-medium break-words flex-1">
-                                    {field.value || '—'}
-                                </span>
+                                <span className="text-slate-800">{field.value || '—'}</span>
                             </div>
                         ))}
                     </div>
                 </div>
             </div>
 
-            {/* 3. ITEMS TABLE */}
-            <div className="border border-slate-300 rounded-sm overflow-hidden mb-4">
+            {/* 3. ITEMS / DATA TABLE (Dynamic row count; leaves 1 empty row when no items) */}
+            <div className="border border-[#9EB3C8] mb-4 overflow-hidden">
                 <table className="w-full border-collapse text-[11px]">
                     <thead>
-                        <tr className="bg-[#1a365d] text-white">
+                        <tr className="bg-[#1B365D] text-white">
                             {columns.map((col) => (
                                 <th
                                     key={col.key}
                                     style={{ width: col.width }}
-                                    className={`py-2 px-2.5 font-bold uppercase tracking-wider text-[10.5px] border-r border-[#2b4c77] last:border-r-0 ${
+                                    className={`py-2 px-2.5 font-bold text-[10.5px] border-r border-[#334E73] last:border-r-0 ${
                                         col.align === 'right'
                                             ? 'text-right'
                                             : col.align === 'center'
@@ -456,131 +529,120 @@ export default function CorporateDocumentTemplate({
                             ))}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200">
-                        {items.length === 0 && (
-                            <tr>
-                                <td
-                                    colSpan={columns.length}
-                                    className="py-4 px-2.5 text-center text-slate-400 italic text-[11px]"
-                                >
-                                    No items recorded.
-                                </td>
-                            </tr>
-                        )}
-                        {items.map((item, index) => (
-                            <tr key={index} className="hover:bg-slate-50/60 transition-colors">
-                                {columns.map((col) => (
+                    <tbody>
+                        {items.length === 0 ? (
+                            <tr className="h-[32px]">
+                                {columns.map((col, colIdx) => (
                                     <td
-                                        key={col.key}
-                                        className={`py-2 px-2.5 border-r border-slate-200 last:border-r-0 align-top text-slate-800 ${
-                                            col.align === 'right'
-                                                ? 'text-right'
-                                                : col.align === 'center'
-                                                ? 'text-center'
-                                                : 'text-left'
+                                        key={`empty-${col.key}-${colIdx}`}
+                                        className={`py-2 px-2.5 border-r border-[#C5D3E0] last:border-r-0 text-slate-500 ${
+                                            colIdx === 0 && firstColIsIndex ? 'text-center' : ''
                                         }`}
                                     >
-                                        {col.render
-                                            ? col.render(item, index)
-                                            : item[col.key] !== undefined && item[col.key] !== null
-                                            ? String(item[col.key])
-                                            : '-'}
+                                        {colIdx === 0 && firstColIsIndex ? '1' : '\u00A0'}
                                     </td>
                                 ))}
                             </tr>
-                        ))}
-
-                        {/* Render blank padded rows only if explicitly requested */}
-                        {padEmptyRows &&
-                            emptyRows.map((_, padIdx) => (
-                                <tr key={`pad-${padIdx}`} className="h-[28px]">
-                                    {columns.map((col, colIdx) => (
+                        ) : (
+                            items.map((item, index) => (
+                                <tr
+                                    key={index}
+                                    className="border-b border-[#C5D3E0] last:border-b-0 hover:bg-slate-50/50"
+                                >
+                                    {columns.map((col) => (
                                         <td
-                                            key={`pad-col-${colIdx}`}
-                                            className={`py-1.5 px-2.5 border-r border-slate-200 last:border-r-0 text-slate-400 ${
-                                                colIdx === 0 ? 'text-center font-mono text-[10px]' : ''
+                                            key={col.key}
+                                            className={`py-2 px-2.5 border-r border-[#C5D3E0] last:border-r-0 align-top text-slate-800 ${
+                                                col.align === 'right'
+                                                    ? 'text-right'
+                                                    : col.align === 'center'
+                                                    ? 'text-center'
+                                                    : 'text-left'
                                             }`}
                                         >
-                                            {colIdx === 0 ? items.length + padIdx + 1 : ''}
+                                            {col.render
+                                                ? col.render(item, index)
+                                                : item[col.key] !== undefined && item[col.key] !== null
+                                                ? String(item[col.key])
+                                                : ''}
                                         </td>
                                     ))}
                                 </tr>
-                            ))}
+                            ))
+                        )}
                     </tbody>
                 </table>
             </div>
 
-            {/* 4. TOTALS BLOCK (FOR REQUISITIONS, RFQS, POs, INVOICES) */}
+            {/* 4. RIGHT-ALIGNED TOTALS BLOCK */}
             {totals && totals.length > 0 && (
                 <div className="flex justify-end mb-4">
-                    <div className="w-[340px] space-y-1.5 text-[11px]">
-                        {totals.map((tot, idx) => {
-                            if (tot.isGrandTotal) {
+                    <table className="w-[360px] border-collapse text-[11px]">
+                        <tbody>
+                            {totals.map((tot, idx) => {
+                                if (tot.isGrandTotal) {
+                                    return (
+                                        <tr
+                                            key={idx}
+                                            className="bg-[#EAF5F1] border-t-[1.5px] border-t-[#0E7C5B] border-b border-b-[#1B365D]"
+                                        >
+                                            <td className="py-1.5 pl-3 pr-4 text-right font-extrabold uppercase text-slate-900">
+                                                {tot.label}
+                                            </td>
+                                            <td className="py-1.5 px-2.5 text-right font-extrabold text-slate-900 w-[145px] whitespace-nowrap">
+                                                {formatTotalValue(tot.value)}
+                                            </td>
+                                        </tr>
+                                    );
+                                }
                                 return (
-                                    <div
-                                        key={idx}
-                                        className="flex justify-between items-center bg-[#eef4f9] border border-slate-300 px-3 py-2 mt-2 rounded-sm"
-                                    >
-                                        <span className="font-extrabold uppercase text-[11px] text-[#1e3a5f]">
+                                    <tr key={idx}>
+                                        <td className="py-1.5 pl-3 pr-4 text-right text-slate-800">
                                             {tot.label}
-                                        </span>
-                                        <span className="font-extrabold text-[12px] font-mono text-[#1e3a5f]">
-                                            {typeof tot.value === 'number'
-                                                ? `${tot.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`
-                                                : tot.value}
-                                        </span>
-                                    </div>
+                                        </td>
+                                        <td className="py-1.5 px-2.5 text-right font-medium text-slate-900 border-b border-[#1B365D]/40 w-[145px] whitespace-nowrap">
+                                            {formatTotalValue(tot.value)}
+                                        </td>
+                                    </tr>
                                 );
-                            }
-                            return (
-                                <div key={idx} className="flex justify-between items-center px-3 py-0.5">
-                                    <span className="text-slate-700 font-medium">{tot.label}</span>
-                                    <span className="font-mono text-slate-900 font-semibold">
-                                        {typeof tot.value === 'number'
-                                            ? `${tot.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`
-                                            : tot.value}
-                                    </span>
-                                </div>
-                            );
-                        })}
-                    </div>
+                            })}
+                        </tbody>
+                    </table>
                 </div>
             )}
 
             {/* 5. LOWER TWO-COLUMN DETAILS BOX */}
             {(lowerLeftTitle || lowerRightTitle) && (
-                <div className="grid grid-cols-2 border border-slate-300 rounded-sm overflow-hidden mb-5">
-                    {/* Lower Left */}
-                    <div className="border-r border-slate-300">
+                <div className="grid grid-cols-2 border border-[#9EB3C8] mb-5">
+                    <div className="border-r border-[#9EB3C8]">
                         {lowerLeftTitle && (
-                            <div className="bg-[#eef4f9] px-3 py-1.5 border-b border-slate-300">
-                                <span className="font-extrabold text-[11px] text-[#1e3a5f] uppercase tracking-wider">
+                            <div className="bg-[#EBF1F6] px-3 py-1.5 border-b border-[#9EB3C8]">
+                                <span className="font-extrabold text-[10.5px] text-[#1B365D] uppercase tracking-wide">
                                     {lowerLeftTitle}
                                 </span>
                             </div>
                         )}
-                        <div className="p-3 text-[11px] leading-relaxed text-slate-700">
+                        <div className="p-3 text-[11px] leading-relaxed text-slate-800">
                             {lowerLeftContent}
                         </div>
                     </div>
 
-                    {/* Lower Right */}
                     <div>
                         {lowerRightTitle && (
-                            <div className="bg-[#eef4f9] px-3 py-1.5 border-b border-slate-300">
-                                <span className="font-extrabold text-[11px] text-[#1e3a5f] uppercase tracking-wider">
+                            <div className="bg-[#EBF1F6] px-3 py-1.5 border-b border-[#9EB3C8]">
+                                <span className="font-extrabold text-[10.5px] text-[#1B365D] uppercase tracking-wide">
                                     {lowerRightTitle}
                                 </span>
                             </div>
                         )}
-                        <div className="p-3 text-[11px] leading-relaxed text-slate-700">
+                        <div className="p-3 text-[11px] leading-relaxed text-slate-800">
                             {lowerRightContent}
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* 6. SIGNATURE AND STAMP ROWS */}
+            {/* 6. AUTHORISATION & SIGNATORIES */}
             {isDigitalSigEnabled && !isAutoSign && !isDigitallySigned && (
                 <div className="print:hidden mb-3 flex justify-end">
                     <button
@@ -594,87 +656,93 @@ export default function CorporateDocumentTemplate({
             )}
 
             {signatures && signatures.length > 0 && (
-                <div className="mb-4 pt-2">
-                    <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                <div className="mb-4 break-inside-avoid">
+                    <div className="text-[10.5px] font-extrabold uppercase tracking-wide text-[#1B365D] mb-1.5">
+                        AUTHORISATION &amp; SIGNATORIES
+                    </div>
+                    <div className={`grid ${sigGridCols} border border-[#9EB3C8] divide-x divide-[#9EB3C8]`}>
                         {signatures.map((sig, sIdx) => {
-                            const isPrimarySigSlot =
-                                sIdx === 0 || /authori[sz]ed|signature|approved/i.test(sig.label || '');
-                            const showAutoSigInSlot = isDigitalSigEnabled && isDigitallySigned && isPrimarySigSlot;
+                            const labelClean = cleanLabel(sig.label);
+                            const isExternalParty = /vendor|supplier|customer|client|receiver|payee|accepted/i.test(labelClean);
+                            const isAuthorisedSlot = /authori[sz]ed|approved|signature|verified|issued/i.test(labelClean);
+                            const showAutoSigInSlot =
+                                isDigitalSigEnabled &&
+                                isDigitallySigned &&
+                                !isExternalParty &&
+                                (isAuthorisedSlot || (sIdx === 0 && signatures.length === 1));
+                            const showStampInSlot =
+                                sig.showStamp !== false &&
+                                !isExternalParty &&
+                                isDigitalSigEnabled &&
+                                isDigitallySigned &&
+                                !!digitalStampUrl &&
+                                (isAuthorisedSlot || sIdx === 0);
+
+                            const resolvedName =
+                                sig.value || (showAutoSigInSlot ? digitalSigName : '') || '';
+                            const resolvedDesignation =
+                                sig.designation ||
+                                (sig.extraLabel && !/stamp/i.test(sig.extraLabel) ? sig.extraValue : '') ||
+                                (showAutoSigInSlot ? digitalSigTitle : '') ||
+                                '';
+
                             return (
-                                <div key={sIdx} className="space-y-1.5 text-[11px]">
-                                    {showAutoSigInSlot && (digitalSigUrl || digitalSigName) && (
-                                        <div className="flex items-end justify-between gap-2 pb-1">
-                                            <div>
-                                                {digitalSigUrl && (
-                                                    <img
-                                                        src={digitalSigUrl}
-                                                        alt="Digital Signature"
-                                                        className="max-h-12 object-contain"
-                                                    />
-                                                )}
-                                                {digitalSigName && (
-                                                    <div className="text-[10px] font-semibold text-slate-800">
-                                                        {digitalSigName} {digitalSigTitle ? `— ${digitalSigTitle}` : ''}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            {digitalSigStamp && (
-                                                <div className="rounded border border-emerald-600/50 bg-emerald-50/70 px-1.5 py-0.5 text-[8.5px] font-bold tracking-wide text-emerald-800 uppercase">
-                                                    {digitalSigStamp}
-                                                </div>
-                                            )}
+                                <div key={sIdx} className="p-3 flex flex-col justify-between text-[10.5px]">
+                                    <div>
+                                        <div className="font-extrabold uppercase tracking-wide text-[#1B365D] mb-2">
+                                            {labelClean}
                                         </div>
-                                    )}
-                                    <div className="flex items-baseline gap-2">
-                                        <span className="font-bold text-slate-800 min-w-[130px] flex-shrink-0">
-                                            {sig.label}:
-                                        </span>
-                                        <span className="border-b border-slate-400 flex-1 font-medium text-slate-900 pb-0.5 min-h-[18px]">
-                                            {sig.value || (showAutoSigInSlot ? digitalSigName : '')}
-                                        </span>
+
+                                        <div className="space-y-1.5">
+                                            <div className="flex items-end gap-1.5">
+                                                <span className="font-bold text-slate-900 whitespace-nowrap">Signature:</span>
+                                                <span className="flex-1 border-b border-slate-700 min-h-[16px] flex items-end justify-center pb-0.5">
+                                                    {showAutoSigInSlot && digitalSigUrl ? (
+                                                        <img
+                                                            src={digitalSigUrl}
+                                                            alt="Signature"
+                                                            className="max-h-7 object-contain"
+                                                        />
+                                                    ) : null}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex items-end gap-1.5">
+                                                <span className="font-bold text-slate-900 whitespace-nowrap">Name:</span>
+                                                <span className="flex-1 border-b border-slate-700 min-h-[15px] text-slate-800 px-1 truncate">
+                                                    {resolvedName}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex items-end gap-1.5">
+                                                <span className="font-bold text-slate-900 whitespace-nowrap">Designation:</span>
+                                                <span className="flex-1 border-b border-slate-700 min-h-[15px] text-slate-800 px-1 truncate">
+                                                    {resolvedDesignation}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex items-end gap-1.5">
+                                                <span className="font-bold text-slate-900 whitespace-nowrap">
+                                                    {cleanLabel(sig.dateLabel || 'Date')}:
+                                                </span>
+                                                <span className="flex-1 border-b border-slate-700 min-h-[15px] text-slate-800 px-1">
+                                                    {sig.dateValue || ''}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    {sig.dateLabel && (
-                                        <div className="flex items-baseline gap-2">
-                                            <span className="text-slate-600 min-w-[130px] flex-shrink-0">
-                                                {sig.dateLabel}:
-                                            </span>
-                                            <span className="border-b border-slate-400 flex-1 text-slate-800 pb-0.5 min-h-[18px]">
-                                                {sig.dateValue || ''}
-                                            </span>
-                                        </div>
-                                    )}
-                                    {sig.extraLabel && (
-                                        <div className="flex items-start gap-2">
-                                            <span className="text-slate-600 min-w-[130px] flex-shrink-0 pt-1">
-                                                {sig.extraLabel}:
-                                            </span>
-                                            <div className="border-b border-slate-400 flex-1 text-slate-800 pb-1 min-h-[22px]">
-                                                {sig.extraValue || (
-                                                    /stamp/i.test(sig.extraLabel) && !/receiver/i.test(sig.extraLabel) ? (
-                                                        digitalStampUrl ? (
-                                                            <img
-                                                                src={digitalStampUrl}
-                                                                alt="Official Company Stamp"
-                                                                className="max-h-14 object-contain"
-                                                            />
-                                                        ) : (
-                                                            <div className="inline-flex flex-col items-center justify-center rounded border-2 border-indigo-700/70 bg-indigo-50/40 px-2.5 py-1 text-center leading-tight text-indigo-900">
-                                                                <span className="text-[9px] font-extrabold uppercase tracking-wider">
-                                                                    {displayCompanyName}
-                                                                </span>
-                                                                <span className="text-[7.5px] font-semibold tracking-wide text-indigo-700">
-                                                                    OFFICIAL STAMP {displayTin ? `• TIN: ${displayTin}` : ''}
-                                                                </span>
-                                                                <span className="text-[7px] font-mono text-indigo-600">
-                                                                    {sig.dateValue || date || new Date().toLocaleDateString()}
-                                                                </span>
-                                                            </div>
-                                                        )
-                                                    ) : ''
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
+
+                                    {/* Stamp Box */}
+                                    <div className="mt-3 h-14 border border-[#C5D3E0] px-2 py-1 flex items-end justify-between bg-white">
+                                        <span className="text-[9.5px] text-slate-400">Stamp</span>
+                                        {showStampInSlot && digitalStampUrl && (
+                                            <img
+                                                src={digitalStampUrl}
+                                                alt="Official Company Stamp"
+                                                className="max-h-12 object-contain"
+                                            />
+                                        )}
+                                    </div>
                                 </div>
                             );
                         })}
@@ -686,43 +754,40 @@ export default function CorporateDocumentTemplate({
                 <div className="mb-4 pt-2 flex items-end justify-between border-t border-slate-200">
                     <div>
                         {digitalSigUrl && (
-                            <img src={digitalSigUrl} alt="Digital Signature" className="max-h-12 object-contain" />
+                            <img src={digitalSigUrl} alt="Digital Signature" className="max-h-10 object-contain" />
                         )}
                         <div className="text-[10.5px] font-semibold text-slate-800">
                             {digitalSigName || 'Authorized Signatory'}
                             {digitalSigTitle ? ` — ${digitalSigTitle}` : ''}
                         </div>
                     </div>
-                    {digitalSigStamp && (
-                        <div className="rounded border border-emerald-600/50 bg-emerald-50/70 px-2 py-0.5 text-[9px] font-bold tracking-wide text-emerald-800 uppercase">
-                            {digitalSigStamp}
-                        </div>
+                    {digitalStampUrl && (
+                        <img src={digitalStampUrl} alt="Official Stamp" className="max-h-14 object-contain" />
                     )}
                 </div>
             )}
 
-            {/* Verification Hash / Seal (if applicable) */}
+            {/* Verification Hash (if applicable) */}
             {(verification || verificationHash) && (
-                <div className="flex justify-between items-center pt-2 pb-1 border-t border-slate-200 text-[10px] text-slate-500">
+                <div className="flex justify-between items-center pt-2 pb-1 border-t border-slate-200 text-[9.5px] text-slate-500">
                     <div className="flex items-center gap-1.5">
-                        <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
-                        <span className="font-semibold text-slate-700">Cryptographically Verified Document</span>
+                        <span className="inline-block w-2 h-2 rounded-full bg-[#0E7C5B]"></span>
+                        <span className="font-semibold text-slate-700">Verified Document</span>
                     </div>
                     {verificationHash && (
-                        <div className="font-mono text-[9.5px]">
+                        <div className="font-mono text-[9px]">
                             HASH: {verificationHash.substring(0, 32)}...
                         </div>
                     )}
                 </div>
             )}
 
-            {/* 7. BOTTOM SLOGAN */}
+            {/* 7. CENTERED BRAND-GREEN FOOTER SLOGAN */}
             {resolvedSlogan && (
-                <div className="text-center pt-3 pb-1 text-[11px] font-bold text-[#0d9488] tracking-wide">
+                <div className="text-center pt-3 pb-1 text-[11px] font-bold text-[#0E7C5B]">
                     {resolvedSlogan}
                 </div>
             )}
         </div>
     );
 }
-

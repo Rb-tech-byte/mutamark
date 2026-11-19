@@ -70,47 +70,6 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
 
     Route::get('dashboard', [HomeController::class, 'Dashboard'])->name('dashboard');
 
-    // Clearing & Forwarding Management (Module 43)
-    Route::prefix('clearing-forwarding')->name('clearing-forwarding.')->group(function () {
-        Route::get('dashboard', [\App\Http\Controllers\ClearingForwardingController::class, 'dashboard'])->name('dashboard');
-        Route::get('jobs', [\App\Http\Controllers\ClearingForwardingController::class, 'index'])->name('jobs.index');
-        Route::get('jobs/create', [\App\Http\Controllers\ClearingForwardingController::class, 'create'])->name('jobs.create');
-        Route::post('jobs', [\App\Http\Controllers\ClearingForwardingController::class, 'store'])->name('jobs.store');
-        Route::get('jobs/{cfJob}', [\App\Http\Controllers\ClearingForwardingController::class, 'show'])->name('jobs.show');
-        Route::patch('jobs/{cfJob}/status', [\App\Http\Controllers\ClearingForwardingController::class, 'updateStatus'])->name('jobs.update-status');
-        Route::post('jobs/{cfJob}/declarations', [\App\Http\Controllers\ClearingForwardingController::class, 'storeDeclaration'])->name('jobs.declarations.store');
-        Route::post('jobs/{cfJob}/disbursements', [\App\Http\Controllers\ClearingForwardingController::class, 'storeDisbursement'])->name('jobs.disbursements.store');
-        Route::post('jobs/{cfJob}/transport-orders', [\App\Http\Controllers\ClearingForwardingController::class, 'storeTransportOrder'])->name('jobs.transport-orders.store');
-        Route::post('jobs/{cfJob}/tracking-events', [\App\Http\Controllers\ClearingForwardingController::class, 'storeTrackingEvent'])->name('jobs.tracking-events.store');
-        Route::post('jobs/{cfJob}/deliveries', [\App\Http\Controllers\ClearingForwardingController::class, 'storeDelivery'])->name('jobs.deliveries.store');
-        Route::post('jobs/{cfJob}/reconcile', [\App\Http\Controllers\ClearingForwardingController::class, 'reconcileCosting'])->name('jobs.reconcile');
-        Route::patch('documents/{document}/verify', [\App\Http\Controllers\ClearingForwardingController::class, 'verifyDocument'])->name('documents.verify');
-        Route::get('containers', [\App\Http\Controllers\ClearingForwardingController::class, 'containers'])->name('containers.index');
-        Route::get('declarations', [\App\Http\Controllers\ClearingForwardingController::class, 'declarations'])->name('declarations.index');
-        Route::get('transport', [\App\Http\Controllers\ClearingForwardingController::class, 'transport'])->name('transport.index');
-        Route::get('jobs/{cfJob}/declarations/worksheet', [\App\Http\Controllers\ClearingForwardingController::class, 'generateWorksheet'])->name('jobs.declarations.worksheet');
-        Route::get('jobs/{cfJob}/declarations/export-csv', [\App\Http\Controllers\ClearingForwardingController::class, 'exportWorksheetCsv'])->name('jobs.declarations.export-csv');
-        Route::post('declarations/{declaration}/verify-assessment', [\App\Http\Controllers\ClearingForwardingController::class, 'verifyAssessment'])->name('declarations.verify-assessment');
-        Route::post('declarations/{declaration}/verify-release', [\App\Http\Controllers\ClearingForwardingController::class, 'verifyRelease'])->name('declarations.verify-release');
-        Route::post('jobs/{cfJob}/declarations/{declaration}/events', [\App\Http\Controllers\ClearingForwardingController::class, 'storeCustomsEvent'])->name('jobs.declarations.events.store');
-        Route::get('reports', [\App\Http\Controllers\ClearingForwardingController::class, 'reports'])->name('reports');
-        Route::get('reports/export-csv', [\App\Http\Controllers\ClearingForwardingController::class, 'exportReportsCsv'])->name('reports.export-csv');
-        Route::get('jobs/{cfJob}/print/{type}', [\App\Http\Controllers\ClearingForwardingController::class, 'printDocument'])->name('jobs.print');
-
-        // Border & Transit Control, Freight Bookings, Customs Rules, Fleet Transfer & Job Invoicing
-        Route::get('border', [\App\Http\Controllers\ClearingExtensionsController::class, 'borderIndex'])->name('border.index');
-        Route::post('border', [\App\Http\Controllers\ClearingExtensionsController::class, 'storeBorder'])->name('border.store');
-        Route::patch('border/{movement}/status', [\App\Http\Controllers\ClearingExtensionsController::class, 'updateBorderStatus'])->name('border.status');
-        Route::get('freight', [\App\Http\Controllers\ClearingExtensionsController::class, 'freightIndex'])->name('freight.index');
-        Route::post('freight', [\App\Http\Controllers\ClearingExtensionsController::class, 'storeFreight'])->name('freight.store');
-        Route::patch('freight/{booking}/status', [\App\Http\Controllers\ClearingExtensionsController::class, 'updateFreightStatus'])->name('freight.status');
-        Route::post('customs-rules', [\App\Http\Controllers\ClearingExtensionsController::class, 'storeCustomsRule'])->name('customs-rules.store');
-        Route::post('jobs/{cfJob}/transfer-to-fleet', [\App\Http\Controllers\ClearingExtensionsController::class, 'transferToFleet'])->name('jobs.transfer-to-fleet');
-        Route::post('jobs/{cfJob}/generate-invoice', [\App\Http\Controllers\ClearingExtensionsController::class, 'generateInvoice'])->name('jobs.generate-invoice');
-        Route::post('jobs/{cfJob}/upload-documents', [\App\Http\Controllers\ClearingForwardingController::class, 'uploadJobDocuments'])->name('jobs.documents.upload');
-        Route::post('jobs/{cfJob}/charge-estimates', [\App\Http\Controllers\ClearingForwardingController::class, 'storeChargeEstimate'])->name('jobs.charge-estimates.store');
-    });
-
     // Profile management routes
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::post('procurement/purchase-orders/{purchaseOrder}/action', [GoodsReceivedNoteController::class, 'purchaseOrderAction'])->name('purchase-orders.action');
@@ -431,8 +390,6 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     Route::post('portal/customer/proposals/{id}/reject', [PortalController::class, 'customerRejectProposal'])->name('portal.customer.reject-proposal');
     Route::post('portal/customer/invoices/{id}/payment', [PortalController::class, 'customerSubmitPayment'])->name('portal.customer.payment');
     Route::post('portal/customer/tickets', [PortalController::class, 'customerSubmitTicket'])->name('portal.customer.ticket');
-    Route::post('portal/customer/clearing-requests', [PortalController::class, 'customerSubmitClearingRequest'])->name('portal.customer.clearing-request');
-    Route::post('portal/customer/clearing-jobs/{cfJob}/acknowledge-delivery', [PortalController::class, 'customerAcknowledgeDelivery'])->name('portal.customer.acknowledge-delivery');
     Route::get('portal/supplier', [PortalController::class, 'supplierPortal'])->name('portal.supplier');
     Route::post('portal/supplier/rfqs/{id}/bid', [PortalController::class, 'supplierSubmitBid'])->name('portal.supplier.bid');
     Route::get('warranty-servicing', [WarrantyServicingController::class, 'index'])->name('warranty.index');

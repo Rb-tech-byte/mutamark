@@ -223,7 +223,7 @@ export default function ExecutiveHub({ report, reportType, filters, options }: E
                 <div className="bg-white rounded-lg border shadow-sm overflow-x-auto print:border-0 print:shadow-none">
                     <div ref={docRef} className="min-w-[750px] p-4 print:p-0">
                         <CorporateDocumentTemplate
-                            type="invoice"
+                            type="report"
                             documentTitle={report.title}
                             documentNumber={report.doc_number}
                             documentNumberLabel={t('Report Ref')}
@@ -246,6 +246,10 @@ export default function ExecutiveHub({ report, reportType, filters, options }: E
                                 value: typeof tot.value === 'number' ? tot.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : String(tot.value),
                                 isGrandTotal: tot.isGrandTotal,
                             }))}
+                            signatures={[
+                                { label: t('Prepared By'), dateLabel: t('Date'), dateValue: new Date().toLocaleDateString('en-GB') },
+                                { label: t('Authorised By'), dateLabel: t('Date') },
+                            ]}
                         />
                     </div>
                 </div>

@@ -144,7 +144,7 @@ export default function PosReportDocument({
             <div className="bg-white rounded-lg border shadow-sm overflow-x-auto print:border-0 print:shadow-none">
                 <div ref={docRef} className="min-w-[750px] p-4 print:p-0">
                     <CorporateDocumentTemplate
-                        type="invoice"
+                        type="report"
                         documentTitle={documentTitle}
                         documentNumber={documentNumber}
                         documentNumberLabel={t('Report Ref')}

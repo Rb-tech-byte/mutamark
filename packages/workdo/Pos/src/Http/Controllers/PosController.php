@@ -369,14 +369,21 @@ class PosController extends Controller
 
     public function printBarcode(Request $request, $sale = null)
     {
-        if (Auth::user()->can('manage-pos-barcodes')) {
+        if (Auth::user()->can('manage-pos-barcodes') || Auth::user()->can('print-pos-barcodes')) {
             $products = json_decode((string) $request->get('products'), true) ?: [];
+            $copies = json_decode((string) $request->get('copies'), true) ?: [];
+
             if (empty($products) && $request->filled('ids')) {
-                $ids = array_filter(array_map('intval', explode(',', (string) $request->get('ids'))));
+                $ids = array_values(array_filter(array_map('intval', explode(',', (string) $request->get('ids')))));
                 if (!empty($ids)) {
-                    $products = \Workdo\ProductService\Models\ProductServiceItem::where('created_by', creatorId())
+                    $itemsById = ProductServiceItem::where('created_by', creatorId())
                         ->whereIn('id', $ids)
                         ->get(['id', 'name', 'sku', 'sale_price'])
+                        ->keyBy('id');
+
+                    $products = collect($ids)
+                        ->map(fn ($id) => $itemsById->get($id))
+                        ->filter()
                         ->map(fn ($p) => [
                             'id' => $p->id,
                             'name' => $p->name,
@@ -386,12 +393,29 @@ class PosController extends Controller
                         ->values()
                         ->all();
                 }
+            } elseif (empty($products) && is_numeric($sale)) {
+                $posSale = Pos::with('items.product:id,name,sku,sale_price')
+                    ->where('created_by', creatorId())
+                    ->find((int) $sale);
+
+                if ($posSale) {
+                    foreach ($posSale->items as $item) {
+                        if ($item->product) {
+                            $products[] = [
+                                'id' => $item->product->id,
+                                'name' => $item->product->name,
+                                'sku' => $item->product->sku,
+                                'price' => (float) ($item->price ?? $item->product->sale_price),
+                            ];
+                            $copies[$item->product->id] = max(1, (int) $item->quantity);
+                        }
+                    }
+                }
             }
-            $copies = json_decode((string) $request->get('copies'), true) ?: [];
 
             return Inertia::render('Pos/Barcode/Print', [
                 'products' => $products,
-                'copies' => $copies,
+                'copies' => (object) $copies,
             ]);
         } else {
             return redirect()->route('pos.index')->with('error', __('Permission denied'));

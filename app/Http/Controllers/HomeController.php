@@ -13,8 +13,6 @@ use App\Models\SalesProposal;
 use App\Models\GoodsReceivedNote;
 use App\Models\Transfer;
 use App\Models\DeliveryNote;
-use App\Models\ClearingForwarding\CFJob;
-use App\Models\ClearingForwarding\CFDeclaration;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -46,11 +44,6 @@ class HomeController extends Controller
 
         if ($user->type === 'vendor' || $user->hasRole('vendor')) {
             return redirect()->route('portal.supplier');
-        }
-
-        // Dedicated Clearing & Forwarding operational roles
-        if (($user->hasRole('Clearing & Forwarding Manager') || $user->hasRole('Customs Declarant') || $user->hasRole('Transport Coordinator')) && $user->type !== 'company') {
-            return redirect()->route('clearing-forwarding.dashboard');
         }
 
         return $this->buildEnterpriseRoleDashboard($user);
@@ -442,39 +435,6 @@ class HomeController extends Controller
                 'pos_today_orders_count' => $posTodayOrdersCount,
                 'average_basket' => $posTodayOrdersCount > 0 ? round($posTodaySales / $posTodayOrdersCount, 2) : 0,
                 'recent_pos_orders' => $recentPosOrders,
-            ];
-        }
-
-        // -------------------------------------------------------------
-        // 4. CLEARING & FORWARDING (For Company & C&F Operations)
-        // -------------------------------------------------------------
-        if ($isCompany) {
-            $activeCfJobsCount = CFJob::where('created_by', $companyId)
-                ->whereNotIn('status', ['closed', 'cancelled'])
-                ->count();
-
-            $tancisPendingCount = CFDeclaration::whereHas('job', function($q) use ($companyId) {
-                $q->where('created_by', $companyId);
-            })->whereNotIn('status', ['released', 'cancelled'])->count();
-
-            $demurrageRiskCount = DB::table('cf_containers')
-                ->join('cf_jobs', 'cf_containers.cf_job_id', '=', 'cf_jobs.id')
-                ->where('cf_jobs.created_by', $companyId)
-                ->where('cf_containers.status', '!=', 'returned')
-                ->whereNotNull('cf_containers.empty_return_deadline')
-                ->whereDate('cf_containers.empty_return_deadline', '<=', now()->addDays(3))
-                ->count();
-
-            $recentCfJobs = CFJob::where('created_by', $companyId)
-                ->latest()
-                ->take(5)
-                ->get(['id', 'job_number', 'consignee_name', 'transport_mode', 'service_type', 'status', 'created_at']);
-
-            $data['clearing_forwarding'] = [
-                'active_jobs_count' => $activeCfJobsCount,
-                'tancis_pending_count' => $tancisPendingCount,
-                'demurrage_risk_count' => $demurrageRiskCount,
-                'recent_jobs' => $recentCfJobs,
             ];
         }
 

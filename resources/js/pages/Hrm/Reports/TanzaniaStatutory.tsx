@@ -47,6 +47,7 @@ import {
     FileCheck
 } from "lucide-react";
 import { formatCurrency, formatDate } from '@/utils/helpers';
+import { CorporateDocumentHeader } from '@/components/CorporateDocumentTemplate';
 
 interface PayrollItem {
     id: number;
@@ -497,14 +498,18 @@ export default function TanzaniaStatutory({
                 </div>
 
                 {/* Print Return Letterhead */}
-                <div className="hidden print:block border-b pb-4 mb-4">
-                    <div className="text-center space-y-1">
-                        <h2 className="text-xl font-bold uppercase tracking-wider">Mutamark Enterprises Limited</h2>
-                        <p className="text-xs text-muted-foreground">Tanzania Revenue Authority & Social Security Statutory Schedule</p>
-                        <p className="text-xs font-semibold">
-                            {selected_payroll?.title} | Period: {selected_payroll?.pay_period_start ? formatDate(selected_payroll.pay_period_start) : '-'} to {selected_payroll?.pay_period_end ? formatDate(selected_payroll.pay_period_end) : '-'}
-                        </p>
-                    </div>
+                <div className="hidden print:block mb-4">
+                    <CorporateDocumentHeader
+                        title="TANZANIA STATUTORY PAYROLL RETURNS SCHEDULE"
+                        metaItems={[
+                            { label: 'Payroll', value: selected_payroll?.title || '—' },
+                            {
+                                label: 'Period',
+                                value: `${selected_payroll?.pay_period_start ? formatDate(selected_payroll.pay_period_start) : '-'} to ${selected_payroll?.pay_period_end ? formatDate(selected_payroll.pay_period_end) : '-'}`,
+                            },
+                            { label: 'Generated On', value: formatDate(new Date().toISOString()) },
+                        ]}
+                    />
                 </div>
 
                 {/* KPI Summary Cards */}

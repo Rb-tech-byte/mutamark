@@ -155,12 +155,6 @@ interface DashboardProps {
         average_basket: number;
         recent_pos_orders: any[];
     };
-    clearing_forwarding?: {
-        active_jobs_count: number;
-        tancis_pending_count: number;
-        demurrage_risk_count: number;
-        recent_jobs: any[];
-    };
     hrm?: {
         total_employees: number;
         present_today: number;
@@ -182,7 +176,6 @@ export default function Dashboard(props: DashboardProps) {
         finance,
         warehouse,
         sales,
-        clearing_forwarding,
         hrm,
     } = props;
 
@@ -256,11 +249,6 @@ export default function Dashboard(props: DashboardProps) {
                                     <Button asChild size="sm" variant="default" className="gap-1.5 shadow-sm">
                                         <Link href={route('sales-invoices.create')}>
                                             <Plus className="h-4 w-4" /> {t('New Invoice')}
-                                        </Link>
-                                    </Button>
-                                    <Button asChild size="sm" variant="outline" className="gap-1.5">
-                                        <Link href={route('clearing-forwarding.jobs.create')}>
-                                            <Ship className="h-4 w-4" /> {t('New C&F Job')}
                                         </Link>
                                     </Button>
                                     <Button asChild size="sm" variant="outline" className="gap-1.5">
@@ -405,24 +393,6 @@ export default function Dashboard(props: DashboardProps) {
                                     <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                                         <Layers className="h-3.5 w-3.5 text-amber-500" />
                                         {warehouse?.total_items_count || 0} {t('registered product SKUs')}
-                                    </p>
-                                </CardContent>
-                            </Card>
-
-                            <Card className="border-l-4 border-l-cyan-500 shadow-sm">
-                                <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                                    <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                        {t('C&F Shipments')}
-                                    </CardTitle>
-                                    <Ship className="h-5 w-5 text-cyan-600" />
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold tracking-tight text-cyan-700 dark:text-cyan-400">
-                                        {clearing_forwarding?.active_jobs_count || 0} {t('Active')}
-                                    </div>
-                                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                                        <CheckCircle className="h-3.5 w-3.5 text-cyan-500" />
-                                        {clearing_forwarding?.tancis_pending_count || 0} {t('TANCIS clearance in progress')}
                                     </p>
                                 </CardContent>
                             </Card>
